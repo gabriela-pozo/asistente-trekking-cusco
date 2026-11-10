@@ -1,0 +1,7 @@
+dia,orden,lugar,latitud,longitud,altitud_m,tipo,fuente
+1,1,Lares (pueblo),-13.10418,-72.04424,3190,sitio,coord: https://www.openstreetmap.org/node/967311777; alt: https://www.openstreetmap.org/node/967311777
+1,2,Pampacorral,-13.14884,-72.00568,,inicio,coord: https://www.openstreetmap.org/node/2100502774
+3,3,Huarán,-13.31081,-72.01905,2700,sitio,coord: https://www.openstreetmap.org/node/3151852765; alt: https://trexperienceperu.com/lares-trek
+3,4,Ollantaytambo,-13.25806,-72.26333,2792,sitio,coord: https://en.wikipedia.org/wiki/Ollantaytambo; alt: https://en.wikipedia.org/wiki/Ollantaytambo
+3,5,Aguas Calientes,-13.15472,-72.52528,2000,campamento,coord: https://en.wikipedia.org/wiki/Aguas_Calientes%2C_Peru; alt: https://trexperienceperu.com/lares-trek
+4,6,Machu Picchu,-13.16333,-72.54556,2430,fin,coord: https://en.wikipedia.org/wiki/Machu_Picchu; alt: https://trexperienceperu.com/lares-trek

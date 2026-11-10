@@ -1,0 +1,11 @@
+dia,orden,lugar,latitud,longitud,altitud_m,tipo,fuente
+1,1,Km 82 (Piscacucho),-13.21493,-72.38251,2720,inicio,coord: https://www.openstreetmap.org/node/6243422856; alt: https://www.alpacaexpeditions.com/classic-inca-trail-trek-4d3n-group-service/
+1,2,Patallaqta,-13.23139,-72.43139,,sitio,coord: https://en.wikipedia.org/wiki/Patallacta
+2,3,Abra Warmiwañusqa,-13.24278,-72.48417,4215,paso,coord: https://en.wikipedia.org/wiki/Warmi_Wa%C3%B1usqa; alt: https://www.alpacaexpeditions.com/classic-inca-trail-trek-4d3n-group-service/
+2,4,Runkuraqay,-13.22833,-72.50139,,sitio,coord: https://en.wikipedia.org/wiki/Runkuraqay
+2,5,Abra Runkuraqay,-13.22670,-72.50540,3998,paso,coord: https://www.openstreetmap.org/node/410892272; alt: https://www.openstreetmap.org/node/410892272
+2,6,Sayacmarca,-13.22817,-72.51692,,sitio,coord: https://en.wikipedia.org/wiki/Sayacmarca
+3,7,Phuyupatamarca,-13.20639,-72.53167,3600,sitio,coord: https://en.wikipedia.org/wiki/Puyupatamarca; alt: https://www.alpacaexpeditions.com/classic-inca-trail-trek-4d3n-group-service/
+3,8,Wiñay Wayna,-13.19278,-72.53639,2650,campamento,coord: https://en.wikipedia.org/wiki/Wi%C3%B1ay_Wayna; alt: https://en.wikipedia.org/wiki/Wi%C3%B1ay_Wayna
+4,9,Inti Punku,-13.16972,-72.53389,2745,sitio,coord: https://en.wikipedia.org/wiki/Inti_Punku; alt: https://en.wikipedia.org/wiki/Inti_Punku
+4,10,Machu Picchu,-13.16333,-72.54556,2430,fin,coord: https://en.wikipedia.org/wiki/Machu_Picchu; alt: https://en.wikipedia.org/wiki/Machu_Picchu
