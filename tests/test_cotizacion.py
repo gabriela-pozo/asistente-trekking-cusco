@@ -44,15 +44,27 @@ class PruebasTarifario(unittest.TestCase):
         pd.testing.assert_frame_equal(en_disco, generado, check_dtype=False)
 
     def test_estandar_es_mediana_sin_premium(self):
-        # Salkantay 5 días: sin la fila premium (1270) la mediana es 669 -> 670
+        # Salkantay 5 días: sin la fila premium (1270) la mediana es 674,5 -> 670
         self.assertEqual(fila("salkantay_5d", "estandar")["precio_usd_pp_grupo_2"], 670)
-        self.assertEqual(fila("camino_inca_4d", "estandar")["precio_usd_pp_grupo_2"], 810)
+        self.assertEqual(fila("camino_inca_4d", "estandar")["precio_usd_pp_grupo_2"], 840)  # mediana 835 -> 840
 
     def test_salkantay_4d_no_supera_al_de_5d(self):
-        self.assertEqual(fila("salkantay_4d", "estandar")["precio_usd_pp_grupo_2"], 600)  # 670 - 10 %
+        self.assertEqual(fila("salkantay_4d", "estandar")["precio_usd_pp_grupo_2"], 600)  # mediana 595 -> 600 (ya no hace falta la regla del 10 %)
         for nivel in ("economico", "estandar", "premium"):
             self.assertLess(fila("salkantay_4d", nivel)["precio_usd_pp_grupo_2"],
                             fila("salkantay_5d", nivel)["precio_usd_pp_grupo_2"])
+
+    def test_regla_salkantay_4d_con_datos_de_prueba(self):
+        """Con los datos reales la regla ya no se activa; aquí se prueba con un mercado inventado."""
+        filas = ([("Salkantay", 4, p) for p in (700, 720, 740)]
+                 + [("Salkantay", 5, p) for p in (600, 650, 700)]
+                 + [("Camino Inca clásico", 4, 800)])
+        mercado = pd.DataFrame([{"trek": t, "dias": d, "precio_usd_pp": p, "nivel_aprox": "no_indicado",
+                                 "incluir_en_analisis": "si"} for t, d, p in filas])
+        estandar, notas = ap.precios_estandar(mercado)
+        self.assertEqual(estandar[("Salkantay", 5)], 650)
+        self.assertEqual(estandar[("Salkantay", 4)], 590)  # 650 x 0,9 = 585 -> 590, no 720
+        self.assertTrue(any("menos 10 %" in n for n in notas))
 
     def test_economico_y_premium(self):
         self.assertEqual(fila("salkantay_5d", "economico")["precio_usd_pp_grupo_2"], 540)  # 670 x 0,8 = 536
@@ -60,8 +72,8 @@ class PruebasTarifario(unittest.TestCase):
 
     def test_descuentos_por_grupo(self):
         f = fila("camino_inca_4d", "estandar")
-        self.assertEqual(f["precio_usd_pp_grupo_3a4"], 780)   # 810 x 0,96 = 777,6
-        self.assertEqual(f["precio_usd_pp_grupo_5mas"], 750)  # 810 x 0,92 = 745,2
+        self.assertEqual(f["precio_usd_pp_grupo_3a4"], 810)   # 840 x 0,96 = 806,4
+        self.assertEqual(f["precio_usd_pp_grupo_5mas"], 770)  # 840 x 0,92 = 772,8
 
     def test_camino_inca_cerrado_en_febrero(self):
         inca = TARIFARIO[TARIFARIO["ruta"] == "camino_inca"]
@@ -126,9 +138,9 @@ class PruebasCotizacion(unittest.TestCase):
                    nivel_preferido="estandar", extras_de_interes=["huayna_picchu", "vistadome"]),
             TARIFARIO, EXTRAS)
         o = opciones[0]
-        self.assertEqual(o.precio_pp, 810)
-        self.assertEqual(o.precio_pp_con_extras, 810 + 75 + 75)
-        self.assertEqual(o.total, 960 * 2)
+        self.assertEqual(o.precio_pp, 840)
+        self.assertEqual(o.precio_pp_con_extras, 840 + 75 + 75)
+        self.assertEqual(o.total, 990 * 2)
         self.assertIn("Huayna Picchu", o.resumen())
 
     def test_premium_no_cobra_vistadome_porque_ya_lo_incluye(self):
