@@ -1,0 +1,6 @@
+streamlit>=1.40
+anthropic>=0.60
+pandas>=2.2
+scikit-learn>=1.5
+pydantic>=2.7
+python-dotenv>=1.0

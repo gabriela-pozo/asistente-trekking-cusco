@@ -1,0 +1,20 @@
+# Secretos: nunca subir
+.env
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Datos generados en ejecución (consultas reales de turistas)
+data/consultas_registradas.csv
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+.vscode/
+.idea/
