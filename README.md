@@ -1,10 +1,14 @@
 # Abra Travel
 
-> Abra Travel responde en segundos las consultas de viajeros a las agencias de turismo, empezando por Cusco, con sus propios precios y en el idioma de cada viajero.
+> Abra Travel prepara en segundos la respuesta a cada consulta de viajeros para las agencias de turismo, empezando por Cusco, con sus propios precios y en el idioma de cada viajero.
 
 **El nombre:** el abra es el punto más alto de un trek (como el abra Salkantay) y viene de "abrir": abre cada conversación con el viajero.
 
 Proyecto final de la Diplomatura de Ciencia de Datos para las Ciencias Sociales y la Gestión Pública (Q-Lab PUCP, 2026).
+
+## Solución
+
+Hoy el vendedor revisa y envía cada respuesta: por la mañana responde en minutos todas las consultas que llegaron de noche, antes que la competencia. El **modo nocturno** muestra, para las consultas que llegan fuera de horario, la primera respuesta segura que se enviaría sola (armada por código: precio desde el tarifario, qué incluye y lo que falta preguntar), y solo cuando el control no encontró problemas. El envío real con la API de WhatsApp Cloud es el siguiente paso.
 
 ## Qué hace
 
@@ -41,7 +45,7 @@ streamlit run app/app.py  # y abre http://localhost:8501
 | --- | --- |
 | `app/` | App web en Streamlit: "Nueva consulta", "Mi agencia" y "Tablero". Diseño en `docs/diseno.md` |
 | `ai/` | Esquemas (pydantic), conexión con el modelo, instrucciones, búsqueda y flujo principal |
-| `core/` | Cotización con el tarifario, enlace de WhatsApp y agregaciones del Tablero |
+| `core/` | Cotización con el tarifario, enlace de WhatsApp, respuesta del modo nocturno y agregaciones del Tablero |
 | `data/` | Tarifario demo, precios de mercado, base de conocimiento de Cusco y de Huaraz |
 | `docs/` | Fuentes de precios e investigación (evidencia pública, cliente misterioso, verificación oficial) |
 | `evaluacion/` | 20 consultas sintéticas para evaluar las respuestas |
