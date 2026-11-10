@@ -8,7 +8,7 @@ Este conjunto sirve para medir la calidad del asistente para agencias de trekkin
 - Fecha de referencia: noviembre de 2026 (por eso la mayoría de los viajes son en 2027).
 - Hechos de contexto usados para las respuestas esperadas: el Camino Inca cierra todos los febreros;
   sus permisos son limitados y se agotan con meses de anticipación; Salkantay no necesita permiso;
-  mediana de mercado ≈ US$ 670 (Salkantay 5 días) y ≈ US$ 810 (Camino Inca 4 días).
+  mediana de mercado ≈ US$ 670 (Salkantay 5 días) y ≈ US$ 840 (Camino Inca 4 días, estándar del tarifario).
 
 Distribución: 12 en inglés, 4 en español, 2 en portugués, 1 en francés, 1 en alemán.
 Incluye casos difíciles: Camino Inca en febrero, grupo de 9, presupuesto de US$ 300,
