@@ -8,8 +8,10 @@ Diseño (colores, tipografía, orden de la pantalla): docs/diseno.md. El tema es
 """
 from __future__ import annotations
 
+import html
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import altair as alt
@@ -20,11 +22,14 @@ sys.path.insert(0, str(RAIZ))
 sys.path.insert(0, str(RAIZ / "app"))
 
 from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  # noqa: E402
-from ai.fecha import hoy_en_lima  # noqa: E402
+from ai.fecha import ZONA, hoy_en_lima  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA  # noqa: E402
 from core.cotizacion import NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
+from core.respuesta_nocturna import (  # noqa: E402
+    APERTURA, CIERRE, advertencias_de_control, fuera_de_horario, respuesta_nocturna,
+)
 from core.tablero import (  # noqa: E402
     cargar_consultas, contar_registradas, filtrar, metricas, por_mes_viaje, por_pais, por_trek, registrar,
     registro_desde_resultado,
@@ -55,6 +60,7 @@ CONSULTAS_SINTETICAS = RAIZ / "data" / "consultas_sinteticas.csv"
 # Consultas registradas desde la app (solo el perfil agregado). No se sube al repositorio (.gitignore).
 RUTA_REGISTRO = Path(os.getenv("ABRA_REGISTRO") or RAIZ / "data" / "consultas_registradas.csv")
 ETIQUETA_SINTETICOS = "Datos sintéticos del demo: no son de ninguna agencia real"
+ETIQUETA_SIMULACION = "Simulación: el envío automático requiere la API de WhatsApp Business (siguiente paso)"
 
 st.set_page_config(page_title="Abra Travel", page_icon=ICONO, layout="wide")
 
@@ -108,6 +114,11 @@ if "extras" not in st.session_state:
     st.session_state.extras = cargar_extras(RAIZ / "data" / "extras_demo.csv")
 if "agencia" not in st.session_state:
     st.session_state.agencia = AGENCIA
+st.session_state.setdefault("apertura", APERTURA)  # horario de atención, en hora de Lima
+st.session_state.setdefault("cierre", CIERRE)
+st.session_state.setdefault("modo_nocturno", True)
+if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lima
+    st.session_state.hora_llegada = datetime.now(ZONA).time().replace(second=0, microsecond=0)
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
@@ -203,6 +214,23 @@ def mostrar_perfil(perfil) -> None:
         st.html(html_perfil(perfil))
 
 
+def mostrar_respuesta_nocturna(resultado) -> None:
+    """Simulación del modo nocturno: lo que se enviaría solo si la consulta llega fuera de horario."""
+    nocturna = respuesta_nocturna(resultado.perfil, st.session_state.tarifario, advertencias_de_control(resultado),
+                                  st.session_state.agencia, st.session_state.apertura)
+    with st.container(border=True, key="tarjeta_nocturna"):
+        rotulo("Respuesta automática fuera de horario")
+        clase = "estado-envia" if nocturna.se_enviaria_sola else "estado-espera"
+        st.html(f'<div class="nocturna-cabecera"><span class="estado {clase}">{nocturna.estado}</span>'
+                f'<span class="simulacion">{ETIQUETA_SIMULACION}</span></div>')
+        if nocturna.motivos:
+            st.html('<p class="nocturna-motivo"><strong>Motivo:</strong> '
+                    + " ".join(html.escape(m) for m in nocturna.motivos) + "</p>")
+        st.html(f'<div class="nocturna-mensaje">{html.escape(nocturna.mensaje)}</div>')
+        st.caption(f"Llegó a las {st.session_state.hora_llegada:%H:%M} (hora de Lima), fuera de tu horario "
+                   f"de {st.session_state.apertura:%H:%M} a {st.session_state.cierre:%H:%M}. No se envió nada.")
+
+
 def pagina_consulta() -> None:
     st.header("Nueva consulta")
     st.html('<p class="subtitulo">Pega el mensaje del viajero y recibe una respuesta en su idioma, '
@@ -220,8 +248,13 @@ def pagina_consulta() -> None:
     with st.container(border=True, key="tarjeta_entrada"):
         consulta = st.text_area("Mensaje del viajero", key="consulta", height=96 if resultado else 140,
                                 placeholder=EJEMPLO)
-        telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)",
-                                 placeholder="+1 555 123 4567")
+        with st.container(horizontal=True):
+            telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)",
+                                     placeholder="+1 555 123 4567")
+            st.session_state.hora_llegada = st.time_input(
+                "Hora de llegada de la consulta", st.session_state.hora_llegada, step=60,
+                help="Hora de Lima. Fuera de tu horario de atención, con el modo nocturno activo, "
+                     "se muestra la respuesta automática que se enviaría.")
         with st.container(horizontal=True, vertical_alignment="center"):
             preparar = st.button("Preparar respuesta", type="primary", icon=":material/edit_note:",
                                  disabled=not consulta or bool(variable))
@@ -263,6 +296,10 @@ def pagina_consulta() -> None:
         st.info(f"Resultado guardado de una consulta real al modelo ({st.session_state.get('fecha_ejemplo', '')}). "
                 "No se llamó a la API, así que no gastó cuota.", icon=":material/bookmark:")
 
+    llegada = datetime.combine(hoy_en_lima(), st.session_state.hora_llegada)  # sin zona = hora de Lima
+    if st.session_state.modo_nocturno and fuera_de_horario(llegada, st.session_state.apertura, st.session_state.cierre):
+        mostrar_respuesta_nocturna(resultado)
+
     # Laptop: borrador y opciones lado a lado. Celular: una columna, el borrador primero.
     izquierda, derecha = st.columns([7, 5], gap="large")
     with izquierda:
@@ -298,6 +335,19 @@ def pagina_agencia() -> None:
     st.html('<p class="subtitulo">Tu tarifario. Abra Travel solo cotiza con estos precios: '
             'el modelo nunca los inventa.</p>')
     st.session_state.agencia = st.text_input("Nombre de la agencia", st.session_state.agencia)
+
+    with st.container(border=True, key="tarjeta_horario"):
+        rotulo("Horario de atención (hora de Lima)")
+        with st.container(horizontal=True, vertical_alignment="bottom"):
+            st.session_state.apertura = st.time_input("Abre", st.session_state.apertura, step=1800)
+            st.session_state.cierre = st.time_input("Cierra", st.session_state.cierre, step=1800)
+            st.session_state.modo_nocturno = st.toggle(
+                "Modo nocturno", st.session_state.modo_nocturno,
+                help="Fuera de horario, muestra la primera respuesta segura que se enviaría sola. "
+                     "Hoy es una simulación: no se envía nada.")
+        st.caption("Con el modo nocturno, una consulta que llega fuera de horario recibe una respuesta armada por "
+                   "código (precio desde tu tarifario, qué incluye y lo que falta preguntar) solo si el control "
+                   "no encontró problemas. Si no, queda en espera del vendedor.")
 
     with st.container(border=True, key="tarjeta_tarifario"):
         rotulo("Tarifario")
