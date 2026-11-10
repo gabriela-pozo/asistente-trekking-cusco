@@ -23,7 +23,6 @@ PALABRAS_VACIAS = (
     "su sus un una uno y ya"
 ).split()
 
-# Archivo de la base que corresponde a cada trek del perfil.
 # Código del trek en el perfil -> archivo de data/knowledge y palabras para la búsqueda en español
 TREKS = {
     "salkantay": ("salkantay", "salkantay trek"),

@@ -23,6 +23,10 @@ NOMBRE_NIVEL = {"economico": "económico", "estandar": "estándar", "premium": "
 ORDEN_NIVEL = {"estandar": 0, "economico": 1, "premium": 2}
 PERSONAS_POR_DEFECTO = 2
 
+# Condiciones de reserva de la agencia demo (data/knowledge/condiciones_reserva.md)
+PORCENTAJE_DEPOSITO = 0.50            # depósito = 50 % del total
+NO_REEMBOLSABLE_CAMINO_INCA_PP = 200  # parte del depósito que cubre el permiso nominal
+
 
 @dataclass
 class OpcionCotizada:
@@ -46,6 +50,21 @@ class OpcionCotizada:
     def total(self) -> int:
         return self.precio_pp_con_extras * self.personas
 
+    @property
+    def deposito(self) -> int:
+        return int(self.total * PORCENTAJE_DEPOSITO + 0.5)
+
+    @property
+    def saldo(self) -> int:
+        return self.total - self.deposito
+
+    def linea_deposito(self) -> str:
+        texto = (f"Depósito US$ {self.deposito} (50 % del total) para reservar; saldo US$ {self.saldo} "
+                 f"hasta 30 días antes del trek")
+        if self.requiere_permiso:
+            texto += f" (US$ {NO_REEMBOLSABLE_CAMINO_INCA_PP} por persona del depósito no son reembolsables)"
+        return texto + "."
+
     def resumen(self) -> str:
         texto = (
             f"{self.trek}, {self.dias} días, nivel {NOMBRE_NIVEL.get(self.nivel, self.nivel)}: "
@@ -55,7 +74,7 @@ class OpcionCotizada:
             texto += f" + {nombre} US$ {precio} por persona"
         texto += (
             f". Total US$ {self.total}. Incluye: {', '.join(self.incluye)}. "
-            f"No incluye: {', '.join(self.no_incluye)}."
+            f"No incluye: {', '.join(self.no_incluye)}. {self.linea_deposito()}"
         )
         if self.requiere_permiso:
             texto += " Requiere permiso del Camino Inca: verificar disponibilidad antes de confirmar."
