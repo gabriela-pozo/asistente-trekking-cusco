@@ -13,6 +13,12 @@ Lee la consulta de un turista y extrae su perfil en el formato pedido.
 No inventes datos: si algo no aparece en la consulta, déjalo en null o en una lista vacía.
 Escribe 'temas_consulta' y 'datos_faltantes' en español, aunque el turista escriba en otro idioma."""
 
+
+def sistema_extraer(hoy: str) -> str:
+    """Instrucciones de extracción con la fecha de hoy, para convertir fechas relativas en mes_viaje."""
+    return (f"{SISTEMA_EXTRAER}\nHoy es {hoy} (hora de Cusco). Usa esta fecha para convertir fechas relativas "
+            "('esta semana', 'este mes', 'next month', 'in two weeks') en mes_viaje.")
+
 # Reglas de la respuesta y el hallazgo del cliente misterioso que corrige cada una:
 REGLAS_RESPUESTA = [
     # 2 de 6 agencias respondieron en español a un mensaje en inglés.
@@ -67,10 +73,12 @@ SISTEMA_RESPONDER = (
 
 def mensaje_responder(consulta: str, perfil_json: str, cotizacion: str, conocimiento: str,
                       aviso: str | None, fecha_posible: bool, agencia: str, nota_presupuesto: str | None = None,
-                      nota_trek_sin_precio: str | None = None) -> str:
+                      nota_trek_sin_precio: str | None = None, hoy: str | None = None) -> str:
     fecha = ("Sí: las opciones de la COTIZACIÓN son para lo que pidió." if fecha_posible else
              "No: lo pedido no está disponible en esa fecha. Las opciones de la COTIZACIÓN son alternativas; pregunta si le sirven.")
     return f"""AGENCIA: {agencia}
+
+HOY: {f"Hoy es {hoy}." if hoy else "sin dato"}
 
 CONSULTA DEL TURISTA:
 {consulta}

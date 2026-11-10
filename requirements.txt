@@ -7,3 +7,4 @@ pydantic>=2.7
 python-dotenv>=1.0
 folium>=0.17
 streamlit-folium>=0.22
+tzdata>=2024.1  # zona horaria America/Lima en Windows

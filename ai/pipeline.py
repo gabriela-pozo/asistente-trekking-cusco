@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import date
 
 import pandas as pd
 
 from ai import prompts
+from ai.fecha import fecha_en_texto, hoy_en_lima, mes_relativo
 from ai.knowledge import MESES_DE_LLUVIA, BaseConocimiento, Fragmento, archivos_desde_perfil, consulta_desde_perfil
 from ai.llm import LLM, Uso
 from ai.schemas import BorradorRespuesta, PerfilTurista
@@ -240,8 +242,14 @@ def texto_cotizacion(opciones: list[OpcionCotizada]) -> str:
 
 
 def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario: pd.DataFrame,
-                      extras: pd.DataFrame | None = None, agencia: str = AGENCIA) -> Resultado:
-    perfil, uso1 = llm.estructurado(prompts.SISTEMA_EXTRAER, consulta, PerfilTurista)
+                      extras: pd.DataFrame | None = None, agencia: str = AGENCIA, hoy: date | None = None) -> Resultado:
+    """`hoy` permite fijar la fecha en las pruebas; por defecto es la fecha actual en Lima."""
+    hoy = hoy or hoy_en_lima()
+    perfil, uso1 = llm.estructurado(prompts.sistema_extraer(fecha_en_texto(hoy)), consulta, PerfilTurista)
+    if perfil.mes_viaje is None:  # respaldo en código si el modelo no convirtió "esta semana" en un mes
+        mes = mes_relativo(perfil.fecha_texto, hoy) or mes_relativo(consulta, hoy)
+        if mes:
+            perfil = perfil.model_copy(update={"mes_viaje": mes})
 
     fragmentos = base.buscar(consulta_desde_perfil(perfil), k=8, archivos_prioritarios=archivos_desde_perfil(perfil))
     opciones = opciones_para_perfil(perfil, tarifario, extras, maximo=MAXIMO_OPCIONES)
@@ -260,6 +268,7 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
         agencia=agencia,
         nota_presupuesto=presupuesto,
         nota_trek_sin_precio=nota_trek_sin_precio(sin_precio, opciones),
+        hoy=fecha_en_texto(hoy),
     )
     borrador, uso2 = llm.estructurado(prompts.SISTEMA_RESPONDER, mensaje, BorradorRespuesta)
 

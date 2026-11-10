@@ -6,6 +6,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from datetime import date, datetime, timezone
 from unittest import mock
 
 from pydantic import ValidationError
@@ -14,6 +15,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
 from ai import prompts  # noqa: E402
+from ai.fecha import fecha_en_texto, hoy_en_lima, mes_relativo  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import GeminiLLM, Uso, con_reintentos, crear_llm  # noqa: E402
 from ai.pipeline import contar_lineas, contar_palabras, precios_en_texto, procesar_consulta  # noqa: E402
@@ -65,9 +67,12 @@ class LLMSimulado:
         return esquema.model_validate(self.respuestas[esquema]), Uso(100, 50)
 
 
-def correr(perfil=PERFIL_SALKANTAY, respuesta=None, consulta=CONSULTA, tarifario=TARIFARIO):
+HOY = date(2026, 11, 10)  # reloj fijo: martes 10 de noviembre de 2026
+
+
+def correr(perfil=PERFIL_SALKANTAY, respuesta=None, consulta=CONSULTA, tarifario=TARIFARIO, hoy=HOY):
     llm = LLMSimulado(perfil, respuesta or borrador())
-    return procesar_consulta(consulta, llm, BASE, tarifario, EXTRAS), llm
+    return procesar_consulta(consulta, llm, BASE, tarifario, EXTRAS, hoy=hoy), llm
 
 
 class PruebasFlujo(unittest.TestCase):
@@ -109,7 +114,7 @@ class PruebasFlujo(unittest.TestCase):
     def test_la_consulta_va_al_modelo_tal_cual(self):
         _, llm = correr()
         self.assertEqual(llm.llamadas[0]["mensaje"], CONSULTA)
-        self.assertEqual(llm.llamadas[0]["sistema"], prompts.SISTEMA_EXTRAER)
+        self.assertTrue(llm.llamadas[0]["sistema"].startswith(prompts.SISTEMA_EXTRAER))
 
 
 class PruebasControles(unittest.TestCase):
@@ -175,6 +180,57 @@ class PruebasControles(unittest.TestCase):
     def test_precios_en_texto(self):
         self.assertEqual(precios_en_texto("US$ 600, $1,200, USD 680, 1.360 USD y 75 dollars; 4 días, 50 %"),
                          [600, 1200, 680, 1360, 75])
+
+
+class PruebasFecha(unittest.TestCase):
+    """Reloj fijo: el 10/11/2026, "esta semana" es noviembre."""
+
+    CONSULTA = ("Hola, quisiera información sobre el trek de Choquequirao, es para 1 persona, cuáles son precios? "
+                "puedo ir esta semana o cuándo?")
+    PERFIL = {"idioma": "es", "num_personas": 1, "fecha_texto": "esta semana", "treks_de_interes": ["choquequirao"],
+              "datos_faltantes": ["fecha exacta"]}
+
+    def test_fecha_en_texto(self):
+        self.assertEqual(fecha_en_texto(HOY), "martes 10 de noviembre de 2026")
+
+    def test_hoy_es_la_fecha_de_lima(self):
+        # 03:00 UTC del 11/11 son las 22:00 del 10/11 en Lima (UTC-5).
+        self.assertEqual(hoy_en_lima(datetime(2026, 11, 11, 3, 0, tzinfo=timezone.utc)), date(2026, 11, 10))
+        self.assertEqual(hoy_en_lima(datetime(2026, 11, 11, 6, 0, tzinfo=timezone.utc)), date(2026, 11, 11))
+
+    def test_fechas_relativas(self):
+        casos = [
+            ("esta semana", HOY, 11), ("this week", HOY, 11), ("este mes", HOY, 11),
+            ("next month", HOY, 12), ("el próximo mes", HOY, 12), ("next month", date(2026, 12, 15), 1),
+            ("la próxima semana", date(2026, 11, 28), 12), ("tomorrow", HOY, 11),
+            ("late March", HOY, None), ("por la mañana", HOY, None), (None, HOY, None),
+        ]
+        for texto, hoy, esperado in casos:
+            with self.subTest(texto=texto, hoy=hoy):
+                self.assertEqual(mes_relativo(texto, hoy), esperado)
+
+    def test_la_fecha_va_en_los_dos_prompts(self):
+        _, llm = correr()
+        self.assertIn("Hoy es martes 10 de noviembre de 2026", llm.llamadas[0]["sistema"])
+        self.assertIn("HOY: Hoy es martes 10 de noviembre de 2026.", llm.llamadas[1]["mensaje"])
+
+    def test_esta_semana_da_noviembre_y_aviso_de_lluvias_en_choquequirao(self):
+        r, llm = correr(perfil=self.PERFIL, consulta=self.CONSULTA,
+                        respuesta=borrador("¡Hola!\nChoquequirao, 4 días: US$ 530.\nDepósito US$ 265.\n¿Qué fecha?",
+                                           idioma="es", preguntas=["¿Qué fecha?"]))
+        self.assertEqual(r.perfil.mes_viaje, 11)
+        self.assertEqual(r.opciones[0].trek_id, "choquequirao_4d")
+        self.assertIn("temporada de lluvias", r.aviso)
+        self.assertIn("AVISO CLAVE: Ese mes es temporada de lluvias", llm.llamadas[1]["mensaje"])
+
+    def test_no_cambia_el_mes_que_dio_el_modelo(self):
+        r, _ = correr(perfil=dict(self.PERFIL, mes_viaje=6), consulta=self.CONSULTA)
+        self.assertEqual(r.perfil.mes_viaje, 6)
+
+    def test_sin_reloj_usa_la_fecha_de_hoy_en_lima(self):
+        llm = LLMSimulado(PERFIL_SALKANTAY, borrador())
+        procesar_consulta(CONSULTA, llm, BASE, TARIFARIO, EXTRAS)
+        self.assertIn(f"Hoy es {fecha_en_texto(hoy_en_lima())}", llm.llamadas[0]["sistema"])
 
 
 class PruebasTrekSinPrecio(unittest.TestCase):
