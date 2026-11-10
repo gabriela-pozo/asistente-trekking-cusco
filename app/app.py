@@ -2,6 +2,9 @@
 
 Ejecutar en local:  streamlit run app/app.py
 Luego abrir http://localhost:8501 en el navegador.
+
+Diseño (colores, tipografía, orden de la pantalla): docs/diseno.md. El tema está en
+.streamlit/config.toml y el CSS que el tema no cubre, en app/estilo.css.
 """
 from __future__ import annotations
 
@@ -9,18 +12,19 @@ import os
 import sys
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / "app"))
 
 from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA  # noqa: E402
-from core.cotizacion import NOMBRE_NIVEL, cargar_extras, cargar_tarifario  # noqa: E402
+from core.cotizacion import cargar_extras, cargar_tarifario  # noqa: E402
 from core.whatsapp import enlace_whatsapp  # noqa: E402
+from presentacion import html_opciones, html_perfil, lista_markdown, separar_advertencias  # noqa: E402
 
 try:  # .env en local (con la clave). En Streamlit Cloud se usan los secretos.
     from dotenv import load_dotenv
@@ -39,8 +43,19 @@ COLUMNAS_TARIFARIO = [
     "precio_usd_pp_grupo_5mas", "tamano_max_grupo", "requiere_permiso_camino_inca", "meses_no_disponible",
     "incluye", "no_incluye",
 ]
+LOGO = str(RAIZ / "assets" / "logo.svg")
+ICONO = str(RAIZ / "assets" / "icono.svg")
 
-st.set_page_config(page_title="Abra Travel", page_icon="🏔️", layout="wide")
+st.set_page_config(page_title="Abra Travel", page_icon=ICONO, layout="wide")
+
+
+@st.cache_data
+def estilo() -> str:
+    return (RAIZ / "app" / "estilo.css").read_text(encoding="utf-8")
+
+
+# Se lee una vez (caché) y se aplica en cada recarga. st.html quita las etiquetas <style>; st.markdown no.
+st.markdown(f"<style>{estilo()}</style>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------- Configuración
@@ -84,11 +99,15 @@ if "extras" not in st.session_state:
 if "agencia" not in st.session_state:
     st.session_state.agencia = AGENCIA
 
-st.sidebar.title("🏔️ Abra Travel")
-st.sidebar.caption(f"Agencia: {st.session_state.agencia}")
+st.logo(LOGO, icon_image=ICONO, size="large")
+st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
 pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia"])
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
+
+
+def rotulo(texto: str) -> None:
+    st.html(f'<p class="rotulo">{texto}</p>')
 
 
 # ---------------------------------------------------------------- Nueva consulta
@@ -106,74 +125,90 @@ def usar_ejemplo() -> None:
     st.session_state.fecha_ejemplo = datos.get("fecha", "")
 
 
-def mostrar_perfil(perfil) -> None:
-    st.subheader("Perfil del viajero")
-    datos = {
-        "Idioma": perfil.idioma,
-        "Personas": perfil.num_personas,
-        "Mes del viaje": perfil.mes_viaje,
-        "Fechas": perfil.fecha_texto,
-        "Días disponibles": perfil.dias_disponibles,
-        "Treks de interés": ", ".join(perfil.treks_de_interes),
-        "Nivel": NOMBRE_NIVEL.get(perfil.nivel_preferido or "", ""),
-        "Presupuesto (US$ por persona)": perfil.presupuesto_usd_pp,
-        "Extras": ", ".join(perfil.extras_de_interes),
-    }
-    tabla = pd.DataFrame({"Dato": list(datos), "Valor": [str(v) if v not in (None, "") else "—" for v in datos.values()]})
-    st.dataframe(tabla, hide_index=True, width="stretch")
-    if perfil.datos_faltantes:
-        st.info("Faltan: " + ", ".join(perfil.datos_faltantes))
+def mostrar_borrador(resultado, telefono: str) -> None:
+    """(1) Lo que se envía: el borrador editable y el botón de WhatsApp."""
+    with st.container(border=True, key="tarjeta_borrador"):
+        rotulo("Respuesta lista para enviar")
+        texto = st.text_area("Revisa el mensaje y edítalo si hace falta", key="borrador", height=230)
+        st.caption(f"{len(texto.split())} palabras · se envía desde tu WhatsApp, nada sale solo")
+        # Justo encima del botón, para que se vea sin bajar.
+        st.caption(f"Respondió: {resultado.uso.modelos_que_respondieron()} · Tokens usados: "
+                   f"{resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
+                   f"(2 llamadas al modelo).")
+        st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary",
+                       icon=":material/send:", disabled=not texto.strip(), width="stretch")
+
+
+def mostrar_avisos(resultado) -> None:
+    """(2) Avisos del control, agrupados: lo grave en rojo y arriba."""
+    graves, revisar = separar_advertencias(resultado.advertencias)
+    if graves:
+        st.error("**Corrige antes de enviar**\n\n" + lista_markdown(graves), icon=":material/error:")
+    if revisar:
+        st.warning("**Revisa antes de enviar**\n\n" + lista_markdown(revisar), icon=":material/visibility:")
+    if not graves and not revisar:
+        st.success("El control no encontró problemas. Igual lee el mensaje antes de enviarlo.",
+                   icon=":material/check_circle:")
 
 
 def mostrar_opciones(resultado) -> None:
-    st.subheader("Opciones de tu tarifario")
+    """(3) Opciones del tarifario como filas comparables."""
+    rotulo("Opciones de tu tarifario")
     if not resultado.opciones:
         st.warning("Ninguna fila de tu tarifario encaja con esta consulta.")
     else:
-        st.dataframe(pd.DataFrame([
-            {
-                "Trek": o.trek, "Días": o.dias, "Nivel": NOMBRE_NIVEL.get(o.nivel, o.nivel),
-                "US$ por persona": o.precio_pp_con_extras, "Personas": o.personas, "Total US$": o.total,
-                "Depósito US$": o.deposito, "Alternativa": "Sí" if o.es_alternativa else "No",
-            }
-            for o in resultado.opciones
-        ]), hide_index=True, width="stretch")
-    if resultado.aviso:
-        st.caption(f"Aviso clave: {resultado.aviso}")
+        st.html(html_opciones(resultado.opciones))
+    if resultado.aviso:  # el aviso más importante para el viajero: visible, no en letra chica
+        st.info(f"**Aviso para el viajero:** {resultado.aviso}", icon=":material/info:")
     with st.expander("Información consultada (con fecha)"):
         for f in resultado.fragmentos:
             st.markdown(f"**{f.titulo}** · `{f.archivo}` · actualizado {f.actualizado}")
 
 
+def mostrar_perfil(perfil) -> None:
+    """(4) Perfil del viajero en fichas compactas; lo que falta, como etiquetas."""
+    with st.container(border=True, key="tarjeta_perfil"):
+        rotulo("Lo que entendimos del viajero")
+        st.html(html_perfil(perfil))
+
+
 def pagina_consulta() -> None:
     st.header("Nueva consulta")
-    st.write("Pega el mensaje del viajero. Abra Travel arma su perfil, elige opciones de tu tarifario y "
-             "redacta la respuesta en su idioma.")
+    st.html('<p class="subtitulo">Pega el mensaje del viajero y recibe una respuesta en su idioma, '
+            'con precios de tu tarifario, lista para WhatsApp.</p>')
 
     variable = falta_clave()
     if variable:
         st.warning(
             f"Falta la clave **{variable}** para el proveedor **{proveedor()}**. "
             "Cópiala en el archivo `.env` de la carpeta del proyecto (ver `.env.example`) y vuelve a abrir la app. "
-            "Mientras tanto puedes revisar tu tarifario en **Mi agencia**."
-        )
+            "Mientras tanto puedes ver un resultado guardado con **Usar mensaje de ejemplo** o revisar tu "
+            "tarifario en **Mi agencia**.", icon=":material/key_off:")
 
-    st.button("Usar mensaje de ejemplo", on_click=usar_ejemplo)
-    consulta = st.text_area("Mensaje del viajero", key="consulta", height=140, placeholder=EJEMPLO)
-    telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)", placeholder="+1 555 123 4567")
+    resultado = st.session_state.get("resultado")
+    with st.container(border=True, key="tarjeta_entrada"):
+        consulta = st.text_area("Mensaje del viajero", key="consulta", height=96 if resultado else 140,
+                                placeholder=EJEMPLO)
+        telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)",
+                                 placeholder="+1 555 123 4567")
+        with st.container(horizontal=True, vertical_alignment="center"):
+            preparar = st.button("Preparar respuesta", type="primary", icon=":material/edit_note:",
+                                 disabled=not consulta or bool(variable))
+            st.button("Usar mensaje de ejemplo", type="tertiary", on_click=usar_ejemplo,
+                      help="Muestra una consulta real ya resuelta. No gasta cuota del modelo.")
 
-    if st.button("Preparar respuesta", type="primary", disabled=not consulta or bool(variable)):
+    if preparar:
         try:
-            with st.spinner("Leyendo la consulta y armando la cotización..."):
+            with st.spinner("Leyendo el mensaje, cotizando con tu tarifario y redactando la respuesta…"):
                 # Cadena de respaldo: modelo principal -> modelo de respaldo -> ejemplo guardado.
                 resultado, es_ejemplo = responder_con_respaldo(
                     consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
                     st.session_state.extras, st.session_state.agencia)
         except ClaveInvalidaError as error:  # esperar no sirve: hay que cambiar la clave
-            st.error(str(error))
+            st.error(str(error), icon=":material/key_off:")
             return
         except Exception as error:  # noqa: BLE001 - se muestra un mensaje claro en vez del error técnico
-            st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.")
+            st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.", icon=":material/error:")
             with st.expander("Detalle técnico"):
                 st.code(f"{type(error).__name__}: {error}")
             return
@@ -183,67 +218,82 @@ def pagina_consulta() -> None:
 
     resultado = st.session_state.get("resultado")
     if not resultado:
+        st.html('<div class="vacio"><strong>Aquí aparecerá la respuesta.</strong> Abra Travel entiende qué pide '
+                'el viajero, elige opciones de tu tarifario y redacta el mensaje. Tú lo revisas y lo envías '
+                'por WhatsApp.</div>')
         return
 
     origen = st.session_state.get("origen", "modelo")
     if origen == "sin_cuota":
         st.warning(f"**{AVISO_SIN_CUOTA}.** Este resultado no corresponde al mensaje que pegaste; "
-                   "vuelve a intentarlo mañana.")
+                   "vuelve a intentarlo mañana.", icon=":material/hourglass_empty:")
     elif origen == "ejemplo":
         st.info(f"Resultado guardado de una consulta real al modelo ({st.session_state.get('fecha_ejemplo', '')}). "
-                "No se llamó a la API, así que no gastó cuota.")
+                "No se llamó a la API, así que no gastó cuota.", icon=":material/bookmark:")
 
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        mostrar_perfil(resultado.perfil)
-    with col2:
+    # Laptop: borrador y opciones lado a lado. Celular: una columna, el borrador primero.
+    izquierda, derecha = st.columns([7, 5], gap="large")
+    with izquierda:
+        mostrar_borrador(resultado, telefono)
+    with derecha:
+        mostrar_avisos(resultado)
         mostrar_opciones(resultado)
-
-    st.subheader("Respuesta para el viajero")
-    if resultado.advertencias:
-        st.markdown("**Revisa antes de enviar:**")
-        for advertencia in resultado.advertencias:
-            st.warning(advertencia)
-    else:
-        st.success("El control no encontró problemas. Igual revisa el mensaje antes de enviarlo.")
-    texto = st.text_area("Edita el mensaje si hace falta", key="borrador", height=260)
-    st.caption(f"{len(texto.split())} palabras")
-    # Justo encima del botón, para que se vea sin bajar.
-    st.caption(f"Respondió: {resultado.uso.modelos_que_respondieron()} · Tokens usados: "
-               f"{resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
-               f"(2 llamadas al modelo).")
-    st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary", disabled=not texto.strip())
+    mostrar_perfil(resultado.perfil)
 
 
 # ---------------------------------------------------------------- Mi agencia
+COLUMNAS_LEGIBLES = {
+    "trek_id": st.column_config.TextColumn("Código"),
+    "ruta": st.column_config.TextColumn("Ruta"),
+    "trek": st.column_config.TextColumn("Trek", width="medium"),
+    "dias": st.column_config.NumberColumn("Días", format="%d"),
+    "nivel": st.column_config.TextColumn("Nivel"),
+    "precio_usd_pp_grupo_2": st.column_config.NumberColumn("US$ por persona (1–2)", format="%d"),
+    "precio_usd_pp_grupo_3a4": st.column_config.NumberColumn("US$ por persona (3–4)", format="%d"),
+    "precio_usd_pp_grupo_5mas": st.column_config.NumberColumn("US$ por persona (5+)", format="%d"),
+    "tamano_max_grupo": st.column_config.NumberColumn("Grupo máximo", format="%d"),
+    "requiere_permiso_camino_inca": st.column_config.TextColumn("Permiso Camino Inca"),
+    "meses_no_disponible": st.column_config.TextColumn("Meses cerrado"),
+    "incluye": st.column_config.TextColumn("Incluye", width="large"),
+    "no_incluye": st.column_config.TextColumn("No incluye", width="large"),
+    "llega_a_machu_picchu": st.column_config.TextColumn("Llega a Machu Picchu"),
+    "origen_precio": st.column_config.TextColumn("De dónde sale el precio", width="large"),
+}
+
+
 def pagina_agencia() -> None:
     st.header("Mi agencia")
+    st.html('<p class="subtitulo">Tu tarifario. Abra Travel solo cotiza con estos precios: '
+            'el modelo nunca los inventa.</p>')
     st.session_state.agencia = st.text_input("Nombre de la agencia", st.session_state.agencia)
-    st.write("Este es tu tarifario. Abra Travel solo cotiza con estos precios: el modelo nunca los inventa. "
-             "Puedes editarlo aquí o subir el tuyo en CSV con las mismas columnas.")
 
-    subido = st.file_uploader("Subir tarifario (CSV)", type="csv")
-    if subido is not None and st.session_state.get("ultimo_csv") != subido.file_id:  # solo si es un archivo nuevo
-        st.session_state.ultimo_csv = subido.file_id
-        try:
-            nuevo = cargar_tarifario(subido)
-        except Exception as error:  # noqa: BLE001
-            st.error(f"No se pudo leer el CSV: {error}")
-        else:
-            faltan = [c for c in COLUMNAS_TARIFARIO if c not in nuevo.columns]
-            if faltan:
-                st.error("Al CSV le faltan estas columnas: " + ", ".join(faltan))
+    with st.container(border=True, key="tarjeta_tarifario"):
+        rotulo("Tarifario")
+        st.caption("Edita una celda para cambiar un precio, o sube tu tarifario en CSV con las mismas columnas.")
+        subido = st.file_uploader("Subir mi tarifario (CSV)", type="csv", max_upload_size=5)
+        if subido is not None and st.session_state.get("ultimo_csv") != subido.file_id:  # solo si es un archivo nuevo
+            st.session_state.ultimo_csv = subido.file_id
+            try:
+                nuevo = cargar_tarifario(subido)
+            except Exception as error:  # noqa: BLE001
+                st.error(f"No se pudo leer el CSV: {error}")
             else:
-                st.session_state.tarifario_base = nuevo
-                st.session_state.tarifario = nuevo
-                st.session_state.pop("editor_tarifario", None)  # el editor empieza de cero con el CSV nuevo
-                st.success(f"Tarifario cargado: {len(nuevo)} filas.")
+                faltan = [c for c in COLUMNAS_TARIFARIO if c not in nuevo.columns]
+                if faltan:
+                    st.error("Al CSV le faltan estas columnas: " + ", ".join(faltan))
+                else:
+                    st.session_state.tarifario_base = nuevo
+                    st.session_state.tarifario = nuevo
+                    st.session_state.pop("editor_tarifario", None)  # el editor empieza de cero con el CSV nuevo
+                    st.success(f"Tarifario cargado: {len(nuevo)} filas.")
 
-    st.session_state.tarifario = st.data_editor(st.session_state.tarifario_base, num_rows="dynamic",
-                                                width="stretch", key="editor_tarifario")
-    st.download_button("Descargar tarifario en CSV", st.session_state.tarifario.to_csv(index=False).encode("utf-8"),
-                       file_name="tarifario.csv", mime="text/csv")
-    st.caption("Los cambios valen mientras la app esté abierta. Descarga el CSV para guardarlos.")
+        st.session_state.tarifario = st.data_editor(st.session_state.tarifario_base, num_rows="dynamic",
+                                                    width="stretch", key="editor_tarifario",
+                                                    column_config=COLUMNAS_LEGIBLES, hide_index=True)
+        with st.container(horizontal=True, vertical_alignment="center"):
+            st.download_button("Descargar tarifario", st.session_state.tarifario.to_csv(index=False).encode("utf-8"),
+                               file_name="tarifario.csv", mime="text/csv", icon=":material/download:")
+            st.caption("Los cambios valen mientras la app esté abierta. Descarga el CSV para guardarlos.")
 
 
 {"Nueva consulta": pagina_consulta, "Mi agencia": pagina_agencia}[pagina]()

@@ -1,0 +1,54 @@
+# Tema de Abra Travel. Colores y fuentes explicados en docs/diseno.md.
+
+[client]
+toolbarMode = "minimal"   # sin "Deploy" ni opciones de desarrollador
+
+[theme]
+base = "light"
+primaryColor = "#1E6B52"              # verde andino: acciones y marca
+backgroundColor = "#F7F9F8"
+secondaryBackgroundColor = "#E8F0EC"  # superficie suave: barra lateral y campos
+textColor = "#15302B"                 # tinta
+borderColor = "#D6E0DD"
+linkColor = "#1E6B52"
+showSidebarBorder = true
+
+font = "Nunito:https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap"
+headingFont = "Montserrat:https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap"
+baseFontSize = 15
+headingFontSizes = ["32px", "24px", "18px", "15px", "15px", "13px"]
+headingFontWeights = [700, 700, 600, 600, 600, 600]
+metricValueFontSize = "32px"
+metricValueFontWeight = 700
+paddingTop = "1rem"  # menos aire arriba: el borrador y el botón de WhatsApp entran en la primera pantalla
+baseRadius = "10px"
+buttonRadius = "10px"
+
+# Semánticos, separados del acento ocre. El texto usa el tono oscuro para llegar a 4,5:1.
+redColor = "#B4471F"
+redBackgroundColor = "#FBEDE8"
+redTextColor = "#B4471F"
+orangeColor = "#B7791F"
+orangeBackgroundColor = "#FBF3E6"
+orangeTextColor = "#7A4E0F"
+yellowColor = "#B7791F"
+yellowBackgroundColor = "#FBF3E6"
+yellowTextColor = "#7A4E0F"
+greenColor = "#2F7A4F"
+greenBackgroundColor = "#EAF4EE"
+greenTextColor = "#2F7A4F"
+# Informativo: neutro verde grisáceo (no compite con el aviso ni con el error).
+blueColor = "#5B6F6A"
+blueBackgroundColor = "#E8F0EC"
+blueTextColor = "#15302B"
+grayTextColor = "#5B6F6A"
+
+dataframeHeaderBackgroundColor = "#E8F0EC"
+dataframeBorderColor = "#D6E0DD"
+
+chartCategoricalColors = ["#1E6B52", "#5E9C84", "#9CC5B3", "#C9741D", "#5B6F6A", "#15302B"]
+chartSequentialColors = ["#E8F0EC", "#D0E3DA", "#B6D4C6", "#9CC5B3", "#82B5A0", "#68A48C", "#4F9378", "#378264", "#1E6B52", "#15503D"]
+
+[theme.sidebar]
+backgroundColor = "#E8F0EC"
+secondaryBackgroundColor = "#FFFFFF"

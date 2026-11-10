@@ -1,0 +1,84 @@
+/* Abra Travel: solo lo que el tema de .streamlit/config.toml no cubre.
+   Selectores: clases propias (.opcion, .ficha...) y .st-key-<key>, que Streamlit pone a los
+   elementos con key= para poder darles estilo. Sin clases internas generadas. */
+
+:root {
+  --primario: #1E6B52;
+  --tinta: #15302B;
+  --secundario: #5B6F6A;
+  --superficie: #FFFFFF;
+  --suave: #E8F0EC;
+  --borde: #D6E0DD;
+  --ocre: #C9741D;        /* acento: solo barras y marcas del dato que más importa */
+  --ocre-texto: #9A5512;  /* el mismo ocre, oscurecido para llegar a 4,5:1 en texto */
+  --aviso-texto: #7A4E0F;
+  --aviso-fondo: #FBF3E6;
+}
+
+body { font-variant-numeric: tabular-nums; }
+
+/* Tarjetas: superficie blanca. La sombra, solo en la del borrador. */
+.st-key-tarjeta_entrada, .st-key-tarjeta_borrador, .st-key-tarjeta_perfil, .st-key-tarjeta_tarifario {
+  background: var(--superficie);
+}
+.st-key-tarjeta_borrador { box-shadow: 0 1px 2px rgba(21, 48, 43, .06), 0 4px 16px rgba(21, 48, 43, .05); }
+
+/* El borrador se lee como un mensaje: ~70 caracteres por línea, interlineado amplio. */
+.st-key-borrador textarea {
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 70ch;
+  background: var(--superficie);
+  color: var(--tinta);
+}
+@media (max-width: 640px) { .st-key-borrador textarea { font-size: 15px; } }
+
+/* Rótulo pequeño encima de cada bloque (13 px, mayúsculas espaciadas). */
+.rotulo {
+  font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--secundario); margin: 0 0 4px;
+}
+.subtitulo { font-size: 15px; color: var(--secundario); margin: -8px 0 8px; }
+
+/* Opciones: filas comparables. El precio por persona es el dato destacado. */
+.opciones { display: flex; flex-direction: column; gap: 8px; }
+.opcion {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 24px;
+  background: var(--superficie); border: 1px solid var(--borde); border-left: 4px solid var(--ocre);
+  border-radius: 10px; padding: 16px;
+}
+.opcion-nombre { font-weight: 700; font-size: 18px; color: var(--tinta); }
+.opcion-meta { font-size: 15px; color: var(--secundario); }
+.precio { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 24px; color: var(--ocre-texto); }
+.precio-unidad { font-size: 15px; color: var(--secundario); margin-left: 6px; }
+
+/* Etiquetas y fichas del perfil */
+.etiqueta {
+  display: inline-block; font-size: 13px; font-weight: 700; border-radius: 999px;
+  padding: 2px 10px; margin-left: 8px; vertical-align: middle;
+}
+.etiqueta-alternativa { background: var(--suave); color: var(--primario); border: 1px solid var(--primario); }
+/* "Falta: …" con la misma caja que una ficha, para que la fila quede alineada. */
+.etiqueta-falta {
+  background: var(--aviso-fondo); color: var(--aviso-texto); margin: 0; border-radius: 10px;
+  padding: 6px 12px; font-size: 15px; font-weight: 600; display: inline-flex; align-items: center;
+}
+.fichas { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.ficha {
+  display: inline-flex; gap: 8px; align-items: baseline; background: var(--suave); color: var(--tinta);
+  border-radius: 10px; padding: 6px 12px; font-size: 15px; font-weight: 600;
+}
+.ficha-dato { font-size: 13px; font-weight: 600; color: var(--secundario); }
+
+/* Estado vacío */
+.vacio {
+  border: 1px dashed var(--borde); border-radius: 10px; padding: 24px; color: var(--secundario);
+  font-size: 15px; background: var(--superficie);
+}
+.vacio strong { color: var(--tinta); }
+
+/* Tablero: etiqueta de datos sintéticos, siempre visible. */
+.sinteticos {
+  display: inline-block; font-size: 13px; font-weight: 700; color: var(--aviso-texto);
+  background: var(--aviso-fondo); border: 1px solid #B7791F; border-radius: 999px; padding: 4px 12px;
+}
