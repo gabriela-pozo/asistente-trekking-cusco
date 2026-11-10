@@ -2,6 +2,7 @@
 
 Correr:  python -m unittest discover tests -v
 """
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -32,7 +33,7 @@ class PruebasFragmentos(unittest.TestCase):
     def test_un_fragmento_por_seccion(self):
         secciones = sum(r.read_text(encoding="utf-8").count("\n## ") for r in CARPETA.glob("*.md"))
         self.assertEqual(len(BASE.fragmentos), secciones)
-        self.assertEqual(len(BASE.fragmentos), 28)
+        self.assertEqual(len(BASE.fragmentos), 48)  # 10 archivos: 28 secciones + 4 treks nuevos x 5
 
     def test_cada_fragmento_tiene_fecha_fuentes_y_texto(self):
         for f in BASE.fragmentos:
@@ -42,7 +43,9 @@ class PruebasFragmentos(unittest.TestCase):
             self.assertNotIn("##", f.texto, f.titulo)
 
     def test_cabecera_no_entra_al_texto(self):
-        self.assertTrue(all("fuentes:" not in f.texto for f in BASE.fragmentos))
+        # Ninguna línea del texto debe ser una clave de la cabecera ("tema:", "fuentes:", ...).
+        cabecera = re.compile(r"^(tema|actualizado|fuentes|estado):", re.MULTILINE)
+        self.assertTrue(all(not cabecera.search(f.texto) for f in BASE.fragmentos))
 
     def test_leer_cabecera(self):
         meta, cuerpo = leer_cabecera("---\ntema: X\nactualizado: 2026-01-01\nfuentes:\n  - https://a\n  - https://b\n---\n## T\nhola")
