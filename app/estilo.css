@@ -52,6 +52,12 @@ body { font-variant-numeric: tabular-nums; }
 .precio { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 24px; color: var(--ocre-texto); }
 .precio-unidad { font-size: 15px; color: var(--secundario); margin-left: 6px; }
 
+/* Cronómetro: cuánto tardó la respuesta (solo con una consulta real al modelo). */
+.cronometro {
+  display: inline-block; font-family: Montserrat, sans-serif; font-weight: 700; font-size: 15px;
+  color: #FFFFFF; background: var(--primario); border-radius: 999px; padding: 4px 14px;
+}
+
 /* Etiquetas y fichas del perfil */
 .etiqueta {
   display: inline-block; font-size: 13px; font-weight: 700; border-radius: 999px;

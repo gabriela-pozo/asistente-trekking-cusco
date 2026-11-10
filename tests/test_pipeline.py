@@ -182,6 +182,22 @@ class PruebasControles(unittest.TestCase):
                          [600, 1200, 680, 1360, 75])
 
 
+class PruebasCronometro(unittest.TestCase):
+    def test_mide_cuanto_tarda_procesar_consulta(self):
+        marcas = iter([100.0, 103.4])  # reloj simulado: inicio y fin
+        llm = LLMSimulado(PERFIL_SALKANTAY, borrador())
+        r = procesar_consulta(CONSULTA, llm, BASE, TARIFARIO, EXTRAS, hoy=HOY, reloj=lambda: next(marcas))
+        self.assertAlmostEqual(r.segundos, 3.4)
+
+    def test_con_reloj_real_es_un_numero_positivo(self):
+        r, _ = correr()
+        self.assertGreaterEqual(r.segundos, 0)
+
+    def test_el_ejemplo_guardado_no_tiene_tiempo(self):
+        from ai.ejemplo import cargar_ejemplo
+        self.assertIsNone(cargar_ejemplo()[0].segundos)
+
+
 class PruebasFecha(unittest.TestCase):
     """Reloj fijo: el 10/11/2026, "esta semana" es noviembre."""
 

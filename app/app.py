@@ -149,6 +149,9 @@ def mostrar_borrador(resultado, telefono: str) -> None:
     """(1) Lo que se envía: el borrador editable y el botón de WhatsApp."""
     with st.container(border=True, key="tarjeta_borrador"):
         rotulo("Respuesta lista para enviar")
+        if resultado.segundos is not None and st.session_state.get("origen") == "modelo":
+            segundos = f"{resultado.segundos:.1f}".replace(".", ",")
+            st.html(f'<span class="cronometro">Respuesta lista en {segundos} s</span>')
         texto = st.text_area("Revisa el mensaje y edítalo si hace falta", key="borrador", height=230)
         st.caption(f"{len(texto.split())} palabras · se envía desde tu WhatsApp, nada sale solo")
         # Justo encima del botón, para que se vea sin bajar.

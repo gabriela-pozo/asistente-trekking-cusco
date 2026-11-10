@@ -83,6 +83,20 @@ class PruebasApp(unittest.TestCase):
         self.assertEqual(anterior.type, "caption")
         self.assertTrue(anterior.value.startswith("Respondió: gemini-3.5-flash · Tokens usados"))
 
+    def test_cronometro_solo_con_respuesta_del_modelo(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            self.assertFalse(any("Respuesta lista en" in str(h.proto) for h in app.get("html")))  # ejemplo: sin tiempo
+            app.session_state["resultado"].segundos = 3.4  # como si viniera del modelo
+            app.session_state["origen"] = "modelo"
+            app.run()
+        self.assertFalse(app.exception)
+        self.assertTrue(any("Respuesta lista en 3,4 s" in str(h.proto) for h in app.get("html")))
+
     def test_clave_no_ascii_da_mensaje_de_clave(self):
         from streamlit.testing.v1 import AppTest
 

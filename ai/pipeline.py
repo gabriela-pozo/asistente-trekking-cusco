@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass, field
+from typing import Callable
 from datetime import date
 
 import pandas as pd
@@ -37,6 +39,7 @@ class Resultado:
     precios_no_autorizados: list[int]
     advertencias: list[str] = field(default_factory=list)  # las del modelo + las de los controles
     uso: Uso = field(default_factory=Uso)
+    segundos: float | None = None  # cuánto tardó procesar_consulta; None en el ejemplo guardado
 
 
 # --- Avisos ------------------------------------------------------------------
@@ -242,8 +245,10 @@ def texto_cotizacion(opciones: list[OpcionCotizada]) -> str:
 
 
 def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario: pd.DataFrame,
-                      extras: pd.DataFrame | None = None, agencia: str = AGENCIA, hoy: date | None = None) -> Resultado:
-    """`hoy` permite fijar la fecha en las pruebas; por defecto es la fecha actual en Lima."""
+                      extras: pd.DataFrame | None = None, agencia: str = AGENCIA, hoy: date | None = None,
+                      reloj: Callable[[], float] = time.perf_counter) -> Resultado:
+    """`hoy` y `reloj` permiten fijar la fecha y el cronómetro en las pruebas."""
+    inicio = reloj()
     hoy = hoy or hoy_en_lima()
     perfil, uso1 = llm.estructurado(prompts.sistema_extraer(fecha_en_texto(hoy)), consulta, PerfilTurista)
     if perfil.mes_viaje is None:  # respaldo en código si el modelo no convirtió "esta semana" en un mes
@@ -285,4 +290,5 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
         precios_no_autorizados=no_autorizados,
         advertencias=borrador.advertencias_para_agencia + advertencias,
         uso=uso1.sumar(uso2),
+        segundos=reloj() - inicio,
     )
