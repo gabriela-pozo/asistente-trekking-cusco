@@ -23,6 +23,24 @@ NOMBRE_NIVEL = {"economico": "económico", "estandar": "estándar", "premium": "
 ORDEN_NIVEL = {"estandar": 0, "economico": 1, "premium": 2}
 PERSONAS_POR_DEFECTO = 2
 
+NOMBRE_RUTA = {
+    "salkantay": "Salkantay", "camino_inca": "Camino Inca clásico", "camino_inca_corto": "Camino Inca corto",
+    "lares": "Lares", "choquequirao": "Choquequirao", "inca_jungle": "Inca Jungle",
+}
+
+# Si el trek pedido no está en el tarifario de la agencia, se ofrecen estos (según data/knowledge):
+# - Choquequirao: Salkantay y Lares, también con campamento, sin permiso y con menos gente.
+# - Lares e Inca Jungle: las agencias los venden como alternativas sin permiso para llegar a Machu Picchu.
+# - Camino Inca y Camino Inca corto: el otro tramo del Camino Inca, o rutas sin permiso.
+PARECIDOS = {
+    "choquequirao": ["salkantay", "lares"],
+    "salkantay": ["lares", "choquequirao"],
+    "lares": ["salkantay", "inca_jungle"],
+    "inca_jungle": ["lares", "salkantay"],
+    "camino_inca": ["camino_inca_corto", "salkantay", "lares"],
+    "camino_inca_corto": ["camino_inca", "inca_jungle"],
+}
+
 # Condiciones de reserva de la agencia demo (data/knowledge/condiciones_reserva.md)
 PORCENTAJE_DEPOSITO = 0.50            # depósito = 50 % del total
 NO_REEMBOLSABLE_CAMINO_INCA_PP = 200  # parte del depósito que cubre el permiso nominal
@@ -128,6 +146,12 @@ def _extras_para(fila: pd.Series, pedidos: list[str], extras: pd.DataFrame | Non
     return elegidos
 
 
+def treks_sin_precio(perfil, tarifario: pd.DataFrame) -> list[str]:
+    """Treks que pidió el turista y que no están en el tarifario de la agencia."""
+    rutas = set(tarifario["ruta"])
+    return [t for t in (getattr(perfil, "treks_de_interes", None) or []) if t not in rutas]
+
+
 def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame | None = None,
                          maximo: int = 3) -> list[OpcionCotizada]:
     """Elige hasta `maximo` opciones del tarifario que encajan con el perfil."""
@@ -136,6 +160,8 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
     dias = getattr(perfil, "dias_disponibles", None)
     pedidos = list(getattr(perfil, "treks_de_interes", None) or [])
     interes = [t for t in pedidos if t in set(tarifario["ruta"])]
+    if pedidos and not interes:  # ningún trek pedido tiene precio: se ofrecen los parecidos que sí tienen
+        interes = [t for p in pedidos for t in PARECIDOS.get(p, []) if t in set(tarifario["ruta"])]
     nivel_preferido = getattr(perfil, "nivel_preferido", None)
     presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
     extras_pedidos = getattr(perfil, "extras_de_interes", None) or []

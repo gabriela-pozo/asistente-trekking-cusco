@@ -18,7 +18,8 @@ from ai import prompts
 from ai.knowledge import MESES_DE_LLUVIA, BaseConocimiento, Fragmento, archivos_desde_perfil, consulta_desde_perfil
 from ai.llm import LLM, Uso
 from ai.schemas import BorradorRespuesta, PerfilTurista
-from core.cotizacion import NO_REEMBOLSABLE_CAMINO_INCA_PP, OpcionCotizada, opciones_para_perfil
+from core.cotizacion import (NO_REEMBOLSABLE_CAMINO_INCA_PP, NOMBRE_RUTA, OpcionCotizada, opciones_para_perfil,
+                             treks_sin_precio)
 
 AGENCIA = "Andes Trek Demo"
 MAXIMO_OPCIONES = 2  # con 3 opciones y sus listas, el mensaje pasaba de 150 palabras
@@ -61,6 +62,18 @@ def nota_presupuesto(perfil, opciones: list[OpcionCotizada]) -> str | None:
         return None
     return (f"El presupuesto del turista (US$ {presupuesto:g} por persona) es menor que la opción más barata "
             f"de la cotización (US$ {mas_barata} por persona).")
+
+
+def nota_trek_sin_precio(sin_precio: list[str], opciones: list[OpcionCotizada]) -> str | None:
+    """Si el turista pidió un trek que no está en el tarifario, el código se lo dice al modelo."""
+    if not sin_precio:
+        return None
+    nombres = " y ".join(NOMBRE_RUTA.get(t, t) for t in sin_precio)
+    nota = f"El turista pidió {nombres}, que no está en el tarifario de la agencia: no hay precio para ese trek."
+    alternativas = sorted({o.trek for o in opciones if o.es_alternativa})
+    if alternativas:
+        nota += f" Las opciones de la COTIZACIÓN ({', '.join(alternativas)}) son alternativas parecidas."
+    return nota
 
 
 # --- Controles sobre el borrador ----------------------------------------------
@@ -163,6 +176,23 @@ def revisar_deposito(texto: str, opciones: list[OpcionCotizada]) -> list[str]:
     return advertencias
 
 
+# Palabras con las que el mensaje dice que una opción es alternativa (idiomas del demo).
+_DICE_ALTERNATIVA = re.compile(
+    r"alternativ|instead|similar|parecid|semelhante|en (?:su )?lugar|em vez|au lieu|à la place|"
+    r"stattdessen|ähnlich", flags=re.IGNORECASE)
+
+
+def revisar_alternativas(texto: str, opciones: list[OpcionCotizada]) -> list[str]:
+    """Advertencia si el mensaje da el precio de una opción alternativa sin decir que lo es."""
+    montos = set(precios_en_texto(texto))
+    dadas = [o for o in opciones if o.es_alternativa and {o.precio_pp, o.precio_pp_con_extras, o.total} & montos]
+    if not dadas or _DICE_ALTERNATIVA.search(texto):
+        return []
+    treks = ", ".join(dict.fromkeys(o.trek for o in dadas))
+    return [f"El mensaje ofrece {treks} sin decir que es una alternativa a lo que pidió el viajero. "
+            "Dilo claro (por ejemplo, \"como alternativa\")."]
+
+
 def contar_palabras(texto: str) -> int:
     return len(texto.split())
 
@@ -187,6 +217,7 @@ def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
     if palabras >= prompts.LIMITE_PALABRAS:
         advertencias.append(f"El mensaje tiene {palabras} palabras; debe tener menos de {prompts.LIMITE_PALABRAS}.")
     advertencias += revisar_deposito(texto, opciones)
+    advertencias += revisar_alternativas(texto, opciones)
     lineas = contar_lineas(texto)
     if lineas < prompts.MINIMO_LINEAS:
         advertencias.append(f"El mensaje tiene {lineas} línea(s); sepáralo en al menos {prompts.MINIMO_LINEAS} "
@@ -217,6 +248,7 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
     fecha_posible = not any(o.motivo_alternativa == "no_disponible" for o in opciones)
     aviso = aviso_clave(perfil, opciones)
     presupuesto = nota_presupuesto(perfil, opciones)
+    sin_precio = treks_sin_precio(perfil, tarifario)
 
     mensaje = prompts.mensaje_responder(
         consulta=consulta,
@@ -227,10 +259,14 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
         fecha_posible=fecha_posible,
         agencia=agencia,
         nota_presupuesto=presupuesto,
+        nota_trek_sin_precio=nota_trek_sin_precio(sin_precio, opciones),
     )
     borrador, uso2 = llm.estructurado(prompts.SISTEMA_RESPONDER, mensaje, BorradorRespuesta)
 
     no_autorizados, advertencias = controlar_borrador(borrador, perfil, opciones)
+    if sin_precio:
+        nombres = " y ".join(NOMBRE_RUTA.get(t, t) for t in sin_precio)
+        advertencias.insert(0, f"El viajero pidió {nombres}, que no está en tu tarifario: confírmale el precio.")
     return Resultado(
         perfil=perfil,
         opciones=opciones,

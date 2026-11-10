@@ -65,9 +65,9 @@ class LLMSimulado:
         return esquema.model_validate(self.respuestas[esquema]), Uso(100, 50)
 
 
-def correr(perfil=PERFIL_SALKANTAY, respuesta=None, consulta=CONSULTA):
+def correr(perfil=PERFIL_SALKANTAY, respuesta=None, consulta=CONSULTA, tarifario=TARIFARIO):
     llm = LLMSimulado(perfil, respuesta or borrador())
-    return procesar_consulta(consulta, llm, BASE, TARIFARIO, EXTRAS), llm
+    return procesar_consulta(consulta, llm, BASE, tarifario, EXTRAS), llm
 
 
 class PruebasFlujo(unittest.TestCase):
@@ -175,6 +175,71 @@ class PruebasControles(unittest.TestCase):
     def test_precios_en_texto(self):
         self.assertEqual(precios_en_texto("US$ 600, $1,200, USD 680, 1.360 USD y 75 dollars; 4 días, 50 %"),
                          [600, 1200, 680, 1360, 75])
+
+
+class PruebasTrekSinPrecio(unittest.TestCase):
+    """Caso del demo: "Hola, quisiera información sobre el trek de Choquequirao, es para 1 persona, cuáles son
+    precios? puedo ir esta semana o cuándo?", con una agencia que no tiene Choquequirao en su tarifario."""
+
+    CONSULTA = ("Hola, quisiera información sobre el trek de Choquequirao, es para 1 persona, cuáles son precios? "
+                "puedo ir esta semana o cuándo?")
+    PERFIL = {"idioma": "es", "num_personas": 1, "fecha_texto": "esta semana", "treks_de_interes": ["choquequirao"],
+              "temas_consulta": ["precio", "fechas"], "datos_faltantes": ["fecha exacta", "nivel de servicio"]}
+    SIN_CHOQUEQUIRAO = TARIFARIO[TARIFARIO["ruta"] != "choquequirao"]
+
+    def mensaje(self, opciones, como_alternativa=True):
+        lineas = ["¡Hola! Gracias por escribirnos."]
+        if como_alternativa:
+            lineas.append("El precio del Choquequirao te lo confirma la agencia; mientras tanto, te comparto "
+                          "opciones parecidas como alternativa:")
+        lineas += [f"{o.trek}, {o.dias} días: US$ {o.precio_pp} por persona, US$ {o.total} en total." for o in opciones]
+        lineas += ["Depósito del 50 % del total de la opción elegida.", "¿Qué fecha exacta tienes en mente?"]
+        return "\n".join(lineas)
+
+    def correr(self, como_alternativa=True):
+        from core.cotizacion import opciones_para_perfil
+        opciones = opciones_para_perfil(PerfilTurista.model_validate(self.PERFIL), self.SIN_CHOQUEQUIRAO, EXTRAS,
+                                        maximo=2)
+        respuesta = borrador(self.mensaje(opciones, como_alternativa), idioma="es",
+                             preguntas=["¿Qué fecha exacta tienes en mente?"])
+        return correr(perfil=self.PERFIL, respuesta=respuesta, consulta=self.CONSULTA, tarifario=self.SIN_CHOQUEQUIRAO)
+
+    def test_ofrece_parecidos_marcados_como_alternativa(self):
+        r, _ = self.correr()
+        self.assertTrue(r.opciones)
+        self.assertTrue(all(o.trek_id.startswith(("salkantay", "lares")) for o in r.opciones))  # PARECIDOS
+        self.assertTrue(all(o.es_alternativa and o.motivo_alternativa == "otro_trek" for o in r.opciones))
+
+    def test_la_nota_llega_al_modelo(self):
+        _, llm = self.correr()
+        mensaje = llm.llamadas[1]["mensaje"]
+        self.assertIn("NOTA DE TREK SIN PRECIO: El turista pidió Choquequirao, que no está en el tarifario", mensaje)
+        self.assertIn("FECHA PEDIDA POSIBLE: Sí", mensaje)  # el problema es el trek, no la fecha
+        self.assertIn("ALTERNATIVA", mensaje)
+        self.assertIn("NOTA DE TREK SIN PRECIO", prompts.SISTEMA_RESPONDER)
+
+    def test_avisa_a_la_agencia_que_confirme_el_precio(self):
+        r, _ = self.correr()
+        self.assertIn("El viajero pidió Choquequirao, que no está en tu tarifario: confírmale el precio.",
+                      r.advertencias)
+
+    def test_mensaje_que_dice_alternativa_no_avisa(self):
+        r, _ = self.correr(como_alternativa=True)
+        self.assertFalse(any("sin decir que es una alternativa" in a for a in r.advertencias), r.advertencias)
+        self.assertEqual(r.precios_no_autorizados, [])
+
+    def test_mensaje_que_no_dice_alternativa_avisa(self):
+        r, _ = self.correr(como_alternativa=False)
+        self.assertTrue(any("sin decir que es una alternativa" in a for a in r.advertencias), r.advertencias)
+
+    def test_con_choquequirao_en_el_tarifario_no_hay_nota(self):
+        r, llm = correr(perfil=self.PERFIL, consulta=self.CONSULTA,
+                        respuesta=borrador("¡Hola!\nChoquequirao, 4 días: US$ 530.\nDepósito US$ 265.\n¿Qué fecha?",
+                                           idioma="es", preguntas=["¿Qué fecha?"]))
+        self.assertEqual(r.opciones[0].trek_id, "choquequirao_4d")
+        self.assertFalse(any(o.es_alternativa for o in r.opciones))
+        self.assertIn("NOTA DE TREK SIN PRECIO: ninguna", llm.llamadas[1]["mensaje"])
+        self.assertFalse(any("tarifario" in a for a in r.advertencias))
 
 
 class PruebasDeposito(unittest.TestCase):

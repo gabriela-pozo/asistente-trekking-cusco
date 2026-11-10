@@ -35,6 +35,11 @@ REGLAS_RESPUESTA = [
     # Varias agencias mandaron precios sin decir si encajaban con lo que pedía el turista.
     "Si hay una NOTA DE PRESUPUESTO, di con honestidad y amabilidad que su presupuesto no alcanza y muestra la "
     "opción más barata de la COTIZACIÓN. Nunca prometas un precio que no esté en la COTIZACIÓN.",
+    # En el demo, a una consulta por Choquequirao se le ofreció Salkantay sin decir que era otro trek.
+    "Si hay una NOTA DE TREK SIN PRECIO, dilo claro al principio, en el idioma del turista: la agencia le "
+    "confirmará el precio de ese trek y, mientras tanto, le compartes opciones parecidas. Nunca inventes un "
+    "precio para el trek que no está en la COTIZACIÓN.",
+    "Si una opción de la COTIZACIÓN dice ALTERNATIVA, preséntala como alternativa (con esa palabra, traducida).",
     # Una agencia ofreció otra fecha (4 de abril en vez de fines de marzo) sin preguntar.
     "Si la FECHA PEDIDA dice que no es posible, explícalo, ofrece las alternativas de la COTIZACIÓN y pregunta si le sirven. Nunca cambies la fecha sin preguntar.",
     # Casi ninguna agencia preguntó nada: cotizaron sin saber fecha exacta ni nivel de servicio.
@@ -61,7 +66,8 @@ SISTEMA_RESPONDER = (
 
 
 def mensaje_responder(consulta: str, perfil_json: str, cotizacion: str, conocimiento: str,
-                      aviso: str | None, fecha_posible: bool, agencia: str, nota_presupuesto: str | None = None) -> str:
+                      aviso: str | None, fecha_posible: bool, agencia: str, nota_presupuesto: str | None = None,
+                      nota_trek_sin_precio: str | None = None) -> str:
     fecha = ("Sí: las opciones de la COTIZACIÓN son para lo que pidió." if fecha_posible else
              "No: lo pedido no está disponible en esa fecha. Las opciones de la COTIZACIÓN son alternativas; pregunta si le sirven.")
     return f"""AGENCIA: {agencia}
@@ -77,6 +83,8 @@ FECHA PEDIDA POSIBLE: {fecha}
 AVISO CLAVE: {aviso or "ninguno"}
 
 NOTA DE PRESUPUESTO: {nota_presupuesto or "ninguna"}
+
+NOTA DE TREK SIN PRECIO: {nota_trek_sin_precio or "ninguna"}
 
 COTIZACIÓN (precios calculados por el sistema; cópialos tal cual):
 {cotizacion}
