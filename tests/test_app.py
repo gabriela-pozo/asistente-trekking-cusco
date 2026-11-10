@@ -59,8 +59,13 @@ class PruebasApp(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
             app = AppTest.from_file(APP, default_timeout=30)
             app.run()
-            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            with mock.patch("ai.llm.crear_llm", side_effect=AssertionError("no debe llamar a la API")):
+                next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+        self.assertFalse(app.exception)
         self.assertIn("Salkantay", app.text_area(key="consulta").value)
+        self.assertIn("US$ 600", app.text_area(key="borrador").value)          # el borrador guardado
+        self.assertTrue(any("No se llamó a la API" in i.value for i in app.info))
+        self.assertTrue(any("Respondió: gemini-3.5-flash" in c.value for c in app.caption))
 
     def test_pagina_mi_agencia_muestra_tarifario(self):
         from streamlit.testing.v1 import AppTest

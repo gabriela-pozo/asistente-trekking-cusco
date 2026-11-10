@@ -1,0 +1,201 @@
+{
+  "descripcion": "Resultado completo de una consulta real al modelo, guardado para el demo. Sin datos personales.",
+  "fecha": "2026-11-10",
+  "consulta": "Hi! We are 2 friends planning to visit Cusco in late March. Is the Salkantay trek to Machu Picchu possible in 4 or 5 days? How much would it cost per person and what is included? Thanks!",
+  "perfil": {
+    "idioma": "en",
+    "num_personas": 2,
+    "mes_viaje": 3,
+    "fecha_texto": "late March",
+    "dias_disponibles": 5,
+    "treks_de_interes": [
+      "salkantay"
+    ],
+    "nivel_preferido": null,
+    "presupuesto_usd_pp": null,
+    "extras_de_interes": [],
+    "temas_consulta": [
+      "precio",
+      "qué incluye"
+    ],
+    "datos_faltantes": [
+      "fecha exacta",
+      "nivel de servicio"
+    ]
+  },
+  "opciones": [
+    {
+      "trek_id": "salkantay_4d",
+      "trek": "Salkantay a Machu Picchu",
+      "dias": 4,
+      "nivel": "estandar",
+      "precio_pp": 600,
+      "personas": 2,
+      "extras": [],
+      "requiere_permiso": false,
+      "es_alternativa": false,
+      "incluye": [
+        "Guía bilingüe",
+        "transporte de ida",
+        "comidas durante el trek",
+        "entrada a Machu Picchu",
+        "tren de regreso a Ollantaytambo",
+        "carpa doble y colchoneta"
+      ],
+      "no_incluye": [
+        "Bolsa de dormir (alquiler aparte)",
+        "seguro de viaje",
+        "propinas",
+        "Huayna Picchu"
+      ]
+    },
+    {
+      "trek_id": "salkantay_5d",
+      "trek": "Salkantay a Machu Picchu",
+      "dias": 5,
+      "nivel": "estandar",
+      "precio_pp": 680,
+      "personas": 2,
+      "extras": [],
+      "requiere_permiso": false,
+      "es_alternativa": false,
+      "incluye": [
+        "Guía bilingüe",
+        "transporte de ida",
+        "comidas durante el trek",
+        "entrada a Machu Picchu",
+        "tren de regreso a Ollantaytambo",
+        "carpa doble y colchoneta"
+      ],
+      "no_incluye": [
+        "Bolsa de dormir (alquiler aparte)",
+        "seguro de viaje",
+        "propinas",
+        "Huayna Picchu"
+      ]
+    }
+  ],
+  "fragmentos": [
+    {
+      "archivo": "salkantay",
+      "titulo": "Salkantay: descripción general",
+      "texto": "El trek de Salkantay es la alternativa más conocida al Camino Inca para llegar a Machu Picchu caminando. Pasa por el nevado Salkantay y termina en Aguas Calientes, desde donde se visita Machu Picchu. No requiere el permiso del Camino Inca, por lo que suele estar disponible cuando el Camino Inca está agotado o cerrado (febrero).",
+      "actualizado": "2026-11-09",
+      "fuentes": [
+        "https://www.salkantaytrekking.com/pdf/travel-brochure-salkantay-explorer-5d.pdf",
+        "https://no.wikiloc.com/hiking-trails/salkantay-trek-5-days-hike-map-90738938",
+        "https://www.marvelousperu.com/?p=8978"
+      ],
+      "estado": "datos de folletos y webs de agencias; verificar antes de usar en producción"
+    },
+    {
+      "archivo": "salkantay",
+      "titulo": "Salkantay: altura máxima",
+      "texto": "El punto más alto del trek es el abra Salkantay, a unos 4 600 m sobre el nivel del mar (entre 4 600 y 4 630 m según la fuente). Es necesario aclimatarse en Cusco antes de empezar.",
+      "actualizado": "2026-11-09",
+      "fuentes": [
+        "https://www.salkantaytrekking.com/pdf/travel-brochure-salkantay-explorer-5d.pdf",
+        "https://no.wikiloc.com/hiking-trails/salkantay-trek-5-days-hike-map-90738938",
+        "https://www.marvelousperu.com/?p=8978"
+      ],
+      "estado": "datos de folletos y webs de agencias; verificar antes de usar en producción"
+    },
+    {
+      "archivo": "condiciones_reserva",
+      "titulo": "Depósito para reservar",
+      "texto": "Para reservar un trek se paga un depósito del 50 % del total por persona. En el Camino Inca, una parte del depósito (US$ 200 por persona) no es reembolsable porque cubre el permiso nominal.",
+      "actualizado": "2026-11-09",
+      "fuentes": [
+        "https://www.salkantaytrekking.com/reservations/how-make-booking/",
+        "https://incatrailtours.com/info/booking-terms.html"
+      ],
+      "estado": "condiciones SINTÉTICAS de la agencia demo \"Andes Trek Demo\", basadas en prácticas comunes del mercado"
+    },
+    {
+      "archivo": "condiciones_reserva",
+      "titulo": "Datos que se piden para reservar",
+      "texto": "Para reservar se necesitan, por cada viajero: nombre completo como figura en el pasaporte, número de pasaporte, nacionalidad y fecha de nacimiento. Estos datos se piden recién al confirmar la reserva, no en la primera consulta.",
+      "actualizado": "2026-11-09",
+      "fuentes": [
+        "https://www.salkantaytrekking.com/reservations/how-make-booking/",
+        "https://incatrailtours.com/info/booking-terms.html"
+      ],
+      "estado": "condiciones SINTÉTICAS de la agencia demo \"Andes Trek Demo\", basadas en prácticas comunes del mercado"
+    },
+    {
+      "archivo": "inca_jungle",
+      "titulo": "Inca Jungle trek: permisos y temporada",
+      "texto": "- Permiso: las fuentes consultadas no piden permiso de Camino Inca; solo se necesita la entrada a Machu Picchu, que tiene aforo diario limitado y conviene reservar con antelación. Ojo: algunos paquetes no incluyen la entrada (ver precios).\n- Temporada: Marvelous Peru recomienda de mayo a septiembre (temporada seca y de mayor demanda); en temporada de lluvias hay más promociones. Lorenzo Expeditions aconseja reservar al menos 2 meses antes en temporada alta (junio a agosto).",
+      "actualizado": "2026-11-10",
+      "fuentes": [
+        "https://www.marvelousperu.com/?p=8969",
+        "https://lorenzoexpeditions.com/?p=31742",
+        "https://www.tourradar.com/t/329739",
+        "https://app.travelstride.com/trips/best-andes-travel-inca-jungle-trek-4-days",
+        "https://www.tourradar.com/t/141111"
+      ],
+      "estado": "datos de webs de agencias; verificar antes de usar en producción"
+    },
+    {
+      "archivo": "altura_y_preparacion",
+      "titulo": "Trekking en temporada de lluvias",
+      "texto": "En marzo, en plena temporada de lluvias, los treks se pueden hacer, pero conviene llevar ropa impermeable, ropa de abrigo y calzado de trekking ya usado. Las agencias pueden cambiar el itinerario por seguridad.",
+      "actualizado": "2026-11-09",
+      "fuentes": [
+        "https://www.salkantaytrekking.com/reservations/how-make-booking/",
+        "https://freakingnomads.com/digital-nomad-guide-to-cusco-peru/"
+      ],
+      "estado": "información general; no reemplaza una consulta médica"
+    },
+    {
+      "archivo": "altura_y_preparacion",
+      "titulo": "Temporadas en Cusco",
+      "texto": "La temporada seca va de mayo a septiembre y es la de mayor demanda. La temporada de lluvias va de octubre a abril: los senderos pueden estar con barro y hay más probabilidad de cambios por el clima. Noviembre y marzo son meses intermedios con menos gente.",
+      "actualizado": "2026-11-09",
+      "fuentes": [
+        "https://www.salkantaytrekking.com/reservations/how-make-booking/",
+        "https://freakingnomads.com/digital-nomad-guide-to-cusco-peru/"
+      ],
+      "estado": "información general; no reemplaza una consulta médica"
+    },
+    {
+      "archivo": "lares",
+      "titulo": "Lares trek: permisos y temporada",
+      "texto": "- Permiso: no requiere permiso de Camino Inca. Según Explore-Share, el único cupo/permiso limitado es la entrada a Machu Picchu; por eso se usa como alternativa cuando los permisos del Camino Inca están agotados. Huayna Picchu o Montaña Machu Picchu se reservan aparte y con antelación.\n- Temporada: Lorenzo Expeditions recomienda abril a noviembre (más seco) y advierte que de diciembre a abril es temporada de lluvias. Alpaca Expeditions lo opera todo el año y sitúa la temporada seca de Cusco de abril a octubre. Explore-Share recomienda de marzo a fines de noviembre.",
+      "actualizado": "2026-11-10",
+      "fuentes": [
+        "https://www.alpacaexpeditions.com/lares-trek-to-machu-picchu-4d/",
+        "https://lorenzoexpeditions.com/?p=27631",
+        "https://www.explore-share.com/trip/lares-trek-to-machu-picchu-in-cusco-peru-4-days/",
+        "https://theabroadguide.com/4-day-lares-trek-to-machu-picchu-2/"
+      ],
+      "estado": "datos de webs de agencias; verificar antes de usar en producción"
+    }
+  ],
+  "aviso": "Ese mes es temporada de lluvias en Cusco: hay que llevar ropa impermeable y los caminos pueden estar con barro.",
+  "borrador": {
+    "idioma": "en",
+    "mensaje_para_cliente": "Hi! Salkantay is a great choice for late March. Please note that March is rainy season in Cusco, so bring waterproof clothing as trails can be muddy. Here are the options for 2 people (standard level): 4-day trek: US$ 600 per person (Total US$ 1200). 5-day trek: US$ 680 per person (Total US$ 1360). Includes: Bilingual guide, initial transport, meals during trek, Machu Picchu entrance, return train to Ollantaytambo, double tent and sleeping pad. Excludes: Sleeping bag (rental separate), travel insurance, tips, Huayna Picchu. Deposit of US$ 600 (50 % of total) to reserve; balance US$ 600 up to 30 days before the trek. The agency will confirm exact date availability in the official system. What exact date in late March do you prefer? Do you prefer the 4-day or 5-day option?",
+    "preguntas_al_turista": [
+      "What exact date in late March do you prefer?",
+      "Do you prefer the 4-day or 5-day option?"
+    ],
+    "advertencias_para_agencia": [
+      "Verificar en el sistema oficial la disponibilidad de entradas a Machu Picchu para la fecha exacta una vez que los clientes la confirmen.",
+      "Recordar la recomendación sobre el equipo impermeable y los días de aclimatación requeridos en Cusco antes de iniciar la caminata."
+    ]
+  },
+  "precios_no_autorizados": [],
+  "advertencias": [
+    "Verificar en el sistema oficial la disponibilidad de entradas a Machu Picchu para la fecha exacta una vez que los clientes la confirmen.",
+    "Recordar la recomendación sobre el equipo impermeable y los días de aclimatación requeridos en Cusco antes de iniciar la caminata."
+  ],
+  "uso": {
+    "tokens_entrada": 2097,
+    "tokens_salida": 452,
+    "modelos": [
+      "gemini-3.5-flash",
+      "gemini-3.5-flash"
+    ]
+  }
+}

@@ -15,9 +15,10 @@ import streamlit as st
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
+from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
-from ai.llm import LimiteDiarioError, crear_llm  # noqa: E402
-from ai.pipeline import AGENCIA, procesar_consulta  # noqa: E402
+from ai.llm import crear_llm  # noqa: E402
+from ai.pipeline import AGENCIA  # noqa: E402
 from core.cotizacion import NOMBRE_NIVEL, cargar_extras, cargar_tarifario  # noqa: E402
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 
@@ -92,7 +93,17 @@ st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se
 
 # ---------------------------------------------------------------- Nueva consulta
 def usar_ejemplo() -> None:
-    st.session_state.consulta = EJEMPLO
+    """Muestra el resultado guardado de una consulta real, sin llamar a la API (no gasta cuota)."""
+    try:
+        resultado, datos = cargar_ejemplo()
+    except (OSError, ValueError, KeyError):  # sin ejemplo guardado: solo se pega el mensaje
+        st.session_state.consulta = EJEMPLO
+        return
+    st.session_state.consulta = datos["consulta"]
+    st.session_state.resultado = resultado
+    st.session_state.borrador = resultado.borrador.mensaje_para_cliente
+    st.session_state.origen = "ejemplo"
+    st.session_state.fecha_ejemplo = datos.get("fecha", "")
 
 
 def mostrar_perfil(perfil) -> None:
@@ -154,12 +165,10 @@ def pagina_consulta() -> None:
     if st.button("Preparar respuesta", type="primary", disabled=not consulta or bool(variable)):
         try:
             with st.spinner("Leyendo la consulta y armando la cotización..."):
-                resultado = procesar_consulta(consulta, modelo(proveedor()), base_conocimiento(),
-                                              st.session_state.tarifario, st.session_state.extras,
-                                              st.session_state.agencia)
-        except LimiteDiarioError as error:
-            st.error(str(error))
-            return
+                # Cadena de respaldo: modelo principal -> modelo de respaldo -> ejemplo guardado.
+                resultado, es_ejemplo = responder_con_respaldo(
+                    consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
+                    st.session_state.extras, st.session_state.agencia)
         except Exception as error:  # noqa: BLE001 - se muestra un mensaje claro en vez del error técnico
             st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.")
             with st.expander("Detalle técnico"):
@@ -167,10 +176,19 @@ def pagina_consulta() -> None:
             return
         st.session_state.resultado = resultado
         st.session_state.borrador = resultado.borrador.mensaje_para_cliente
+        st.session_state.origen = "sin_cuota" if es_ejemplo else "modelo"
 
     resultado = st.session_state.get("resultado")
     if not resultado:
         return
+
+    origen = st.session_state.get("origen", "modelo")
+    if origen == "sin_cuota":
+        st.warning(f"**{AVISO_SIN_CUOTA}.** Este resultado no corresponde al mensaje que pegaste; "
+                   "vuelve a intentarlo mañana.")
+    elif origen == "ejemplo":
+        st.info(f"Resultado guardado de una consulta real al modelo ({st.session_state.get('fecha_ejemplo', '')}). "
+                "No se llamó a la API, así que no gastó cuota.")
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -188,7 +206,8 @@ def pagina_consulta() -> None:
     texto = st.text_area("Edita el mensaje si hace falta", key="borrador", height=260)
     st.caption(f"{len(texto.split())} palabras")
     st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary", disabled=not texto.strip())
-    st.caption(f"Tokens usados: {resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
+    st.caption(f"Respondió: {resultado.uso.modelos_que_respondieron()} · Tokens usados: "
+               f"{resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
                f"(2 llamadas al modelo).")
 
 

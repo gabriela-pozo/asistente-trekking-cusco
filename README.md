@@ -26,6 +26,9 @@ streamlit run app/app.py  # y abre http://localhost:8501
 ```
 
 - Proveedor: Gemini por defecto. Para usar Claude, pon `LLM_PROVIDER=claude` y `ANTHROPIC_API_KEY` en `.env`.
+- Modelos de Gemini: `GEMINI_MODEL=gemini-3.5-flash` (principal) y `GEMINI_MODEL_RESPALDO=gemini-3.5-flash-lite` (respaldo).
+- **Cadena de respaldo:** si el modelo principal se queda sin cuota diaria (429) o sigue saturado (503), la misma consulta se repite con el de respaldo; si los dos fallan, la app muestra un ejemplo guardado de una consulta real (`data/ejemplo_guardado.json`) con un aviso claro. La app muestra qué modelo respondió.
+- El botón "Usar mensaje de ejemplo" muestra ese resultado guardado sin llamar a la API. Para volver a generarlo: `python scripts/guardar_ejemplo.py` (2 llamadas).
 - Pruebas (no llaman a la API): `python -m unittest discover tests`
 - Probar con el modelo real desde la terminal: `python scripts/probar_consultas.py`
 
@@ -55,7 +58,7 @@ Un destino nuevo es solo una carpeta nueva de conocimiento más el tarifario de 
 
 - **El modelo puede equivocarse.** Por eso los precios los calcula el código, un control revisa el borrador y el vendedor siempre lo revisa antes de enviarlo.
 - **Las reglas cambian** (permisos, entradas a Machu Picchu, horarios). Cada archivo de conocimiento tiene fecha y fuentes, y hay que revisarlo cada temporada.
-- **Límites de la capa gratuita de Gemini**: 20 solicitudes por día y por modelo. Cada consulta usa 2.
+- **Límites de la capa gratuita de Gemini**: 20 solicitudes por día y por modelo. Cada consulta usa 2. Por eso hay un modelo de respaldo y un ejemplo guardado.
 - **Marca:** Abra ya se usa en otros rubros de software (criptomonedas, gestión empresarial); antes de lanzar habría que registrar la marca en Indecopi.
 
 Licencia: [MIT](LICENSE).
