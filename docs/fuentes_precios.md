@@ -34,7 +34,7 @@ Las **cotizaciones reales** salen de la prueba de cliente misterioso (`docs/rese
 | E | US$ 755 | En el chat |
 | L | US$ 580 | En el PDF |
 
-La agencia J no dio precio en el chat ni se registró uno, así que no entra. Los precios de D y L venían en un PDF y no están en `cliente_misterioso.csv`, que solo registra los precios dichos en el chat.
+La agencia J no dio precio en el chat ni se registró uno, así que no entra. Los precios de D y L no se dieron en el chat sino en sus PDF; en `cliente_misterioso.csv` figuran con `dio_precio_en_el_chat = no (solo en PDF)`.
 
 Hubo dos rondas de investigación el mismo día. La primera dejó 4 a 6 precios por trek; la segunda llevó la muestra a 13 por trek, sobre todo con webs propias de agencias de Cusco.
 
