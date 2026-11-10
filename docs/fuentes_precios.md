@@ -35,7 +35,7 @@ Tampoco se registraron:
 - **Precio especial con fecha límite:** si la página muestra un precio especial con fecha límite (por ejemplo "US$ 695 hasta el 31/12/2026"), se anota el **precio regular**, porque el tarifario es para todo el año. Pasa con Salkantay Trekking (3 treks) y G Adventures.
 - **Dos precios sin explicación:** si la página muestra dos precios juntos sin decir cuál es la oferta (por ejemplo "US$ 880 US$ 680"), se anota el destacado.
 - **Precio por tamaño de grupo:** si la página da una tabla según el número de personas, se anota el precio "desde" que muestra la cabecera y la tabla queda en las notas.
-- **Datos del resumen automático:** algunas páginas eran muy largas y una parte se leyó a través de un resumen automático de la herramienta de lectura, no del texto original. Esas filas lo dicen en `notas` (9 filas). Conviene verificarlas a mano.
+- **Verificación en el texto original:** algunas páginas eran muy largas y en la primera lectura una parte (9 filas) se leyó a través de un resumen automático de la herramienta. El mismo día se volvieron a descargar esas 9 páginas (una vez cada una) y se buscó cada precio en el texto original: los 9 coinciden, así que siguen en el análisis. Esas filas dicen "verificado en el texto original" en `notas`. Se quitaron dos montos de alquiler de bolsa de dormir que no aparecían en el texto.
 
 ## Reglas para calcular el tarifario
 
