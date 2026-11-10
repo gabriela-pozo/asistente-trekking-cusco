@@ -24,6 +24,11 @@ RECARGO_PREMIUM = 0.60       # premium = estándar + 60 %
 DESCUENTO_GRUPO_3A4 = 0.04   # 3 a 4 personas
 DESCUENTO_GRUPO_5MAS = 0.08  # 5 o más personas
 FACTOR_SALKANTAY_4D = 0.90   # si el 4 días sale más caro que el 5 días: 5 días - 10 %
+MIN_PRECIOS_PREMIUM = 3      # con al menos 3 precios premium reales, premium = su mediana (no el +60 %)
+
+# Origen de cada precio del tarifario (columna origen_precio)
+ORIGEN_MERCADO = "mediana del mercado"
+ORIGEN_SUPUESTO = "supuesto"
 
 # Treks del tarifario: clave = (trek, dias) tal como aparecen en precios_mercado.csv
 TREKS = {
@@ -86,33 +91,60 @@ def resumen(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def precios_estandar(mercado: pd.DataFrame) -> tuple[dict, list[str]]:
-    """Precio estándar por trek y la lista de reglas que se aplicaron."""
+    """Precio estándar por trek y la lista de reglas que se aplicaron.
+
+    Cada valor es (precio, origen): "mediana del mercado", o "supuesto" si se aplicó la regla del 4 días.
+    """
     base = validos(mercado)
     base = base[base["nivel_aprox"] != "premium"]
     medianas = base.groupby(["trek", "dias"])["precio_usd_pp"].median().to_dict()
 
     estandar, notas = {}, []
     for clave in TREKS:
-        estandar[clave] = redondear(medianas[clave])
-        notas.append(f"{clave[0]} {clave[1]} días: mediana {medianas[clave]:g} -> estándar {estandar[clave]}")
+        estandar[clave] = (redondear(medianas[clave]), ORIGEN_MERCADO)
+        notas.append(f"{clave[0]} {clave[1]} días: mediana {medianas[clave]:g} -> estándar {estandar[clave][0]}")
 
     s4, s5 = ("Salkantay", 4), ("Salkantay", 5)
     if medianas[s4] > medianas[s5]:
-        estandar[s4] = redondear(estandar[s5] * FACTOR_SALKANTAY_4D)
+        estandar[s4] = (redondear(estandar[s5][0] * FACTOR_SALKANTAY_4D), ORIGEN_SUPUESTO)
         notas.append(
             f"Salkantay 4 días: su mediana ({medianas[s4]:g}) supera a la de 5 días ({medianas[s5]:g}); "
-            f"se usa el estándar de 5 días menos 10 % -> {estandar[s4]}"
+            f"se usa el estándar de 5 días menos 10 % -> {estandar[s4][0]}"
         )
     return estandar, notas
 
 
+def precios_premium(mercado: pd.DataFrame, estandar: dict) -> tuple[dict, list[str]]:
+    """Premium por trek: mediana de los precios premium reales si hay al menos
+    MIN_PRECIOS_PREMIUM; si no, estándar + RECARGO_PREMIUM (supuesto)."""
+    base = validos(mercado)
+    base = base[base["nivel_aprox"] == "premium"]
+    premium, notas = {}, []
+    for clave in TREKS:
+        precios = base[(base["trek"] == clave[0]) & (base["dias"] == clave[1])]["precio_usd_pp"]
+        if len(precios) >= MIN_PRECIOS_PREMIUM:
+            premium[clave] = (redondear(precios.median()), ORIGEN_MERCADO)
+            notas.append(f"{clave[0]} {clave[1]} días: {len(precios)} precios premium, mediana "
+                         f"{precios.median():g} -> premium {premium[clave][0]}")
+        else:
+            premium[clave] = (redondear(estandar[clave][0] * (1 + RECARGO_PREMIUM)), ORIGEN_SUPUESTO)
+            notas.append(f"{clave[0]} {clave[1]} días: {len(precios)} precio(s) premium (menos de "
+                         f"{MIN_PRECIOS_PREMIUM}) -> estándar + 60 % = {premium[clave][0]}")
+    return premium, notas
+
+
 def generar_tarifario(mercado: pd.DataFrame) -> pd.DataFrame:
     estandar, _ = precios_estandar(mercado)
-    factores = {"economico": 1 - DESCUENTO_ECONOMICO, "estandar": 1.0, "premium": 1 + RECARGO_PREMIUM}
+    premium, _ = precios_premium(mercado, estandar)
     filas = []
     for clave, trek in TREKS.items():
+        base = {
+            "economico": (redondear(estandar[clave][0] * (1 - DESCUENTO_ECONOMICO)), ORIGEN_SUPUESTO),
+            "estandar": estandar[clave],
+            "premium": premium[clave],
+        }
         for nivel, datos in NIVELES.items():
-            precio_2 = redondear(estandar[clave] * factores[nivel])
+            precio_2, origen = base[nivel]
             filas.append({
                 "trek_id": trek["trek_id"],
                 "ruta": trek["ruta"],
@@ -127,6 +159,8 @@ def generar_tarifario(mercado: pd.DataFrame) -> pd.DataFrame:
                 "meses_no_disponible": trek["meses_no_disponible"],
                 "incluye": f"{INCLUYE_BASE[trek['ruta']]}; {datos['incluye']}",
                 "no_incluye": datos["no_incluye"],
+                # Origen del precio para 2 personas. Los de 3-4 y 5+ siempre aplican los descuentos supuestos.
+                "origen_precio": origen,
             })
     return pd.DataFrame(filas)
 
@@ -159,11 +193,18 @@ if __name__ == "__main__":
     print(resumen(mercado).to_string(index=False))
     print("\nSin la opción premium:")
     print(resumen(mercado[mercado["nivel_aprox"] != "premium"]).to_string(index=False))
+    print("\nPor tipo de fuente (filas válidas):")
+    print(validos(mercado).groupby(["trek", "dias", "tipo_fuente"])["precio_usd_pp"]
+          .agg(n="count", minimo="min", mediana="median", maximo="max").to_string())
+    print("\nSin premium, solo precios publicados:")
+    print(resumen(mercado[(mercado["nivel_aprox"] != "premium")
+                          & (mercado["tipo_fuente"] == "precio publicado")]).to_string(index=False))
     print("\nBolsa de dormir incluida:")
     print(mercado["incluye_bolsa_dormir"].value_counts().to_string())
 
-    _, notas = precios_estandar(mercado)
-    print("\nReglas aplicadas al precio estándar:")
+    estandar, notas = precios_estandar(mercado)
+    notas += precios_premium(mercado, estandar)[1]
+    print("\nReglas aplicadas al precio estándar y premium:")
     for nota in notas:
         print(" -", nota)
 
@@ -171,7 +212,7 @@ if __name__ == "__main__":
     tarifario.to_csv(DATA / "tarifario_demo.csv", index=False)
     print("\nTarifario generado en data/tarifario_demo.csv:")
     print(tarifario[["trek_id", "nivel", "precio_usd_pp_grupo_2", "precio_usd_pp_grupo_3a4",
-                     "precio_usd_pp_grupo_5mas", "tamano_max_grupo", "meses_no_disponible"]].to_string(index=False))
+                     "precio_usd_pp_grupo_5mas", "origen_precio"]].to_string(index=False))
 
     extras = generar_extras(pd.read_csv(DATA / "extras_mercado.csv"))
     extras.to_csv(DATA / "extras_demo.csv", index=False)

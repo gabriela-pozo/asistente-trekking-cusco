@@ -44,8 +44,9 @@ class PruebasTarifario(unittest.TestCase):
         pd.testing.assert_frame_equal(en_disco, generado, check_dtype=False)
 
     def test_estandar_es_mediana_sin_premium(self):
-        # Salkantay 5 días: sin la fila premium (1270) la mediana es 674,5 -> 670
-        self.assertEqual(fila("salkantay_5d", "estandar")["precio_usd_pp_grupo_2"], 670)
+        # Salkantay 5 días: 12 precios publicados + 5 cotizaciones reales, sin la fila premium (1270):
+        # mediana 680 -> 680 (solo con los publicados era 674,5 -> 670)
+        self.assertEqual(fila("salkantay_5d", "estandar")["precio_usd_pp_grupo_2"], 680)
         self.assertEqual(fila("camino_inca_4d", "estandar")["precio_usd_pp_grupo_2"], 840)  # mediana 835 -> 840
 
     def test_salkantay_4d_no_supera_al_de_5d(self):
@@ -62,18 +63,41 @@ class PruebasTarifario(unittest.TestCase):
         mercado = pd.DataFrame([{"trek": t, "dias": d, "precio_usd_pp": p, "nivel_aprox": "no_indicado",
                                  "incluir_en_analisis": "si"} for t, d, p in filas])
         estandar, notas = ap.precios_estandar(mercado)
-        self.assertEqual(estandar[("Salkantay", 5)], 650)
-        self.assertEqual(estandar[("Salkantay", 4)], 590)  # 650 x 0,9 = 585 -> 590, no 720
+        self.assertEqual(estandar[("Salkantay", 5)], (650, "mediana del mercado"))
+        self.assertEqual(estandar[("Salkantay", 4)], (590, "supuesto"))  # 650 x 0,9 = 585 -> 590, no 720
         self.assertTrue(any("menos 10 %" in n for n in notas))
 
     def test_economico_y_premium(self):
-        self.assertEqual(fila("salkantay_5d", "economico")["precio_usd_pp_grupo_2"], 540)  # 670 x 0,8 = 536
-        self.assertEqual(fila("salkantay_5d", "premium")["precio_usd_pp_grupo_2"], 1070)   # 670 x 1,6 = 1072
+        self.assertEqual(fila("salkantay_5d", "economico")["precio_usd_pp_grupo_2"], 540)  # 680 x 0,8 = 544
+        self.assertEqual(fila("salkantay_5d", "premium")["precio_usd_pp_grupo_2"], 1090)   # 680 x 1,6 = 1088
+
+    def test_premium_con_3_precios_reales_usa_su_mediana(self):
+        """Con datos inventados: 3 premium reales -> su mediana; con 2 -> estándar + 60 %."""
+        def mercado(n_premium):
+            filas = [("Salkantay", 4, 600, "no_indicado"), ("Salkantay", 5, 700, "no_indicado"),
+                     ("Camino Inca clásico", 4, 800, "no_indicado")]
+            filas += [("Salkantay", 5, p, "premium") for p in (1000, 1200, 1500)[:n_premium]]
+            return pd.DataFrame([{"trek": t, "dias": d, "precio_usd_pp": p, "nivel_aprox": n,
+                                  "incluir_en_analisis": "si"} for t, d, p, n in filas])
+        estandar, _ = ap.precios_estandar(mercado(3))
+        premium, _ = ap.precios_premium(mercado(3), estandar)
+        self.assertEqual(premium[("Salkantay", 5)], (1200, "mediana del mercado"))
+        self.assertEqual(premium[("Salkantay", 4)], (960, "supuesto"))  # sin premium reales: 600 x 1,6
+        estandar, _ = ap.precios_estandar(mercado(2))
+        premium, _ = ap.precios_premium(mercado(2), estandar)
+        self.assertEqual(premium[("Salkantay", 5)], (1120, "supuesto"))  # 700 x 1,6
 
     def test_descuentos_por_grupo(self):
         f = fila("camino_inca_4d", "estandar")
         self.assertEqual(f["precio_usd_pp_grupo_3a4"], 810)   # 840 x 0,96 = 806,4
         self.assertEqual(f["precio_usd_pp_grupo_5mas"], 770)  # 840 x 0,92 = 772,8
+
+    def test_cada_precio_tiene_origen(self):
+        self.assertTrue(TARIFARIO["origen_precio"].isin(["mediana del mercado", "supuesto"]).all())
+        # Económico siempre es supuesto; estándar sale del mercado (salvo la regla del 4 días).
+        self.assertTrue((TARIFARIO[TARIFARIO["nivel"] == "economico"]["origen_precio"] == "supuesto").all())
+        self.assertTrue((TARIFARIO[TARIFARIO["nivel"] == "estandar"]["origen_precio"]
+                         == "mediana del mercado").all())
 
     def test_camino_inca_cerrado_en_febrero(self):
         inca = TARIFARIO[TARIFARIO["ruta"] == "camino_inca"]
@@ -85,11 +109,26 @@ class PruebasTarifario(unittest.TestCase):
         self.assertEqual(ap.redondear(73.5, paso=5), 75)
 
 
+class PruebasPreciosMercado(unittest.TestCase):
+    def test_cada_fila_tiene_url_o_es_cotizacion_real(self):
+        self.assertTrue(MERCADO["tipo_fuente"].isin(["precio publicado", "cotización real"]).all())
+        con_url = MERCADO["url"].fillna("").str.startswith("http")
+        for _, f in MERCADO[~con_url].iterrows():
+            self.assertEqual(f["tipo_fuente"], "cotización real", f["agencia"])
+        # Un precio publicado siempre tiene URL
+        self.assertTrue(con_url[MERCADO["tipo_fuente"] == "precio publicado"].all())
+
+    def test_cotizaciones_reales_anonimas(self):
+        reales = MERCADO[MERCADO["tipo_fuente"] == "cotización real"]
+        self.assertEqual(len(reales), 5)
+        self.assertTrue(reales["agencia"].str.fullmatch(r"Agencia [A-Z] \(cliente misterioso\)").all())
+
+
 class PruebasCotizacion(unittest.TestCase):
     def test_precio_segun_tamano_de_grupo(self):
         f = fila("salkantay_5d", "estandar")
         self.assertEqual([precio_por_persona(f, n) for n in (1, 2, 3, 4, 5, 9)],
-                         [670, 670, 640, 640, 620, 620])
+                         [680, 680, 650, 650, 630, 630])
 
     def test_salkantay_marzo_dos_personas_sin_preferencia(self):
         opciones = opciones_para_perfil(perfil(num_personas=2, mes_viaje=3, dias_disponibles=5,

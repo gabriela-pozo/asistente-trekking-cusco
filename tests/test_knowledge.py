@@ -42,6 +42,15 @@ class PruebasFragmentos(unittest.TestCase):
             self.assertTrue(f.texto, f.titulo)
             self.assertNotIn("##", f.texto, f.titulo)
 
+    def test_cada_archivo_tiene_fecha_y_fuente(self):
+        archivos = sorted(CARPETA.glob("*.md"))
+        self.assertEqual(len(archivos), 10)
+        for ruta in archivos:
+            meta, _ = leer_cabecera(ruta.read_text(encoding="utf-8"))
+            self.assertRegex(meta.get("actualizado", ""), r"^\d{4}-\d{2}-\d{2}$", ruta.name)
+            fuentes = meta.get("fuentes") or []
+            self.assertTrue(fuentes and all(u.startswith("http") for u in fuentes), ruta.name)
+
     def test_cabecera_no_entra_al_texto(self):
         # Ninguna línea del texto debe ser una clave de la cabecera ("tema:", "fuentes:", ...).
         cabecera = re.compile(r"^(tema|actualizado|fuentes|estado):", re.MULTILINE)

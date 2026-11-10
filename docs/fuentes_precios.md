@@ -14,8 +14,27 @@ La prueba `test_archivo_coincide_con_el_generador` falla si alguien edita el CSV
 
 | Archivo | Qué contiene |
 | --- | --- |
-| `data/precios_mercado.csv` | 42 publicaciones de precios de grupo (Salkantay 4 y 5 días, Camino Inca clásico 4 días), consultadas el 2026-11-10. 39 se usan en el análisis: **13 por trek** |
+| `data/precios_mercado.csv` | 47 precios de grupo (Salkantay 4 y 5 días, Camino Inca clásico 4 días), del 2026-11-10: **42 precios publicados** en páginas web y **5 cotizaciones reales** recibidas por WhatsApp. 44 se usan en el análisis. La columna `tipo_fuente` dice de cuál de los dos tipos es cada fila |
 | `data/extras_mercado.csv` | 7 precios de extras (Huayna Picchu y mejora a tren Vistadome) vistos en esas mismas páginas |
+
+### Precios por tipo de fuente
+
+| Tipo de fuente | Filas | En el análisis | Treks | Tiene URL |
+| --- | --- | --- | --- | --- |
+| Precio publicado | 42 | 39 (13 por trek) | Salkantay 4 y 5 días, Camino Inca | Sí, siempre |
+| Cotización real | 5 | 5 | Solo Salkantay 5 días | No: es una conversación privada |
+
+Las **cotizaciones reales** salen de la prueba de cliente misterioso (`docs/research/cliente_misterioso.md`): son el precio que 5 agencias le dieron a un turista que pidió el Salkantay para 2 personas a fines de marzo. Se registran solo con el código de la agencia ("Agencia A (cliente misterioso)"), sin URL, con `es_precio_desde = no` (es un precio para un caso concreto, no un "desde"), y en `notas` lo que se sabe de qué no incluye cada una.
+
+| Agencia | Precio | Dónde lo dio |
+| --- | --- | --- |
+| A | US$ 750 | En el chat (imagen) |
+| B | US$ 695 | En el chat; US$ 720 si se reserva en 2027 |
+| D | US$ 499 | En el PDF; tarifa 2026 |
+| E | US$ 755 | En el chat |
+| L | US$ 580 | En el PDF |
+
+La agencia J no dio precio en el chat ni se registró uno, así que no entra. Los precios de D y L venían en un PDF y no están en `cliente_misterioso.csv`, que solo registra los precios dichos en el chat.
 
 Hubo dos rondas de investigación el mismo día. La primera dejó 4 a 6 precios por trek; la segunda llevó la muestra a 13 por trek, sobre todo con webs propias de agencias de Cusco.
 
@@ -44,12 +63,14 @@ Tampoco se registraron:
 | 1 | **Estándar** = mediana del mercado de cada trek, sin contar las filas premium, redondeada a la decena | Dato del mercado + decisión de método |
 | 2 | **Salkantay 4 días:** si su mediana supera a la del de 5 días, se usa el estándar del de 5 días menos 10 % | Supuesto |
 | 3 | **Económico** = estándar − 20 % | Supuesto |
-| 4 | **Premium** = estándar + 60 % | Supuesto |
+| 4 | **Premium** = mediana de los precios premium reales del trek si hay **al menos 3**; si no, estándar + 60 % | Dato del mercado con 3 o más precios premium; supuesto con menos. Hoy hay 1 solo precio premium (Salkantay 5 días), así que los 3 premium son supuesto |
 | 5 | **Descuento por grupo:** 4 % para 3 a 4 personas, 8 % para 5 o más. Una o dos personas pagan la tarifa base | Supuesto |
 | 6 | **Camino Inca cerrado en febrero** (`meses_no_disponible = 2`) | Dato: cierre anual por mantenimiento (ver `data/knowledge/camino_inca.md`) |
 | 7 | **Extras** = mediana de los precios encontrados, redondeada a múltiplos de 5 | Dato del mercado + decisión de método |
 | 8 | **Tamaño máximo de grupo:** 16 en económico, 12 en estándar, 8 en premium | Supuesto, basado en rangos publicados (grupos de "hasta 8" a "hasta 20") |
 | 9 | **Qué incluye cada nivel:** por ejemplo, la bolsa de dormir solo va incluida en premium | Supuesto: de 42 publicaciones solo 1 incluye la bolsa de dormir; 24 la excluyen y 17 no la mencionan |
+
+El tarifario tiene una columna **`origen_precio`** en cada fila: `mediana del mercado` o `supuesto`. Se refiere al precio para 2 personas; los de 3 a 4 y de 5 o más siempre aplican los descuentos por grupo, que son supuestos. La prueba `test_cada_precio_tiene_origen` comprueba que ningún precio quede sin origen.
 
 Todos los precios se redondean a la decena (las mitades hacia arriba). Por eso el descuento por grupo efectivo puede quedar a menos de un punto del 4 % o del 8 %: en el Camino Inca estándar, 840 × 0,96 = 806,4, que queda en 810.
 
@@ -58,13 +79,34 @@ Todos los precios se redondean a la decena (las mitades hacia arriba). Por eso e
 | Trek | Mediana del mercado (sin premium) | Estándar | Económico | Premium |
 | --- | --- | --- | --- | --- |
 | Salkantay 4 días | 595 (n = 13) | **600** | 480 | 960 |
-| Salkantay 5 días | 674,5 (n = 12) | **670** | 540 | 1 070 |
+| Salkantay 5 días | 680 (n = 17: 12 publicados + 5 cotizaciones) | **680** | 540 | 1 090 |
 | Camino Inca clásico 4 días | 835 (n = 13) | **840** | 670 | 1 340 |
+
+| Precio | Origen |
+| --- | --- |
+| Estándar de los 3 treks | Mediana del mercado |
+| Económico de los 3 treks | Supuesto (−20 %) |
+| Premium de los 3 treks | Supuesto (+60 %): ningún trek tiene 3 precios premium |
+| Precios para 3 a 4 y 5 o más personas | Supuesto (descuentos de 4 % y 8 %) |
 
 | Extra | Precios encontrados | Precio en el tarifario |
 | --- | --- | --- |
 | Ingreso a Huayna Picchu | 70, 75, 75 | **US$ 75** por persona |
 | Mejora a tren Vistadome en el regreso | 67, 80 | **US$ 75** por persona (no aplica a premium, que ya lo incluye) |
+
+### Efecto de las cotizaciones reales (Salkantay 5 días)
+
+| Precios usados (sin premium) | n | Mínimo | Mediana | Máximo |
+| --- | --- | --- | --- | --- |
+| Solo precios publicados | 12 | 310 | 674,5 | 798 |
+| Solo cotizaciones reales | 5 | 499 | 695 | 755 |
+| Los dos juntos | 17 | 310 | **680** | 798 |
+
+La mediana sube US$ 5,5 (+0,8 %), y el estándar pasa de 670 a **680**. Con eso, el premium pasa de 1 070 a **1 090** y los precios de grupo del estándar de 640/620 a 650/630. El económico queda en 540 (680 × 0,8 = 544).
+
+Las cotizaciones reales están más juntas que los precios publicados (US$ 499 a 755, contra 310 a 798) y su mediana (695) queda un poco por encima. Esto coincide con que casi todos los publicados son precios "desde", y una cotización para fechas concretas suele salir algo más alta.
+
+Los otros dos treks no cambian, porque las 5 cotizaciones son del Salkantay de 5 días.
 
 ### Cambio respecto a la primera ronda
 
@@ -84,15 +126,23 @@ La regla se mantiene en el código como protección si una muestra futura vuelve
 
 ### Comparación con el mercado
 
-- El **premium** calculado (Salkantay 5 días: US$ 1 070) queda por debajo del único premium real encontrado: el Premium de Salkantay Trekking en TourRadar, a US$ 1 270, con comisión de plataforma incluida. Es razonable para una agencia pequeña que vende directo.
+- El **premium** calculado (Salkantay 5 días: US$ 1 090) queda por debajo del único premium real encontrado: el Premium de Salkantay Trekking en TourRadar, a US$ 1 270, con comisión de plataforma incluida. Es razonable para una agencia pequeña que vende directo.
 - El **económico** (Salkantay 5 días: US$ 540) queda por encima de las ofertas más baratas, como la versión "para mochileros" de Quechuas Expeditions a US$ 310 o SAP Adventures a US$ 420. Esas ofertas existen, pero el económico de la agencia demo no intenta competir con ellas.
 - El **Camino Inca** es el trek con menos dispersión: de US$ 760 a 990. Todas las agencias cargan el mismo permiso, entrada y tren.
 
+## Qué sigue siendo supuesto
+
+- **Económico** (−20 %) y **premium** (+60 %): no hay suficientes precios de esos niveles. Solo 1 publicación dice "premium" y 1 dice "mochilero". Con 3 precios premium de un trek, el código pasa solo a usar su mediana.
+- **Descuentos por grupo** (4 % y 8 %): ninguna fuente da precios por tamaño de grupo de forma comparable, salvo dos tablas de Camino Inca que quedan en las notas.
+- **Regla del Salkantay 4 días** (−10 % del de 5 días): hoy no se activa.
+- **Tamaño máximo de grupo y qué incluye cada nivel.**
+
 ## Límites de estos datos
 
-- **Las muestras siguen siendo chicas: 13 precios por trek** (12 en el Salkantay 5 días sin la fila premium). Ahora son más estables que con 4 a 6, pero no son una muestra aleatoria: salen de lo que aparece en buscadores, que favorece a las agencias con más presencia en internet.
+- **Las muestras siguen siendo chicas: 13 precios publicados por trek** (12 en el Salkantay 5 días sin la fila premium), más 5 cotizaciones reales del Salkantay 5 días.
+- **Las cotizaciones reales son pocas y de una sola consulta:** 2 personas, fines de marzo, enviada de noche. Tampoco siempre dicen si el precio es del Salkantay de 4 o de 5 días; se registraron como 5 días. Sirven para comprobar que los precios publicados se parecen a lo que de verdad se cobra, no como una muestra aparte. Ahora son más estables que con 4 a 6, pero no son una muestra aleatoria: salen de lo que aparece en buscadores, que favorece a las agencias con más presencia en internet.
 - **Algunas agencias aparecen más de una vez:** Salkantay Trekking (4 filas, en su web y en TourRadar) y Quechuas Expeditions (4 filas). Son productos distintos, pero pesan más en la mediana.
-- **9 de los 39 precios vienen de TourRadar.** Esos precios incluyen la comisión de la plataforma, así que la agencia recibe menos.
+- **9 de los 39 precios publicados vienen de TourRadar.** Esos precios incluyen la comisión de la plataforma, así que la agencia recibe menos.
 - **Tres precios vienen de fuentes secundarias.** Los dos de Viator no se leyeron en Viator, sino en reseñas de welcomeperutravel.com que enlazan a Viator: Bamba Travel (Salkantay 4 días, US$ 810) e Incredible Peru Tours (Camino Inca, US$ 860; Huayna Picchu, US$ 70). Uno de GetYourGuide se leyó en un blog (theabroadguide.com, Salkantay 4 días, US$ 410). Pueden estar desactualizados respecto al precio vigente en esas plataformas, y no siempre dicen "USD", solo "$".
 - **Casi todos son precios "desde".** El precio real depende de la fecha, el tipo de habitación y el tamaño del grupo.
 - **El nivel de servicio casi nunca está indicado.** Solo se marcó "premium", "superior", "estándar" o "mochilero" cuando lo decía la página; el resto quedó como `no_indicado`.
