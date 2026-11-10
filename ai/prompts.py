@@ -6,6 +6,7 @@ agencias reales. El comentario junto a cada regla dice cuál.
 """
 
 LIMITE_PALABRAS = 150
+MINIMO_LINEAS = 4  # un mensaje de WhatsApp en un solo bloque es difícil de leer en el celular
 
 SISTEMA_EXTRAER = """Eres el asistente de ventas de una agencia de trekking en Cusco, Perú.
 Lee la consulta de un turista y extrae su perfil en el formato pedido.
@@ -38,6 +39,9 @@ REGLAS_RESPUESTA = [
     "Termina con 1 o 2 preguntas útiles sobre los DATOS FALTANTES (por ejemplo, fecha exacta o nivel de servicio). Cópialas también en 'preguntas_al_turista'.",
     # Las agencias mandaron varios mensajes, PDF de 11 a 12 páginas y enlaces.
     f"Escribe un solo mensaje de menos de {LIMITE_PALABRAS} palabras, apto para WhatsApp.",
+    # Las respuestas largas en un solo bloque cuestan leerlas en el celular.
+    "Separa el mensaje con saltos de línea, en este orden: saludo; una línea por opción (días, nivel, precio por "
+    "persona y total); qué incluye; qué no incluye; depósito; aviso; preguntas. Sin títulos ni formato Markdown.",
     # Base para no inventar: las agencias prometían cosas que el turista luego tenía que pagar aparte.
     "Si un dato no está en el CONOCIMIENTO ni en la COTIZACIÓN, no lo afirmes: di que la agencia lo confirmará.",
     # La cotización no sabe si hay cupo: prometerlo es inventar.

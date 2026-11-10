@@ -16,7 +16,7 @@ sys.path.insert(0, str(RAIZ))
 from ai import prompts  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import GeminiLLM, Uso, con_reintentos, crear_llm  # noqa: E402
-from ai.pipeline import contar_palabras, precios_en_texto, procesar_consulta  # noqa: E402
+from ai.pipeline import contar_lineas, contar_palabras, precios_en_texto, procesar_consulta  # noqa: E402
 from ai.schemas import BorradorRespuesta, PerfilTurista  # noqa: E402
 from core.cotizacion import cargar_extras, cargar_tarifario  # noqa: E402
 
@@ -36,12 +36,14 @@ PERFIL_SALKANTAY = {
 
 # Lo que respondería un buen modelo con la cotización de este caso (Salkantay 4 días estándar, 2 personas).
 MENSAJE_BUENO = (
-    "Hi! Yes, the Salkantay trek is possible in late March. Our standard 4-day option is US$ 600 per person, "
-    "US$ 1,200 in total for 2. Included: bilingual guide, transport, meals on the trek, Machu Picchu entrance, "
-    "train back to Ollantaytambo, double tent. Not included: sleeping bag (rental), travel insurance, tips, "
-    "Huayna Picchu. March is rainy season, so bring rain gear. Deposit US$ 600 (50 %) to book; balance US$ 600 "
-    "up to 30 days before the trek. What exact date do you have in mind? Would you prefer economy, standard "
-    "or premium service?"
+    "Hi! Yes, the Salkantay trek is possible in late March.\n"
+    "4 days, standard: US$ 600 per person, US$ 1,200 in total for 2.\n"
+    "Included: bilingual guide, transport, meals on the trek, Machu Picchu entrance, train back to Ollantaytambo, "
+    "double tent.\n"
+    "Not included: sleeping bag (rental), travel insurance, tips, Huayna Picchu.\n"
+    "Deposit US$ 600 (50 %) to book; balance US$ 600 up to 30 days before the trek.\n"
+    "March is rainy season, so bring rain gear.\n"
+    "What exact date do you have in mind? Would you prefer economy, standard or premium service?"
 )
 
 
@@ -76,6 +78,18 @@ class PruebasFlujo(unittest.TestCase):
         self.assertEqual(r.precios_no_autorizados, [])
         self.assertEqual(r.advertencias, [])
         self.assertEqual(r.uso, Uso(200, 100))
+
+    def test_borrador_tiene_al_menos_4_lineas(self):
+        r, _ = correr()
+        self.assertGreaterEqual(contar_lineas(r.borrador.mensaje_para_cliente), prompts.MINIMO_LINEAS)
+
+    def test_detecta_mensaje_en_un_solo_bloque(self):
+        r, _ = correr(respuesta=borrador(MENSAJE_BUENO.replace("\n", " ")))
+        self.assertTrue(any("línea" in a for a in r.advertencias))
+
+    def test_el_prompt_pide_saltos_de_linea(self):
+        self.assertIn("saltos de línea", prompts.SISTEMA_RESPONDER)
+        self.assertIn("una línea por opción", prompts.SISTEMA_RESPONDER)
 
     def test_borrador_no_pasa_de_150_palabras(self):
         r, _ = correr()
@@ -135,7 +149,9 @@ class PruebasControles(unittest.TestCase):
 
     def test_portugues_para_reservar_no_es_espanol(self):
         perfil = dict(PERFIL_SALKANTAY, idioma="pt")
-        mensaje = "Olá! O Salkantay custa US$ 600 por pessoa, US$ 1200 no total. Depósito US$ 600 para reservar. Qual data?"
+        mensaje = ("Olá!\nSalkantay 4 dias: US$ 600 por pessoa, US$ 1200 no total.\n"
+                   "Salkantay 5 dias: US$ 680 por pessoa, US$ 1360 no total.\n"
+                   "Depósito de 50 % do total da opção escolhida para reservar.\nQual data?")
         r, _ = correr(perfil=perfil, respuesta=borrador(mensaje, idioma="pt"))
         self.assertEqual(r.advertencias, [])
 
@@ -150,7 +166,8 @@ class PruebasControles(unittest.TestCase):
 
     def test_en_espanol_no_avisa_traduccion(self):
         perfil = dict(PERFIL_SALKANTAY, idioma="es")
-        mensaje = "¡Hola! El Salkantay de 4 días cuesta US$ 600 por persona, US$ 1200 en total. ¿Qué fecha exacta?"
+        mensaje = ("¡Hola!\nSalkantay 4 días: US$ 600 por persona, US$ 1200 en total.\n"
+                   "Salkantay 5 días: US$ 680 por persona, US$ 1360 en total.\n¿Qué fecha exacta?")
         r, _ = correr(perfil=perfil, respuesta=borrador(mensaje, idioma="es"))
         self.assertEqual(r.advertencias, [])
 

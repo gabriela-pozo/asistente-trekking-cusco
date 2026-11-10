@@ -121,6 +121,11 @@ def contar_palabras(texto: str) -> int:
     return len(texto.split())
 
 
+def contar_lineas(texto: str) -> int:
+    """Líneas con texto (las líneas en blanco no cuentan)."""
+    return sum(1 for linea in texto.splitlines() if linea.strip())
+
+
 def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
                        opciones: list[OpcionCotizada]) -> tuple[list[int], list[str]]:
     """Revisa el borrador en código. Devuelve (precios no autorizados, advertencias)."""
@@ -135,6 +140,10 @@ def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
     palabras = contar_palabras(texto)
     if palabras >= prompts.LIMITE_PALABRAS:
         advertencias.append(f"El mensaje tiene {palabras} palabras; debe tener menos de {prompts.LIMITE_PALABRAS}.")
+    lineas = contar_lineas(texto)
+    if lineas < prompts.MINIMO_LINEAS:
+        advertencias.append(f"El mensaje tiene {lineas} línea(s); sepáralo en al menos {prompts.MINIMO_LINEAS} "
+                            "(saludo, opciones, qué incluye, depósito, preguntas) para que se lea bien en WhatsApp.")
     if borrador.idioma.lower() != perfil.idioma.lower():
         advertencias.append(f"El mensaje está en '{borrador.idioma}' y el turista escribió en '{perfil.idioma}'.")
     if perfil.idioma.lower() != "es" and _QUEDO_EN_ESPANOL.search(texto):

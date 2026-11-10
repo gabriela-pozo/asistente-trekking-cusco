@@ -53,7 +53,10 @@ class BorradorRespuesta(BaseModel):
     """El mensaje que el vendedor revisará antes de enviarlo por WhatsApp."""
 
     idioma: str = Field(description="Código ISO 639-1 del idioma en que está escrito mensaje_para_cliente.")
-    mensaje_para_cliente: str = Field(description="Un solo mensaje de WhatsApp, en el idioma del turista, de menos de 150 palabras.")
+    mensaje_para_cliente: str = Field(
+        description="Un solo mensaje de WhatsApp, en el idioma del turista, de menos de 150 palabras, "
+        "con saltos de línea entre saludo, opciones, qué incluye y qué no, depósito, aviso y preguntas.",
+    )
     preguntas_al_turista: list[str] = Field(
         default_factory=list, max_length=2,
         description="Las 1 o 2 preguntas con las que termina el mensaje, copiadas tal cual.",
