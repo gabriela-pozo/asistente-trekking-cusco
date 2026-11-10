@@ -21,6 +21,7 @@ from ai.schemas import BorradorRespuesta, PerfilTurista
 from core.cotizacion import NO_REEMBOLSABLE_CAMINO_INCA_PP, OpcionCotizada, opciones_para_perfil
 
 AGENCIA = "Andes Trek Demo"
+MAXIMO_OPCIONES = 2  # con 3 opciones y sus listas, el mensaje pasaba de 150 palabras
 
 
 @dataclass
@@ -50,6 +51,18 @@ def aviso_clave(perfil, opciones: list[OpcionCotizada]) -> str | None:
     return None
 
 
+def nota_presupuesto(perfil, opciones: list[OpcionCotizada]) -> str | None:
+    """Si el presupuesto del turista no alcanza para la opción más barata, el código lo dice."""
+    presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
+    if not presupuesto or not opciones:
+        return None
+    mas_barata = min(o.precio_pp_con_extras for o in opciones)
+    if presupuesto >= mas_barata:
+        return None
+    return (f"El presupuesto del turista (US$ {presupuesto:g} por persona) es menor que la opción más barata "
+            f"de la cotización (US$ {mas_barata} por persona).")
+
+
 # --- Controles sobre el borrador ----------------------------------------------
 
 _MONTO = re.compile(
@@ -69,9 +82,12 @@ def precios_en_texto(texto: str) -> list[int]:
     return montos
 
 
-def precios_permitidos(opciones: list[OpcionCotizada]) -> set[int]:
-    """Todos los montos que el código calculó y le pasó al modelo."""
+def precios_permitidos(opciones: list[OpcionCotizada], perfil=None) -> set[int]:
+    """Todos los montos que el código calculó y le pasó al modelo, más el presupuesto que dio el turista."""
     permitidos: set[int] = set()
+    presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
+    if presupuesto:
+        permitidos.add(int(presupuesto))
     for o in opciones:
         permitidos |= {o.precio_pp, o.precio_pp_con_extras, o.total, o.deposito, o.saldo}
         permitidos |= {precio for _, precio in o.extras}
@@ -80,10 +96,25 @@ def precios_permitidos(opciones: list[OpcionCotizada]) -> set[int]:
     return permitidos
 
 
-def precios_no_autorizados(texto: str, opciones: list[OpcionCotizada]) -> list[int]:
+def precios_no_autorizados(texto: str, opciones: list[OpcionCotizada], perfil=None) -> list[int]:
     """Montos del mensaje que no salen de la cotización: señal de que el modelo inventó un precio."""
-    permitidos = precios_permitidos(opciones)
+    permitidos = precios_permitidos(opciones, perfil)
     return [m for m in precios_en_texto(texto) if m not in permitidos]
+
+
+# Frases de la COTIZACIÓN y los avisos que, si aparecen tal cual, delatan que no se tradujeron.
+# ("para reservar" no está: en portugués se escribe igual.)
+_QUEDO_EN_ESPANOL = re.compile(r"\b(del total|hasta 30 días|por persona|no son reembolsables|cupo diario|no incluye|"
+                               r"bolsa de dormir|guía bilingüe|tren de regreso|comidas durante)\b",
+                               flags=re.IGNORECASE)
+
+# Frases que prometen cupo. La cotización no sabe si hay cupo: solo el sistema oficial lo confirma.
+_PROMETE_CUPO = re.compile(
+    r"\b(hay cupos?|tenemos cupos?|hay disponibilidad|temos vagas?|tem vagas?|há vagas?|"
+    r"we have (availability|spots|space)|there (is|are) (still )?(availability|spots|space)|"
+    r"nous avons des places|wir haben (noch )?plätze)\b",
+    flags=re.IGNORECASE,
+)
 
 
 def contar_palabras(texto: str) -> int:
@@ -95,7 +126,7 @@ def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
     """Revisa el borrador en código. Devuelve (precios no autorizados, advertencias)."""
     texto = borrador.mensaje_para_cliente
     advertencias = []
-    no_autorizados = precios_no_autorizados(texto, opciones)
+    no_autorizados = precios_no_autorizados(texto, opciones, perfil)
     if no_autorizados:
         advertencias.append(f"El mensaje tiene montos que no están en la cotización: {no_autorizados}. "
                             "Corrígelos antes de enviar.")
@@ -106,6 +137,10 @@ def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
         advertencias.append(f"El mensaje tiene {palabras} palabras; debe tener menos de {prompts.LIMITE_PALABRAS}.")
     if borrador.idioma.lower() != perfil.idioma.lower():
         advertencias.append(f"El mensaje está en '{borrador.idioma}' y el turista escribió en '{perfil.idioma}'.")
+    if perfil.idioma.lower() != "es" and _QUEDO_EN_ESPANOL.search(texto):
+        advertencias.append("Parte del mensaje quedó en español (por ejemplo, la línea del depósito). Tradúcela.")
+    if _PROMETE_CUPO.search(texto):
+        advertencias.append("El mensaje parece prometer cupo o disponibilidad. Quítalo: se confirma en el sistema oficial.")
     if not borrador.preguntas_al_turista:
         advertencias.append("El mensaje no termina con una pregunta al turista.")
     return no_autorizados, advertencias
@@ -122,9 +157,10 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
     perfil, uso1 = llm.estructurado(prompts.SISTEMA_EXTRAER, consulta, PerfilTurista)
 
     fragmentos = base.buscar(consulta_desde_perfil(perfil), k=8, archivos_prioritarios=archivos_desde_perfil(perfil))
-    opciones = opciones_para_perfil(perfil, tarifario, extras)
+    opciones = opciones_para_perfil(perfil, tarifario, extras, maximo=MAXIMO_OPCIONES)
     fecha_posible = not any(o.es_alternativa for o in opciones)
     aviso = aviso_clave(perfil, opciones)
+    presupuesto = nota_presupuesto(perfil, opciones)
 
     mensaje = prompts.mensaje_responder(
         consulta=consulta,
@@ -134,6 +170,7 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
         aviso=aviso,
         fecha_posible=fecha_posible,
         agencia=agencia,
+        nota_presupuesto=presupuesto,
     )
     borrador, uso2 = llm.estructurado(prompts.SISTEMA_RESPONDER, mensaje, BorradorRespuesta)
 

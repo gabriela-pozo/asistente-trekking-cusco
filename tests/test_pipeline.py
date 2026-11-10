@@ -121,6 +121,39 @@ class PruebasControles(unittest.TestCase):
         r, _ = correr(respuesta=borrador(preguntas=()))
         self.assertTrue(any("pregunta" in a for a in r.advertencias))
 
+    def test_detecta_linea_de_deposito_sin_traducir(self):
+        mensaje = MENSAJE_BUENO.replace("Deposit US$ 600 (50 %) to book; balance US$ 600 up to 30 days before the trek.",
+                                        "Depósito US$ 600 (50 % del total) para reservar; saldo US$ 600 hasta 30 días antes del trek.")
+        r, _ = correr(respuesta=borrador(mensaje))
+        self.assertTrue(any("español" in a for a in r.advertencias))
+
+    def test_detecta_lista_sin_traducir(self):
+        perfil = dict(PERFIL_SALKANTAY, idioma="pt")
+        mensaje = "Olá! US$ 600 por pessoa, US$ 1200 no total. Inclui: guía bilingüe. No incluye: Bolsa de dormir. Qual data?"
+        r, _ = correr(perfil=perfil, respuesta=borrador(mensaje, idioma="pt"))
+        self.assertTrue(any("español" in a for a in r.advertencias))
+
+    def test_portugues_para_reservar_no_es_espanol(self):
+        perfil = dict(PERFIL_SALKANTAY, idioma="pt")
+        mensaje = "Olá! O Salkantay custa US$ 600 por pessoa, US$ 1200 no total. Depósito US$ 600 para reservar. Qual data?"
+        r, _ = correr(perfil=perfil, respuesta=borrador(mensaje, idioma="pt"))
+        self.assertEqual(r.advertencias, [])
+
+    def test_detecta_promesa_de_cupo(self):
+        for frase in ("Temos vagas para o Natal!", "Good news, we have availability for Christmas!", "¡Hay cupo!"):
+            r, _ = correr(respuesta=borrador(frase + " " + MENSAJE_BUENO))
+            self.assertTrue(any("cupo" in a for a in r.advertencias), frase)
+
+    def test_maximo_dos_opciones(self):
+        r, _ = correr()
+        self.assertEqual(len(r.opciones), 2)
+
+    def test_en_espanol_no_avisa_traduccion(self):
+        perfil = dict(PERFIL_SALKANTAY, idioma="es")
+        mensaje = "¡Hola! El Salkantay de 4 días cuesta US$ 600 por persona, US$ 1200 en total. ¿Qué fecha exacta?"
+        r, _ = correr(perfil=perfil, respuesta=borrador(mensaje, idioma="es"))
+        self.assertEqual(r.advertencias, [])
+
     def test_precios_en_texto(self):
         self.assertEqual(precios_en_texto("US$ 600, $1,200, USD 680, 1.360 USD y 75 dollars; 4 días, 50 %"),
                          [600, 1200, 680, 1360, 75])
@@ -142,6 +175,22 @@ class PruebasCasos(unittest.TestCase):
         r, _ = correr(perfil=perfil, respuesta=borrador(mensaje))
         self.assertIn("permisos del Camino Inca", r.aviso)
         self.assertEqual(r.precios_no_autorizados, [])
+
+
+class PruebasPresupuesto(unittest.TestCase):
+    PERFIL = dict(PERFIL_SALKANTAY, treks_de_interes=["camino_inca"], mes_viaje=8, num_personas=1,
+                  dias_disponibles=None, nivel_preferido="economico", presupuesto_usd_pp=300)
+
+    def test_presupuesto_bajo_genera_nota_y_se_puede_citar(self):
+        mensaje = ("Hi! Unfortunately US$ 300 is not enough for the Inca Trail: our cheapest option is US$ 670 "
+                   "per person. Which date?")
+        r, llm = correr(perfil=self.PERFIL, respuesta=borrador(mensaje))
+        self.assertIn("NOTA DE PRESUPUESTO: El presupuesto del turista (US$ 300", llm.llamadas[1]["mensaje"])
+        self.assertEqual(r.precios_no_autorizados, [])  # 300 es el presupuesto del turista, no un precio inventado
+
+    def test_presupuesto_suficiente_sin_nota(self):
+        r, llm = correr(perfil=dict(self.PERFIL, presupuesto_usd_pp=2000))
+        self.assertIn("NOTA DE PRESUPUESTO: ninguna", llm.llamadas[1]["mensaje"])
 
 
 class PruebasEsquemas(unittest.TestCase):
@@ -216,6 +265,14 @@ class PruebasLLM(unittest.TestCase):
         invalido = errors.ClientError(400, {"error": {"code": 400, "message": "mal", "status": "INVALID_ARGUMENT"}})
         self.assertTrue(GeminiLLM.es_reintentable(limite))
         self.assertFalse(GeminiLLM.es_reintentable(invalido))
+
+    def test_gemini_no_reintenta_la_cuota_diaria(self):
+        from google.genai import errors
+
+        diario = errors.ClientError(429, {"error": {"code": 429, "message": "cuota", "status": "RESOURCE_EXHAUSTED",
+                                                    "details": [{"violations": [{"quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}]}})
+        self.assertTrue(GeminiLLM.es_limite_diario(diario))
+        self.assertFalse(GeminiLLM.es_reintentable(diario))
 
     def test_proveedor_por_defecto_es_gemini_y_pide_clave(self):
         with mock.patch.dict(os.environ, {"LLM_PROVIDER": "", "GEMINI_API_KEY": ""}):

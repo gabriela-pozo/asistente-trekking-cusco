@@ -24,12 +24,13 @@ from pydantic import BaseModel
 T = TypeVar("T", bound=BaseModel)
 R = TypeVar("R")
 
-MODELO_GEMINI = "gemini-2.5-flash"
+MODELO_GEMINI = "gemini-3.5-flash"  # gemini-2.5-flash ya no se habilita a cuentas nuevas
 MODELO_CLAUDE = "claude-haiku-5-5"
 
 # Reintentos ante el límite de la capa gratuita (429). Las esperas crecen: 10, 20, 40 s.
 INTENTOS = 4
 ESPERA_INICIAL_S = 10.0
+TIEMPO_LIMITE_S = 90       # por llamada
 
 
 @dataclass
@@ -39,6 +40,10 @@ class Uso:
 
     def sumar(self, otro: "Uso") -> "Uso":
         return Uso(self.tokens_entrada + otro.tokens_entrada, self.tokens_salida + otro.tokens_salida)
+
+
+class LimiteDiarioError(RuntimeError):
+    """Se acabó la cuota diaria de la capa gratuita: esperar unos segundos no sirve."""
 
 
 class LLM(Protocol):
@@ -68,20 +73,30 @@ class GeminiLLM:
 
     def __init__(self, api_key: str | None = None, modelo: str | None = None):
         from google import genai  # se importa aquí para que las pruebas no lo necesiten
+        from google.genai import types
 
         clave = api_key or os.getenv("GEMINI_API_KEY")
         if not clave:
             raise RuntimeError("Falta GEMINI_API_KEY. Ponla en el archivo .env (ver .env.example).")
-        self._cliente = genai.Client(api_key=clave)
+        # Tiempo límite por llamada (en milisegundos): sin él, una llamada colgada espera para siempre.
+        self._cliente = genai.Client(api_key=clave, http_options=types.HttpOptions(timeout=TIEMPO_LIMITE_S * 1000))
         self.modelo = modelo or os.getenv("GEMINI_MODEL") or MODELO_GEMINI
 
     @staticmethod
     def es_reintentable(error: Exception) -> bool:
         from google.genai import errors
 
-        # 429: límite de solicitudes por minuto de la capa gratuita.
+        # 429: límite de solicitudes por minuto de la capa gratuita (el diario no: ver es_limite_diario).
         # 503: modelo sobrecargado, también temporal.
-        return isinstance(error, errors.APIError) and error.code in (429, 503)
+        if isinstance(error, errors.APIError):
+            return error.code == 503 or (error.code == 429 and not GeminiLLM.es_limite_diario(error))
+        # Cortes de red ("Server disconnected without sending a response"): también temporales.
+        return type(error).__module__.split(".")[0] in ("httpx", "httpx2", "httpcore", "httpcore2")
+
+    @staticmethod
+    def es_limite_diario(error: Exception) -> bool:
+        """429 por la cuota diaria (p. ej. 20 solicitudes por día y modelo en la capa gratuita)."""
+        return getattr(error, "code", None) == 429 and "PerDay" in str(error)
 
     def estructurado(self, sistema: str, mensaje: str, esquema: type[T]) -> tuple[T, Uso]:
         from google.genai import types
@@ -92,10 +107,18 @@ class GeminiLLM:
             response_schema=esquema,
             temperature=0.2,
         )
-        respuesta = con_reintentos(
-            lambda: self._cliente.models.generate_content(model=self.modelo, contents=mensaje, config=config),
-            self.es_reintentable,
-        )
+        try:
+            respuesta = con_reintentos(
+                lambda: self._cliente.models.generate_content(model=self.modelo, contents=mensaje, config=config),
+                self.es_reintentable,
+            )
+        except Exception as error:
+            if self.es_limite_diario(error):
+                raise LimiteDiarioError(
+                    f"Se acabó la cuota diaria gratuita de Gemini para el modelo {self.modelo}. "
+                    "Vuelve a intentar mañana o cambia GEMINI_MODEL en el archivo .env."
+                ) from error
+            raise
         resultado = respuesta.parsed if isinstance(respuesta.parsed, esquema) else None
         if resultado is None:
             if not respuesta.text:
