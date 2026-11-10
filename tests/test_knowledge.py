@@ -12,7 +12,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
 from ai.knowledge import (  # noqa: E402
-    BaseConocimiento, archivos_desde_perfil, consulta_desde_perfil, leer_cabecera,
+    ARCHIVO_POR_TREK, BaseConocimiento, archivos_desde_perfil, consulta_desde_perfil, leer_cabecera,
 )
 
 CARPETA = RAIZ / "data" / "knowledge"
@@ -101,6 +101,17 @@ class PruebasPerfil(unittest.TestCase):
             archivos = {f.archivo for f in buscar_por_perfil(perfil(treks_de_interes=[trek], temas_consulta=["altura"]))}
             self.assertIn(archivo, archivos)
             self.assertIn("condiciones_reserva", archivos)
+
+    def test_cada_trek_tiene_su_archivo(self):
+        archivos = {r.stem for r in CARPETA.glob("*.md")}
+        self.assertTrue(set(ARCHIVO_POR_TREK.values()) <= archivos)
+
+    def test_treks_nuevos_tambien_se_incluyen(self):
+        # Aunque los temas no se parezcan al trek, sus fragmentos entran por ser prioritarios.
+        for trek in ("lares", "choquequirao", "camino_inca_corto", "inca_jungle"):
+            archivos = [f.archivo for f in buscar_por_perfil(perfil(treks_de_interes=[trek], temas_consulta=["altura"]))]
+            self.assertGreaterEqual(archivos.count(trek), 2, trek)
+            self.assertIn("condiciones_reserva", archivos, trek)
 
     def test_sin_trek_igual_incluye_reserva(self):
         archivos = {f.archivo for f in buscar_por_perfil(perfil(temas_consulta=["entrada a Machu Picchu"]))}

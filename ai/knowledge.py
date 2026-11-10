@@ -24,7 +24,16 @@ PALABRAS_VACIAS = (
 ).split()
 
 # Archivo de la base que corresponde a cada trek del perfil.
-ARCHIVO_POR_TREK = {"salkantay": "salkantay", "camino_inca": "camino_inca"}
+# Código del trek en el perfil -> archivo de data/knowledge y palabras para la búsqueda en español
+TREKS = {
+    "salkantay": ("salkantay", "salkantay trek"),
+    "camino_inca": ("camino_inca", "camino inca permisos"),
+    "camino_inca_corto": ("camino_inca_corto", "camino inca corto"),
+    "lares": ("lares", "lares trek"),
+    "choquequirao": ("choquequirao", "choquequirao trek"),
+    "inca_jungle": ("inca_jungle", "inca jungle"),
+}
+ARCHIVO_POR_TREK = {codigo: archivo for codigo, (archivo, _) in TREKS.items()}
 ARCHIVO_RESERVA = "condiciones_reserva"
 MESES_DE_LLUVIA = {10, 11, 12, 1, 2, 3, 4}
 FEBRERO = 2
@@ -137,8 +146,7 @@ def consulta_desde_perfil(perfil) -> str:
     temas = getattr(perfil, "temas_consulta", None) or []
     mes = getattr(perfil, "mes_viaje", None)
 
-    nombres = {"salkantay": "salkantay trek", "camino_inca": "camino inca permisos"}
-    partes = [nombres.get(t, "trek alternativa") for t in treks]
+    partes = [TREKS[t][1] if t in TREKS else "trek alternativa" for t in treks]
     partes += temas
     if mes in MESES_DE_LLUVIA:
         partes.append("temporada de lluvias")
