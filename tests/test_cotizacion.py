@@ -21,6 +21,7 @@ from core.cotizacion import (  # noqa: E402
 TARIFARIO = cargar_tarifario(RAIZ / "data" / "tarifario_demo.csv")
 EXTRAS = cargar_extras(RAIZ / "data" / "extras_demo.csv")
 MERCADO = pd.read_csv(RAIZ / "data" / "precios_mercado.csv")
+OTROS = pd.read_csv(RAIZ / "data" / "precios_otros_treks.csv")
 
 
 def perfil(**datos):
@@ -38,7 +39,7 @@ def fila(trek_id, nivel):
 class PruebasTarifario(unittest.TestCase):
     def test_archivo_coincide_con_el_generador(self):
         """Si alguien edita el CSV a mano o cambia las reglas sin regenerar, esta prueba falla."""
-        generado = ap.generar_tarifario(MERCADO)
+        generado = ap.generar_tarifario(MERCADO, OTROS)
         en_disco = TARIFARIO.copy()
         generado["meses_no_disponible"] = generado["meses_no_disponible"].astype(str)
         pd.testing.assert_frame_equal(en_disco, generado, check_dtype=False)
@@ -93,11 +94,65 @@ class PruebasTarifario(unittest.TestCase):
         self.assertEqual(f["precio_usd_pp_grupo_5mas"], 770)  # 840 x 0,92 = 772,8
 
     def test_cada_precio_tiene_origen(self):
-        self.assertTrue(TARIFARIO["origen_precio"].isin(["mediana del mercado", "supuesto"]).all())
+        origen = TARIFARIO["origen_precio"]
+        self.assertTrue((origen.str.startswith("mediana del mercado: ") | origen.str.startswith("supuesto: ")).all())
         # Económico siempre es supuesto; estándar sale del mercado (salvo la regla del 4 días).
-        self.assertTrue((TARIFARIO[TARIFARIO["nivel"] == "economico"]["origen_precio"] == "supuesto").all())
-        self.assertTrue((TARIFARIO[TARIFARIO["nivel"] == "estandar"]["origen_precio"]
-                         == "mediana del mercado").all())
+        self.assertTrue(origen[TARIFARIO["nivel"] == "economico"].str.startswith("supuesto").all())
+        self.assertTrue(origen[TARIFARIO["nivel"] == "estandar"].str.startswith("mediana del mercado").all())
+        # Siempre dice cuántos precios y de qué archivo.
+        self.assertTrue(origen.str.contains(r"\d+ precios(?: premium)? en precios_(?:mercado|otros_treks)\.csv").all())
+
+    def test_otros_treks_desde_su_mediana(self):
+        """Mediana de data/precios_otros_treks.csv y las mismas reglas que los demás treks."""
+        esperado = {  # trek_id: (n, estándar, económico, premium)
+            "choquequirao_4d": (4, 530, 420, 850),      # 364, 530, 537, 645 -> 533,5
+            "lares_4d": (3, 650, 520, 1040),            # 600, 650, 899
+            "inca_jungle_4d": (3, 490, 390, 780),       # 269, 490, 699
+            "camino_inca_corto_2d": (3, 600, 480, 960),  # 575, 595, 908 -> 595
+        }
+        for trek_id, (n, estandar, economico, premium) in esperado.items():
+            with self.subTest(trek_id=trek_id):
+                self.assertEqual(fila(trek_id, "estandar")["precio_usd_pp_grupo_2"], estandar)
+                self.assertEqual(fila(trek_id, "economico")["precio_usd_pp_grupo_2"], economico)
+                self.assertEqual(fila(trek_id, "premium")["precio_usd_pp_grupo_2"], premium)
+                self.assertEqual(fila(trek_id, "estandar")["origen_precio"],
+                                 f"mediana del mercado: {n} precios en precios_otros_treks.csv")
+                self.assertEqual(fila(trek_id, "estandar")["precio_usd_pp_grupo_5mas"], ap.redondear(estandar * 0.92))
+
+    def test_trek_con_menos_de_3_precios_queda_fuera(self):
+        otros = pd.DataFrame([{"trek": "Lares trek", "dias": 4, "precio_usd_pp": p} for p in (600, 650)]
+                             + [{"trek": "Inca Jungle trek", "dias": 4, "precio_usd_pp": p} for p in (400, 450, 500)])
+        estandar, _, fuera = ap.precios_otros(otros)
+        self.assertEqual(estandar, {("Inca Jungle trek", 4): (450, 3)})
+        self.assertTrue(any(f.startswith("Lares trek 4 días: 2 precio") for f in fuera))
+        tarifario = ap.generar_tarifario(MERCADO, otros)
+        self.assertNotIn("lares", set(tarifario["ruta"]))
+        self.assertIn("inca_jungle", set(tarifario["ruta"]))
+
+    def test_estan_los_seis_treks(self):
+        self.assertEqual(set(TARIFARIO["ruta"]), {"salkantay", "camino_inca", "choquequirao", "lares",
+                                                  "inca_jungle", "camino_inca_corto"})
+        self.assertEqual(len(TARIFARIO), 21)
+
+    def test_permisos_y_cierres_de_los_nuevos(self):
+        corto = TARIFARIO[TARIFARIO["ruta"] == "camino_inca_corto"]
+        self.assertTrue((corto["requiere_permiso_camino_inca"] == "si").all())
+        self.assertTrue((corto["meses_no_disponible"] == "2").all())
+        otros = TARIFARIO[TARIFARIO["ruta"].isin(["choquequirao", "lares", "inca_jungle"])]
+        self.assertTrue((otros["requiere_permiso_camino_inca"] == "no").all())
+
+    def test_choquequirao_no_lleva_tren_ni_extras_de_machu_picchu(self):
+        choque = TARIFARIO[TARIFARIO["ruta"] == "choquequirao"]
+        self.assertTrue((choque["llega_a_machu_picchu"] == "no").all())
+        self.assertFalse(choque["incluye"].str.contains("Machu Picchu|tren|Vistadome").any())
+        opciones = opciones_para_perfil(perfil(treks_de_interes=["choquequirao"], extras_de_interes=["huayna_picchu"]),
+                                        TARIFARIO, EXTRAS)
+        self.assertTrue(opciones and all(o.extras == [] for o in opciones))
+
+    def test_inca_jungle_y_corto_no_acampan(self):
+        sin_campamento = TARIFARIO[TARIFARIO["ruta"].isin(["inca_jungle", "camino_inca_corto"])]
+        self.assertFalse(sin_campamento["incluye"].str.contains("carpa|campamento|domos").any())
+        self.assertFalse(sin_campamento["no_incluye"].str.contains("Bolsa de dormir").any())
 
     def test_camino_inca_cerrado_en_febrero(self):
         inca = TARIFARIO[TARIFARIO["ruta"] == "camino_inca"]
@@ -208,6 +263,12 @@ class PruebasCotizacion(unittest.TestCase):
 
     def test_sin_trek_pedido_nada_es_alternativa(self):
         self.assertFalse(any(o.es_alternativa for o in opciones_para_perfil(perfil(), TARIFARIO)))
+
+    def test_caso_del_demo_choquequirao_una_persona(self):
+        opciones = opciones_para_perfil(perfil(num_personas=1, treks_de_interes=["choquequirao"]), TARIFARIO)
+        self.assertEqual([(o.trek_id, o.nivel, o.precio_pp, o.total) for o in opciones][:1],
+                         [("choquequirao_4d", "estandar", 530, 530)])
+        self.assertFalse(any(o.es_alternativa for o in opciones))
 
     def test_sin_datos_devuelve_opciones(self):
         opciones = opciones_para_perfil(perfil(), TARIFARIO)

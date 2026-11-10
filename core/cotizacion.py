@@ -91,6 +91,8 @@ class OpcionCotizada:
 def cargar_tarifario(ruta) -> pd.DataFrame:
     df = pd.read_csv(ruta, dtype={"meses_no_disponible": str})
     df["meses_no_disponible"] = df["meses_no_disponible"].fillna("")
+    if "llega_a_machu_picchu" not in df.columns:  # tarifarios de agencias que no tienen la columna
+        df["llega_a_machu_picchu"] = "si"
     return df
 
 
@@ -114,8 +116,10 @@ def disponible_en_mes(fila: pd.Series, mes: int | None) -> bool:
     return mes not in cerrados
 
 
-def _extras_para(nivel: str, pedidos: list[str], extras: pd.DataFrame | None) -> list[tuple[str, int]]:
-    if extras is None or not pedidos:
+def _extras_para(fila: pd.Series, pedidos: list[str], extras: pd.DataFrame | None) -> list[tuple[str, int]]:
+    """Huayna Picchu y Vistadome: solo en treks que llegan a Machu Picchu y en los niveles donde aplican."""
+    nivel = fila["nivel"]
+    if extras is None or not pedidos or fila.get("llega_a_machu_picchu", "si") == "no":
         return []
     elegidos = []
     for _, e in extras.iterrows():
@@ -177,7 +181,7 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
             nivel=f["nivel"],
             precio_pp=int(f["precio_pp"]),
             personas=personas,
-            extras=_extras_para(f["nivel"], extras_pedidos, extras),
+            extras=_extras_para(f, extras_pedidos, extras),
             requiere_permiso=f["requiere_permiso_camino_inca"] == "si",
             es_alternativa=bool(motivo(f["ruta"])),
             motivo_alternativa=motivo(f["ruta"]),

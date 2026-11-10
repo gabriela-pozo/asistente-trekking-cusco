@@ -107,7 +107,7 @@ class PruebasApp(unittest.TestCase):
             app.sidebar.radio[0].set_value("Mi agencia").run()
         self.assertFalse(app.exception)
         self.assertEqual(app.header[0].value, "Mi agencia")
-        self.assertEqual(len(app.session_state["tarifario"]), 9)
+        self.assertEqual(len(app.session_state["tarifario"]), 21)
 
 
 if __name__ == "__main__":

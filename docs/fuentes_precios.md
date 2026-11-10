@@ -15,6 +15,7 @@ La prueba `test_archivo_coincide_con_el_generador` falla si alguien edita el CSV
 | Archivo | Qué contiene |
 | --- | --- |
 | `data/precios_mercado.csv` | 47 precios de grupo (Salkantay 4 y 5 días, Camino Inca clásico 4 días), del 2026-11-10: **42 precios publicados** en páginas web y **5 cotizaciones reales** recibidas por WhatsApp. 44 se usan en el análisis. La columna `tipo_fuente` dice de cuál de los dos tipos es cada fila |
+| `data/precios_otros_treks.csv` | 13 precios publicados de otros 4 treks, del 2026-11-10: Choquequirao 4 días (4), Lares 4 días (3), Inca Jungle 4 días (3) y Camino Inca corto 2 días (3). Todos tienen URL. No tiene columnas de nivel ni de exclusión: se usan todas las filas |
 | `data/extras_mercado.csv` | 7 precios de extras (Huayna Picchu y mejora a tren Vistadome) vistos en esas mismas páginas |
 
 ### Precios por tipo de fuente
@@ -69,8 +70,18 @@ Tampoco se registraron:
 | 7 | **Extras** = mediana de los precios encontrados, redondeada a múltiplos de 5 | Dato del mercado + decisión de método |
 | 8 | **Tamaño máximo de grupo:** 16 en económico, 12 en estándar, 8 en premium | Supuesto, basado en rangos publicados (grupos de "hasta 8" a "hasta 20") |
 | 9 | **Qué incluye cada nivel:** por ejemplo, la bolsa de dormir solo va incluida en premium | Supuesto: de 42 publicaciones solo 1 incluye la bolsa de dormir; 24 la excluyen y 17 no la mencionan |
+| 10 | **Un trek entra al tarifario solo con al menos 3 precios** del mercado (`MIN_PRECIOS_TREK`). Si no, el script lo deja fuera y lo dice | Decisión de método |
+| 11 | **Otros treks** (Choquequirao, Lares, Inca Jungle, Camino Inca corto): estándar = mediana de todos sus precios en `precios_otros_treks.csv`; económico y premium con las reglas 3 y 4 (premium siempre +60 %, porque ese archivo no dice el nivel); descuentos por grupo con la regla 5 | Dato del mercado + supuestos |
+| 12 | **Camino Inca corto:** requiere permiso y cierra en febrero, como todas las rutas del Camino Inca | Dato (ver `data/knowledge/camino_inca_corto.md`) |
+| 13 | **Qué incluyen los otros treks:** Inca Jungle y Camino Inca corto no acampan (hostal u hotel según el nivel); Choquequirao es ida y vuelta y no llega a Machu Picchu, así que no lleva tren ni se le suman Huayna Picchu ni Vistadome (columna `llega_a_machu_picchu = no`) | El recorrido es dato (`data/knowledge/`); lo que incluye cada nivel es supuesto |
 
-El tarifario tiene una columna **`origen_precio`** en cada fila: `mediana del mercado` o `supuesto`. Se refiere al precio para 2 personas; los de 3 a 4 y de 5 o más siempre aplican los descuentos por grupo, que son supuestos. La prueba `test_cada_precio_tiene_origen` comprueba que ningún precio quede sin origen.
+El tarifario tiene una columna **`origen_precio`** en cada fila. Dice si el precio es `mediana del mercado` o `supuesto`, de qué archivo sale y cuántos precios tiene la mediana. Por ejemplo:
+
+- `mediana del mercado: 4 precios en precios_otros_treks.csv`
+- `supuesto: estándar − 20 % (estándar = mediana de 13 precios en precios_mercado.csv)`
+- `supuesto: estándar + 60 % (estándar = mediana de 3 precios en precios_otros_treks.csv)`
+
+Se refiere al precio para 2 personas; los de 3 a 4 y de 5 o más siempre aplican los descuentos por grupo, que son supuestos. La prueba `test_cada_precio_tiene_origen` comprueba que ningún precio quede sin origen.
 
 Todos los precios se redondean a la decena (las mitades hacia arriba). Por eso el descuento por grupo efectivo puede quedar a menos de un punto del 4 % o del 8 %: en el Camino Inca estándar, 840 × 0,96 = 806,4, que queda en 810.
 
@@ -81,12 +92,18 @@ Todos los precios se redondean a la decena (las mitades hacia arriba). Por eso e
 | Salkantay 4 días | 595 (n = 13) | **600** | 480 | 960 |
 | Salkantay 5 días | 680 (n = 17: 12 publicados + 5 cotizaciones) | **680** | 540 | 1 090 |
 | Camino Inca clásico 4 días | 835 (n = 13) | **840** | 670 | 1 340 |
+| Choquequirao 4 días | 533,5 (n = 4) | **530** | 420 | 850 |
+| Lares 4 días | 650 (n = 3) | **650** | 520 | 1 040 |
+| Inca Jungle 4 días | 490 (n = 3) | **490** | 390 | 780 |
+| Camino Inca corto 2 días | 595 (n = 3) | **600** | 480 | 960 |
+
+Ningún trek de `precios_otros_treks.csv` quedó fuera: todos tienen al menos 3 precios.
 
 | Precio | Origen |
 | --- | --- |
-| Estándar de los 3 treks | Mediana del mercado |
-| Económico de los 3 treks | Supuesto (−20 %) |
-| Premium de los 3 treks | Supuesto (+60 %): ningún trek tiene 3 precios premium |
+| Estándar de los 7 treks | Mediana del mercado |
+| Económico de los 7 treks | Supuesto (−20 %) |
+| Premium de los 7 treks | Supuesto (+60 %): ningún trek tiene 3 precios premium |
 | Precios para 3 a 4 y 5 o más personas | Supuesto (descuentos de 4 % y 8 %) |
 
 | Extra | Precios encontrados | Precio en el tarifario |
@@ -138,6 +155,14 @@ La regla se mantiene en el código como protección si una muestra futura vuelve
 - **Tamaño máximo de grupo y qué incluye cada nivel.**
 
 ## Límites de estos datos
+
+- **Los otros 4 treks tienen muestras mínimas: 3 o 4 precios cada uno**, todos "desde" salvo uno, y lo que incluye cada paquete varía mucho:
+  - **Inca Jungle:** el más barato (CondeTravel, US$ 269) no incluye la entrada a Machu Picchu; el más caro (PVTravels, US$ 699) es con habitación privada. El tarifario sí incluye la entrada.
+  - **Camino Inca corto:** el de Enigma (US$ 908) es tarifa exacta y no incluye el hotel en Aguas Calientes; los otros dos son "desde" con hotel incluido.
+  - **Choquequirao:** Nomades da US$ 530 para 3 o más personas, pero US$ 650 con 2 y US$ 1 295 con 1. El tarifario cobra lo mismo a 1 y a 2 personas.
+  - **Lares:** el de Lorenzo Expeditions (US$ 899) es de grupo pequeño de hasta 8.
+
+  Antes de usar estos precios con clientes reales, la agencia debería revisarlos con sus propios costos.
 
 - **Las muestras siguen siendo chicas: 13 precios publicados por trek** (12 en el Salkantay 5 días sin la fila premium), más 5 cotizaciones reales del Salkantay 5 días.
 - **Las cotizaciones reales son pocas y de una sola consulta:** 2 personas, fines de marzo, enviada de noche. Tampoco siempre dicen si el precio es del Salkantay de 4 o de 5 días; se registraron como 5 días. Sirven para comprobar que los precios publicados se parecen a lo que de verdad se cobra, no como una muestra aparte. Ahora son más estables que con 4 a 6, pero no son una muestra aleatoria: salen de lo que aparece en buscadores, que favorece a las agencias con más presencia en internet.
