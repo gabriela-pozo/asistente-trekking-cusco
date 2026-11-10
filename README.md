@@ -13,7 +13,10 @@ Proyecto final de la Diplomatura de Ciencia de Datos para las Ciencias Sociales 
 3. El código elige opciones del **tarifario de la agencia** y calcula precios, total y depósito. El modelo nunca calcula precios.
 4. Se buscan en la base de conocimiento (`data/knowledge/`, con fuentes y fechas) los fragmentos del trek y de las condiciones de reserva.
 5. El modelo redacta un borrador corto en el idioma del viajero, y un control revisa en código que no haya precios inventados, que esté en el idioma correcto y que tenga menos de 150 palabras.
-6. El vendedor revisa, edita y lo abre en WhatsApp con un clic.
+6. El vendedor revisa, edita y lo abre en WhatsApp con un clic. Puede registrar la consulta como cotizada o reservada (solo su perfil, sin el mensaje ni el teléfono).
+7. **Tablero:** consultas, tasa de cierre, sin respuesta y monto reservado, por mes del viaje, trek y país, con filtros por trek e idioma. En el demo usa **datos sintéticos** (`data/consultas_sinteticas.csv`, de `scripts/generar_consultas_sinteticas.py`) más las consultas registradas en la app.
+
+![Nueva consulta: la respuesta lista para WhatsApp](docs/captura_1_consulta.png)
 
 Las reglas de la respuesta salen de una prueba de cliente misterioso con 6 agencias de Cusco (`docs/research/cliente_misterioso.md`).
 
@@ -36,13 +39,13 @@ streamlit run app/app.py  # y abre http://localhost:8501
 
 | Carpeta | Qué contiene |
 | --- | --- |
-| `app/` | App web en Streamlit: "Nueva consulta" y "Mi agencia" |
+| `app/` | App web en Streamlit: "Nueva consulta", "Mi agencia" y "Tablero". Diseño en `docs/diseno.md` |
 | `ai/` | Esquemas (pydantic), conexión con el modelo, instrucciones, búsqueda y flujo principal |
-| `core/` | Cotización con el tarifario y enlace de WhatsApp |
+| `core/` | Cotización con el tarifario, enlace de WhatsApp y agregaciones del Tablero |
 | `data/` | Tarifario demo, precios de mercado, base de conocimiento de Cusco y de Huaraz |
 | `docs/` | Fuentes de precios e investigación (evidencia pública, cliente misterioso, verificación oficial) |
 | `evaluacion/` | 20 consultas sintéticas para evaluar las respuestas |
-| `scripts/` | Análisis de precios (genera el tarifario) y prueba con el modelo real |
+| `scripts/` | Análisis de precios (genera el tarifario), consultas sintéticas del Tablero y prueba con el modelo real |
 | `tests/` | Pruebas automáticas |
 
 ## Qué sigue

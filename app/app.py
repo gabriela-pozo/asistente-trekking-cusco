@@ -12,6 +12,7 @@ import os
 import sys
 from pathlib import Path
 
+import altair as alt
 import streamlit as st
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -19,12 +20,17 @@ sys.path.insert(0, str(RAIZ))
 sys.path.insert(0, str(RAIZ / "app"))
 
 from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  # noqa: E402
+from ai.fecha import hoy_en_lima  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA  # noqa: E402
-from core.cotizacion import cargar_extras, cargar_tarifario  # noqa: E402
+from core.cotizacion import NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
+from core.tablero import (  # noqa: E402
+    cargar_consultas, contar_registradas, filtrar, metricas, por_mes_viaje, por_pais, por_trek, registrar,
+    registro_desde_resultado,
+)
 from core.whatsapp import enlace_whatsapp  # noqa: E402
-from presentacion import html_opciones, html_perfil, lista_markdown, separar_advertencias  # noqa: E402
+from presentacion import html_opciones, html_perfil, idioma, lista_markdown, separar_advertencias, usd  # noqa: E402
 
 try:  # .env en local (con la clave). En Streamlit Cloud se usan los secretos.
     from dotenv import load_dotenv
@@ -45,6 +51,10 @@ COLUMNAS_TARIFARIO = [
 ]
 LOGO = str(RAIZ / "assets" / "logo.svg")
 ICONO = str(RAIZ / "assets" / "icono.svg")
+CONSULTAS_SINTETICAS = RAIZ / "data" / "consultas_sinteticas.csv"
+# Consultas registradas desde la app (solo el perfil agregado). No se sube al repositorio (.gitignore).
+RUTA_REGISTRO = Path(os.getenv("ABRA_REGISTRO") or RAIZ / "data" / "consultas_registradas.csv")
+ETIQUETA_SINTETICOS = "Datos sintéticos del demo: no son de ninguna agencia real"
 
 st.set_page_config(page_title="Abra Travel", page_icon=ICONO, layout="wide")
 
@@ -101,7 +111,7 @@ if "agencia" not in st.session_state:
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia"])
+pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia", "Tablero"])
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -123,6 +133,16 @@ def usar_ejemplo() -> None:
     st.session_state.borrador = resultado.borrador.mensaje_para_cliente
     st.session_state.origen = "ejemplo"
     st.session_state.fecha_ejemplo = datos.get("fecha", "")
+    st.session_state.registrada = None
+
+
+def registrar_consulta(estado: str) -> None:
+    """Guarda el perfil agregado de la consulta para el Tablero (sin texto ni teléfono)."""
+    fila = registro_desde_resultado(st.session_state.resultado, estado, hoy_en_lima(),
+                                    contar_registradas(RUTA_REGISTRO) + 1)
+    registrar(fila, RUTA_REGISTRO)
+    st.session_state.registrada = estado
+    st.toast(f"Consulta registrada como {estado}. Ya cuenta en el Tablero.", icon=":material/check_circle:")
 
 
 def mostrar_borrador(resultado, telefono: str) -> None:
@@ -137,6 +157,14 @@ def mostrar_borrador(resultado, telefono: str) -> None:
                    f"(2 llamadas al modelo).")
         st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary",
                        icon=":material/send:", disabled=not texto.strip(), width="stretch")
+        registrada = st.session_state.get("registrada")
+        with st.container(horizontal=True, vertical_alignment="center", key="registro"):
+            for estado in ("cotizada", "reservada"):
+                st.button(f"Registrar como {estado}", type="tertiary", key=f"registrar_{estado}",
+                          on_click=registrar_consulta, args=(estado,), disabled=bool(registrada),
+                          help="Guarda solo el perfil de la consulta para el Tablero, sin el mensaje ni el teléfono.")
+        if registrada:
+            st.caption(f":material/check: Registrada como {registrada}.")
 
 
 def mostrar_avisos(resultado) -> None:
@@ -215,6 +243,7 @@ def pagina_consulta() -> None:
         st.session_state.resultado = resultado
         st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         st.session_state.origen = "sin_cuota" if es_ejemplo else "modelo"
+        st.session_state.registrada = None
 
     resultado = st.session_state.get("resultado")
     if not resultado:
@@ -296,4 +325,82 @@ def pagina_agencia() -> None:
             st.caption("Los cambios valen mientras la app esté abierta. Descarga el CSV para guardarlos.")
 
 
-{"Nueva consulta": pagina_consulta, "Mi agencia": pagina_agencia}[pagina]()
+# ---------------------------------------------------------------- Tablero
+PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#1E6B52", "#5E9C84", "#C9741D", "#15302B", "#5B6F6A", "#E8F0EC"
+
+
+def grafico(chart: alt.Chart, titulo: str, subtitulo: str = "") -> alt.Chart:
+    """Ejes y títulos legibles a distancia, con la tipografía y los colores del sistema."""
+    return (chart.properties(title=alt.TitleParams(titulo, subtitle=subtitulo or alt.Undefined), height=280)
+            .configure_title(font="Montserrat", fontSize=18, color=TINTA, anchor="start", subtitleFont="Nunito",
+                             subtitleFontSize=13, subtitleColor=SECUNDARIO, offset=12)
+            .configure_axis(labelFont="Nunito", labelFontSize=13, labelColor=SECUNDARIO, titleFont="Nunito",
+                            titleFontSize=13, titleColor=SECUNDARIO, gridColor=SUAVE, domainColor="#D6E0DD",
+                            tickColor="#D6E0DD")
+            .configure_view(stroke=None))
+
+
+def porcentaje(valor: float) -> str:
+    return f"{valor * 100:.1f} %".replace(".", ",")
+
+
+def pagina_tablero() -> None:
+    st.header("Tablero")
+    st.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
+    st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')  # visible mientras se baja
+
+    consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
+    registradas = int((consultas["origen"] == "registrada").sum())
+    st.html('<p class="subtitulo" style="margin-top:8px">Consultas de septiembre de 2025 a octubre de 2026'
+            + (f", más {registradas} registradas en esta app" if registradas else "") + ".</p>")
+
+    with st.container(horizontal=True):
+        treks = st.multiselect("Trek", sorted(consultas["trek"].dropna().unique()), placeholder="Todos los treks",
+                               format_func=lambda t: NOMBRE_RUTA.get(t, t))
+        idiomas = st.multiselect("Idioma", sorted(consultas["idioma"].dropna().unique()),
+                                 placeholder="Todos los idiomas", format_func=idioma)
+    datos = filtrar(consultas, treks, idiomas)
+    if datos.empty:
+        st.info("No hay consultas con esos filtros.", icon=":material/filter_alt_off:")
+        return
+
+    m = metricas(datos)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Consultas", f"{m['consultas']:,}".replace(",", "\u202f"), border=True)
+    c2.metric("Tasa de cierre", porcentaje(m["tasa_cierre"]), border=True,
+              help="Reservadas ÷ consultas respondidas (cotizadas + reservadas).")
+    c3.metric("Sin respuesta", m["sin_respuesta"], border=True,
+              help=f"{porcentaje(m['pct_sin_respuesta'])} de las consultas no recibieron respuesta.")
+    c4.metric("Monto reservado", usd(m["monto_reservado"]), border=True,
+              help="Suma del total de las consultas reservadas.")
+
+    meses = por_mes_viaje(datos)
+    pico = int(meses["consultas"].max())
+    barras_mes = alt.Chart(meses).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
+        x=alt.X("mes_nombre:N", sort=list(meses["mes_nombre"]), title=None, axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("consultas:Q", title="Consultas"),
+        color=alt.condition(alt.datum.consultas == pico, alt.value(OCRE), alt.value(PRIMARIO)),
+        tooltip=[alt.Tooltip("mes_nombre:N", title="Mes"), alt.Tooltip("consultas:Q", title="Consultas")],
+    )
+    st.altair_chart(grafico(barras_mes, "Consultas por mes del viaje", "En ocre, el mes con más consultas"),
+                    theme=None, width="stretch")
+
+    izquierda, derecha = st.columns(2, gap="large")
+    with izquierda:
+        treks_df = por_trek(datos)
+        barras = alt.Chart(treks_df).mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4, color=PRIMARIO).encode(
+            y=alt.Y("trek:N", sort="-x", title=None), x=alt.X("consultas:Q", title="Consultas"),
+            tooltip=[alt.Tooltip("trek:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas")])
+        st.altair_chart(grafico(barras, "Por trek"), theme=None, width="stretch")
+    with derecha:
+        paises = por_pais(datos)
+        barras = alt.Chart(paises).mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4, color=TONO_VERDE).encode(
+            y=alt.Y("pais:N", sort="-x", title=None), x=alt.X("consultas:Q", title="Consultas"),
+            tooltip=[alt.Tooltip("pais:N", title="País"), alt.Tooltip("consultas:Q", title="Consultas")])
+        st.altair_chart(grafico(barras, "Por país", "Los 10 con más consultas"), theme=None, width="stretch")
+
+    st.caption("Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\". "
+               "Se guarda solo el perfil de la consulta, nunca el mensaje ni el teléfono.")
+
+
+{"Nueva consulta": pagina_consulta, "Mi agencia": pagina_agencia, "Tablero": pagina_tablero}[pagina]()
