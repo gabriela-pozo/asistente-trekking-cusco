@@ -38,7 +38,21 @@ Datos: [`cliente_misterioso.csv`](cliente_misterioso.csv). Hay una fila por agen
 | Hicieron preguntas al turista | **casi ninguna**: 1 de 6, y solo pidió un correo. Ninguna preguntó fechas exactas, condición física, nivel de servicio ni equipo |
 | Mandaron PDF o enlaces | 5 de 6. Tres PDF pesaban entre 3 y 13 MB, y dos tenían 11 y 12 páginas |
 | Ofrecieron alternativas | 3 de 6. Una ofreció un descuento por reservar ese año, otra un grupo privado o pequeño, y otra una fecha distinta (4 de abril, cuando se pidió fines de marzo) sin preguntar si servía |
+| Precio del mismo trek | **de US$ 499 a 755** por persona, contando el chat y los PDF (5 de 6 dieron precio: A 750, B 695, D 499, E 755, L 580) |
+| Qué no incluye | **Distinto en cada agencia** (ver la tabla de abajo) |
 | Dijeron el depósito en el chat | 2 de 6 (US$ 200 y US$ 350 por persona; el de US$ 350 no reembolsable) |
+
+### Qué no incluye cada cotización
+
+Datos de los PDF y la web que mandaron las agencias. También están en `notas` de `data/precios_mercado.csv`.
+
+| Agencia | Precio | No incluye |
+| --- | --- | --- |
+| A | US$ 750 | Bolsa de dormir (alquiler US$ 25), bastones (US$ 25), tren desde Hidroeléctrica (opcional, US$ 41); recargo de 5 % con tarjeta y 8 % con PayPal |
+| B | US$ 695 (US$ 720 si se reserva en 2027) | No lo indicó en el chat |
+| D | US$ 499 | Entrada a Mollepata y laguna Humantay (S/ 20), bolsa de dormir (alquiler US$ 30), bastones (US$ 20), primer desayuno y último almuerzo, Huayna Picchu |
+| E | US$ 755 | Según su web: Huayna Picchu, primer desayuno y último almuerzo, seguro, propinas |
+| L | US$ 580 | Bolsa de dormir, bastones, bus Consettur, Huayna Picchu (US$ 60), último almuerzo, seguro |
 
 ### Qué muestran
 
@@ -46,7 +60,8 @@ Datos: [`cliente_misterioso.csv`](cliente_misterioso.csv). Hay una fila por agen
 2. **El idioma no siempre coincide.** 2 de 6 respondieron en español a un turista que escribió en inglés, y la única respuesta automática también fue en español.
 3. **El precio cuesta encontrarlo.** La mitad no dio el precio en el chat. El turista tenía que abrir un PDF pesado o un enlace para saber cuánto cuesta, que era una de las dos preguntas del mensaje.
 4. **Casi nadie pregunta.** El mensaje no decía fechas exactas, nivel de servicio ni condición física, y ninguna agencia preguntó por eso. Las cotizaciones se mandaron sin saber si encajaban con el turista.
-5. **Qué incluye queda poco claro en el chat.** Solo una agencia lo listó en el mensaje. Esto coincide con lo que se vio en [`evidencia_publica.md`](evidencia_publica.md) sobre cobros que el turista creía incluidos.
+5. **Comparar es difícil.** El mismo trek cuesta entre US$ 499 y 755, una diferencia de US$ 256 por persona, y cada agencia deja fuera cosas distintas: una cobra aparte la bolsa de dormir y los bastones, otra el bus Consettur, otra las entradas en Mollepata, otra el recargo por pagar con tarjeta. El precio más bajo no es necesariamente el más barato al final, y el turista no puede saberlo sin abrir y comparar varios PDF.
+6. **Qué incluye queda poco claro en el chat.** Solo una agencia lo listó en el mensaje. Esto coincide con lo que se vio en [`evidencia_publica.md`](evidencia_publica.md) sobre cobros que el turista creía incluidos.
 
 ### Relación con el producto
 
@@ -54,7 +69,7 @@ Cada hallazgo corresponde a una parte del asistente:
 - **Respuesta en minutos:** un borrador listo para que el vendedor solo revise y envíe.
 - **Respuesta en el idioma del turista.**
 - **Precio en el chat:** calculado por el código desde el tarifario.
-- **Lista de lo que incluye y lo que no.**
+- **Lista de lo que incluye y lo que no**, con el precio de cada adicional, para que el turista compare precios completos.
 - **Datos que faltan:** se detectan y se proponen como preguntas.
 
 ## Límites
