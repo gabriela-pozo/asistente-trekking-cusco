@@ -38,7 +38,10 @@ class OpcionCotizada:
     personas: int
     extras: list[tuple[str, int]] = field(default_factory=list)  # (nombre, precio por persona)
     requiere_permiso: bool = False
-    es_alternativa: bool = False        # True si se ofrece porque lo pedido no estaba disponible
+    es_alternativa: bool = False        # True si no es lo que pidió el turista
+    # Por qué es alternativa: "no_disponible" (lo pedido no se opera ese mes o no cabe en sus días)
+    # u "otro_trek" (el turista pidió otro trek). Vacío si no es alternativa.
+    motivo_alternativa: str = ""
     incluye: list[str] = field(default_factory=list)
     no_incluye: list[str] = field(default_factory=list)
 
@@ -78,8 +81,10 @@ class OpcionCotizada:
         )
         if self.requiere_permiso:
             texto += " Requiere permiso del Camino Inca: verificar disponibilidad antes de confirmar."
-        if self.es_alternativa:
-            texto += " Se ofrece como alternativa porque lo pedido no está disponible."
+        if self.motivo_alternativa == "otro_trek":
+            texto += " ALTERNATIVA: el turista no pidió este trek; se ofrece como opción parecida."
+        elif self.es_alternativa:
+            texto += " ALTERNATIVA: se ofrece porque lo pedido no está disponible."
         return texto
 
 
@@ -125,7 +130,8 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
     personas = getattr(perfil, "num_personas", None) or PERSONAS_POR_DEFECTO
     mes = getattr(perfil, "mes_viaje", None)
     dias = getattr(perfil, "dias_disponibles", None)
-    interes = [t for t in (getattr(perfil, "treks_de_interes", None) or []) if t in set(tarifario["ruta"])]
+    pedidos = list(getattr(perfil, "treks_de_interes", None) or [])
+    interes = [t for t in pedidos if t in set(tarifario["ruta"])]
     nivel_preferido = getattr(perfil, "nivel_preferido", None)
     presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
     extras_pedidos = getattr(perfil, "extras_de_interes", None) or []
@@ -140,9 +146,9 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
 
     # Si lo pedido no está disponible (p. ej. Camino Inca en febrero), ofrecer Salkantay,
     # que no requiere permiso y se opera todo el año.
-    es_alternativa = False
+    no_disponible = False
     if df.empty:
-        es_alternativa = True
+        no_disponible = True
         df = tarifario[cabe & (tarifario["ruta"] == "salkantay")]
         df = df[df.apply(lambda f: disponible_en_mes(f, mes), axis=1)]
     if df.empty:
@@ -157,6 +163,12 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
         prioridad = df["nivel"].map(ORDEN_NIVEL)
     df = df.assign(_prioridad=prioridad).sort_values(["_prioridad", "precio_pp"]).head(maximo)
 
+    def motivo(ruta: str) -> str:
+        """Una opción es alternativa si el turista pidió treks y este no es uno de ellos."""
+        if no_disponible:
+            return "no_disponible"
+        return "otro_trek" if pedidos and ruta not in pedidos else ""
+
     return [
         OpcionCotizada(
             trek_id=f["trek_id"],
@@ -167,7 +179,8 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
             personas=personas,
             extras=_extras_para(f["nivel"], extras_pedidos, extras),
             requiere_permiso=f["requiere_permiso_camino_inca"] == "si",
-            es_alternativa=es_alternativa,
+            es_alternativa=bool(motivo(f["ruta"])),
+            motivo_alternativa=motivo(f["ruta"]),
             incluye=[x.strip() for x in str(f["incluye"]).split(";")],
             no_incluye=[x.strip() for x in str(f["no_incluye"]).split(";")],
         )

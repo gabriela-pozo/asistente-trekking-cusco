@@ -189,6 +189,26 @@ class PruebasCotizacion(unittest.TestCase):
         self.assertEqual(opciones[0].nivel, "premium")
         self.assertEqual(opciones[0].extras, [])
 
+    def test_trek_pedido_sin_precio_marca_las_opciones_como_alternativa(self):
+        """Caso del demo: "Choquequirao, 1 persona, ¿precios?". Si Choquequirao no está en el tarifario,
+        las opciones de otro trek que se ofrezcan son alternativas (antes decían "No")."""
+        sin_choquequirao = TARIFARIO[TARIFARIO["ruta"] != "choquequirao"]
+        opciones = opciones_para_perfil(perfil(num_personas=1, treks_de_interes=["choquequirao"]), sin_choquequirao)
+        self.assertTrue(opciones)
+        self.assertTrue(all(o.es_alternativa for o in opciones))
+        self.assertTrue(all(o.motivo_alternativa == "otro_trek" for o in opciones))
+        self.assertIn("ALTERNATIVA", opciones[0].resumen())
+
+    def test_trek_pedido_y_otro_sin_precio(self):
+        # Pide Choquequirao (sin precio) y Salkantay: el Salkantay no es alternativa.
+        sin_choquequirao = TARIFARIO[TARIFARIO["ruta"] != "choquequirao"]
+        opciones = opciones_para_perfil(perfil(treks_de_interes=["choquequirao", "salkantay"]), sin_choquequirao)
+        self.assertTrue(opciones and all(o.trek_id.startswith("salkantay") for o in opciones))
+        self.assertFalse(any(o.es_alternativa for o in opciones))
+
+    def test_sin_trek_pedido_nada_es_alternativa(self):
+        self.assertFalse(any(o.es_alternativa for o in opciones_para_perfil(perfil(), TARIFARIO)))
+
     def test_sin_datos_devuelve_opciones(self):
         opciones = opciones_para_perfil(perfil(), TARIFARIO)
         self.assertEqual(len(opciones), 3)

@@ -214,7 +214,7 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
 
     fragmentos = base.buscar(consulta_desde_perfil(perfil), k=8, archivos_prioritarios=archivos_desde_perfil(perfil))
     opciones = opciones_para_perfil(perfil, tarifario, extras, maximo=MAXIMO_OPCIONES)
-    fecha_posible = not any(o.es_alternativa for o in opciones)
+    fecha_posible = not any(o.motivo_alternativa == "no_disponible" for o in opciones)
     aviso = aviso_clave(perfil, opciones)
     presupuesto = nota_presupuesto(perfil, opciones)
 

@@ -34,6 +34,7 @@
       "extras": [],
       "requiere_permiso": false,
       "es_alternativa": false,
+      "motivo_alternativa": "",
       "incluye": [
         "Guía bilingüe",
         "transporte de ida",
@@ -59,6 +60,7 @@
       "extras": [],
       "requiere_permiso": false,
       "es_alternativa": false,
+      "motivo_alternativa": "",
       "incluye": [
         "Guía bilingüe",
         "transporte de ida",
