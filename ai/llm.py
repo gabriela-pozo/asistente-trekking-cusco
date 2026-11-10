@@ -62,6 +62,28 @@ class ModelosNoDisponiblesError(RuntimeError):
     """Ni el modelo principal ni el de respaldo pudieron responder (sin cuota o saturados)."""
 
 
+class ClaveInvalidaError(RuntimeError):
+    """La clave no sirve (caracteres raros o rechazada por la API): reintentar o usar el respaldo no ayuda."""
+
+    def __init__(self, variable: str = "GEMINI_API_KEY"):
+        self.variable = variable
+        super().__init__(f"La clave de la API no es válida: revisa {variable} en .env o en los Secrets de Streamlit")
+
+
+def revisar_clave(clave: str, variable: str) -> None:
+    """Una clave con tildes, comillas tipográficas u otros caracteres no ASCII (al copiarla mal) no puede
+    ir en la cabecera HTTP: se detecta antes de llamar a la API."""
+    if not clave.isascii():
+        raise ClaveInvalidaError(variable)
+
+
+def es_error_de_clave_gemini(error: Exception) -> bool:
+    """401/403, o 400 que menciona la clave ("API key not valid", API_KEY_INVALID)."""
+    codigo = getattr(error, "code", None)
+    texto = str(error)
+    return codigo in (401, 403) or (codigo == 400 and ("API key" in texto or "API_KEY" in texto))
+
+
 class LLM(Protocol):
     def estructurado(self, sistema: str, mensaje: str, esquema: type[T]) -> tuple[T, Uso]: ...
 
@@ -96,6 +118,7 @@ class GeminiLLM:
             clave = api_key or os.getenv("GEMINI_API_KEY")
             if not clave:
                 raise RuntimeError("Falta GEMINI_API_KEY. Ponla en el archivo .env (ver .env.example).")
+            revisar_clave(clave, "GEMINI_API_KEY")
             # Tiempo límite por llamada (en milisegundos): sin él, una llamada colgada espera para siempre.
             cliente = genai.Client(api_key=clave, http_options=types.HttpOptions(timeout=TIEMPO_LIMITE_S * 1000))
         self._cliente = cliente
@@ -143,6 +166,8 @@ class GeminiLLM:
                     fallas.append(f"{modelo}: sin cuota diaria")
                 elif self.es_saturado(error):
                     fallas.append(f"{modelo}: saturado")
+                elif es_error_de_clave_gemini(error):
+                    raise ClaveInvalidaError("GEMINI_API_KEY") from error
                 else:
                     raise  # clave inválida, esquema mal hecho...: el respaldo no lo arreglaría
         raise ModelosNoDisponiblesError("Ningún modelo de Gemini pudo responder (" + "; ".join(fallas) + ").")
@@ -181,6 +206,7 @@ class ClaudeLLM:
         clave = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not clave:
             raise RuntimeError("Falta ANTHROPIC_API_KEY. Ponla en el archivo .env (ver .env.example).")
+        revisar_clave(clave, "ANTHROPIC_API_KEY")
         # max_retries=0: los reintentos los maneja con_reintentos, igual que con Gemini.
         self._cliente = anthropic.Anthropic(api_key=clave, max_retries=0)
         self.modelo = modelo or os.getenv("ANTHROPIC_MODEL") or MODELO_CLAUDE
@@ -192,16 +218,21 @@ class ClaudeLLM:
         return isinstance(error, (anthropic.RateLimitError, anthropic.InternalServerError))
 
     def estructurado(self, sistema: str, mensaje: str, esquema: type[T]) -> tuple[T, Uso]:
-        respuesta = con_reintentos(
-            lambda: self._cliente.messages.parse(
-                model=self.modelo,
-                max_tokens=4000,
-                system=sistema,
-                messages=[{"role": "user", "content": mensaje}],
-                output_format=esquema,
-            ),
-            self.es_reintentable,
-        )
+        import anthropic
+
+        try:
+            respuesta = con_reintentos(
+                lambda: self._cliente.messages.parse(
+                    model=self.modelo,
+                    max_tokens=4000,
+                    system=sistema,
+                    messages=[{"role": "user", "content": mensaje}],
+                    output_format=esquema,
+                ),
+                self.es_reintentable,
+            )
+        except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as error:
+            raise ClaveInvalidaError("ANTHROPIC_API_KEY") from error
         if respuesta.stop_reason == "refusal" or respuesta.parsed_output is None:
             raise RuntimeError(f"Claude no devolvió una salida estructurada (stop_reason={respuesta.stop_reason}).")
         uso = Uso(respuesta.usage.input_tokens, respuesta.usage.output_tokens, [self.modelo])

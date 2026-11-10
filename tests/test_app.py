@@ -67,6 +67,21 @@ class PruebasApp(unittest.TestCase):
         self.assertTrue(any("No se llamó a la API" in i.value for i in app.info))
         self.assertTrue(any("Respondió: gemini-3.5-flash" in c.value for c in app.caption))
 
+    def test_clave_no_ascii_da_mensaje_de_clave(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"LLM_PROVIDER": "gemini", "GEMINI_API_KEY": "clave-con-ñ"}), \
+                mock.patch("google.genai.Client", side_effect=AssertionError("no debe llamar a la API")):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            app.text_area(key="consulta").set_value("Hi! Salkantay in March for 2?").run()
+            next(b for b in app.button if b.label == "Preparar respuesta").click().run()
+        self.assertFalse(app.exception)
+        errores = [e.value for e in app.error]
+        self.assertIn("La clave de la API no es válida: revisa GEMINI_API_KEY en .env o en los Secrets de Streamlit",
+                      errores)
+        self.assertFalse(any("Intenta de nuevo" in e for e in errores))
+
     def test_pagina_mi_agencia_muestra_tarifario(self):
         from streamlit.testing.v1 import AppTest
 

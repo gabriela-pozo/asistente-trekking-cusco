@@ -17,7 +17,7 @@ sys.path.insert(0, str(RAIZ))
 
 from ai.ejemplo import RUTA_EJEMPLO, cargar_ejemplo, resultado_a_dict, responder_con_respaldo  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
-from ai.llm import INTENTOS, GeminiLLM, ModelosNoDisponiblesError  # noqa: E402
+from ai.llm import INTENTOS, ClaveInvalidaError, GeminiLLM, ModelosNoDisponiblesError  # noqa: E402
 from ai.pipeline import contar_palabras  # noqa: E402
 from ai.schemas import BorradorRespuesta, PerfilTurista  # noqa: E402
 from core.cotizacion import cargar_extras, cargar_tarifario  # noqa: E402
@@ -96,10 +96,43 @@ class PruebasCadena(unittest.TestCase):
             llm.estructurado("s", "m", PerfilTurista)
 
     def test_otro_error_no_usa_el_respaldo(self):
-        llm, cliente = gemini({PRINCIPAL: CLAVE_INVALIDA})
+        error_esquema = errors.ClientError(400, {"error": {"code": 400, "message": "Invalid JSON schema",
+                                                           "status": "INVALID_ARGUMENT"}})
+        llm, cliente = gemini({PRINCIPAL: error_esquema})
         with self.assertRaises(errors.ClientError):
             llm.estructurado("s", "m", PerfilTurista)
         self.assertEqual(cliente.llamadas, [PRINCIPAL])
+
+
+class PruebasClaveInvalida(unittest.TestCase):
+    MENSAJE = "La clave de la API no es válida: revisa GEMINI_API_KEY en .env o en los Secrets de Streamlit"
+
+    def test_400_por_clave_da_mensaje_claro_sin_respaldo(self):
+        llm, cliente = gemini({PRINCIPAL: CLAVE_INVALIDA})
+        with self.assertRaises(ClaveInvalidaError) as ctx:
+            llm.estructurado("s", "m", PerfilTurista)
+        self.assertEqual(str(ctx.exception), self.MENSAJE)
+        self.assertEqual(cliente.llamadas, [PRINCIPAL])  # ni reintentos ni respaldo
+
+    def test_401_y_403(self):
+        for codigo, estado in ((401, "UNAUTHENTICATED"), (403, "PERMISSION_DENIED")):
+            with self.subTest(codigo=codigo):
+                error = errors.ClientError(codigo, {"error": {"code": codigo, "message": "denied", "status": estado}})
+                llm, cliente = gemini({PRINCIPAL: error})
+                with self.assertRaisesRegex(ClaveInvalidaError, "GEMINI_API_KEY"):
+                    llm.estructurado("s", "m", PerfilTurista)
+                self.assertEqual(cliente.llamadas, [PRINCIPAL])
+
+    def test_clave_con_caracteres_no_ascii(self):
+        # Se detecta al crear el cliente, antes de cualquier llamada a la API.
+        with self.assertRaises(ClaveInvalidaError) as ctx:
+            GeminiLLM(api_key="clave-copiada-con-“comillas”-y-ñ")
+        self.assertEqual(str(ctx.exception), self.MENSAJE)
+
+    def test_la_cadena_de_respaldo_no_esconde_la_clave_invalida(self):
+        llm, _ = gemini({PRINCIPAL: CLAVE_INVALIDA})
+        with self.assertRaises(ClaveInvalidaError):
+            responder_con_respaldo(CONSULTA, llm, BASE, TARIFARIO, EXTRAS)
 
     def test_sin_respaldo_configurado(self):
         llm, _ = gemini({PRINCIPAL: SIN_CUOTA}, respaldo="")

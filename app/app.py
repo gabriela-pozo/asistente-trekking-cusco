@@ -17,7 +17,7 @@ sys.path.insert(0, str(RAIZ))
 
 from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
-from ai.llm import crear_llm  # noqa: E402
+from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA  # noqa: E402
 from core.cotizacion import NOMBRE_NIVEL, cargar_extras, cargar_tarifario  # noqa: E402
 from core.whatsapp import enlace_whatsapp  # noqa: E402
@@ -169,6 +169,9 @@ def pagina_consulta() -> None:
                 resultado, es_ejemplo = responder_con_respaldo(
                     consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
                     st.session_state.extras, st.session_state.agencia)
+        except ClaveInvalidaError as error:  # esperar no sirve: hay que cambiar la clave
+            st.error(str(error))
+            return
         except Exception as error:  # noqa: BLE001 - se muestra un mensaje claro en vez del error técnico
             st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.")
             with st.expander("Detalle técnico"):
