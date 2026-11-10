@@ -67,6 +67,22 @@ class PruebasApp(unittest.TestCase):
         self.assertTrue(any("No se llamó a la API" in i.value for i in app.info))
         self.assertTrue(any("Respondió: gemini-3.5-flash" in c.value for c in app.caption))
 
+    def test_respondio_va_justo_encima_del_boton_de_whatsapp(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+        self.assertFalse(app.exception)
+        # Elementos de la página principal en orden de aparición.
+        elementos = list(app.main)
+        boton = next(i for i, e in enumerate(elementos)
+                     if e.type == "link_button" or getattr(e.proto, "label", "") == "Abrir en WhatsApp")
+        anterior = elementos[boton - 1]
+        self.assertEqual(anterior.type, "caption")
+        self.assertTrue(anterior.value.startswith("Respondió: gemini-3.5-flash · Tokens usados"))
+
     def test_clave_no_ascii_da_mensaje_de_clave(self):
         from streamlit.testing.v1 import AppTest
 

@@ -208,10 +208,11 @@ def pagina_consulta() -> None:
         st.success("El control no encontró problemas. Igual revisa el mensaje antes de enviarlo.")
     texto = st.text_area("Edita el mensaje si hace falta", key="borrador", height=260)
     st.caption(f"{len(texto.split())} palabras")
-    st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary", disabled=not texto.strip())
+    # Justo encima del botón, para que se vea sin bajar.
     st.caption(f"Respondió: {resultado.uso.modelos_que_respondieron()} · Tokens usados: "
                f"{resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
                f"(2 llamadas al modelo).")
+    st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary", disabled=not texto.strip())
 
 
 # ---------------------------------------------------------------- Mi agencia
