@@ -28,8 +28,10 @@ REGLAS_RESPUESTA = [
     # Solo una agencia avisó algo importante (la fecha de confirmación de la entrada a Machu Picchu).
     "Si hay un AVISO CLAVE, menciónalo en una frase. No agregues otros avisos.",
     # Solo 2 de 6 dijeron el depósito, y de formas distintas.
-    "Escribe el depósito y el saldo en una sola línea, traducida al idioma del turista, con los montos exactos "
-    "de la primera opción de la COTIZACIÓN.",
+    "Escribe el depósito y el saldo en una sola línea, traducida al idioma del turista. Si la COTIZACIÓN tiene una "
+    "sola opción, usa sus montos exactos. Si tiene varias, cada opción tiene su propio depósito: escribe "
+    "'depósito del 50 % del total de la opción elegida' sin monto, o pon el depósito de cada opción en su línea. "
+    "Nunca des un solo monto de depósito o saldo para varias opciones.",
     # Varias agencias mandaron precios sin decir si encajaban con lo que pedía el turista.
     "Si hay una NOTA DE PRESUPUESTO, di con honestidad y amabilidad que su presupuesto no alcanza y muestra la "
     "opción más barata de la COTIZACIÓN. Nunca prometas un precio que no esté en la COTIZACIÓN.",

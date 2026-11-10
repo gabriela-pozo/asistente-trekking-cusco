@@ -38,10 +38,11 @@ PERFIL_SALKANTAY = {
 MENSAJE_BUENO = (
     "Hi! Yes, the Salkantay trek is possible in late March.\n"
     "4 days, standard: US$ 600 per person, US$ 1,200 in total for 2.\n"
+    "5 days, standard: US$ 680 per person, US$ 1,360 in total for 2.\n"
     "Included: bilingual guide, transport, meals on the trek, Machu Picchu entrance, train back to Ollantaytambo, "
     "double tent.\n"
     "Not included: sleeping bag (rental), travel insurance, tips, Huayna Picchu.\n"
-    "Deposit US$ 600 (50 %) to book; balance US$ 600 up to 30 days before the trek.\n"
+    "Deposit: 50 % of the total of the option you choose; the balance up to 30 days before the trek.\n"
     "March is rainy season, so bring rain gear.\n"
     "What exact date do you have in mind? Would you prefer economy, standard or premium service?"
 )
@@ -136,8 +137,8 @@ class PruebasControles(unittest.TestCase):
         self.assertTrue(any("pregunta" in a for a in r.advertencias))
 
     def test_detecta_linea_de_deposito_sin_traducir(self):
-        mensaje = MENSAJE_BUENO.replace("Deposit US$ 600 (50 %) to book; balance US$ 600 up to 30 days before the trek.",
-                                        "Depósito US$ 600 (50 % del total) para reservar; saldo US$ 600 hasta 30 días antes del trek.")
+        mensaje = MENSAJE_BUENO.replace("Deposit: 50 % of the total of the option you choose; the balance up to 30 days before the trek.",
+                                        "Depósito del 50 % del total de la opción elegida; saldo hasta 30 días antes del trek.")
         r, _ = correr(respuesta=borrador(mensaje))
         self.assertTrue(any("español" in a for a in r.advertencias))
 
@@ -174,6 +175,44 @@ class PruebasControles(unittest.TestCase):
     def test_precios_en_texto(self):
         self.assertEqual(precios_en_texto("US$ 600, $1,200, USD 680, 1.360 USD y 75 dollars; 4 días, 50 %"),
                          [600, 1200, 680, 1360, 75])
+
+
+class PruebasDeposito(unittest.TestCase):
+    """Caso real de la prueba con Gemini: opciones 600/1200 y 680/1360, un solo depósito en el mensaje."""
+
+    def test_caso_real_un_solo_deposito_con_dos_opciones(self):
+        mensaje = MENSAJE_BUENO.replace(
+            "Deposit: 50 % of the total of the option you choose; the balance up to 30 days before the trek.",
+            "Deposit US$ 600 (50 % of total) to reserve; balance US$ 600 up to 30 days before the trek.")
+        r, _ = correr(respuesta=borrador(mensaje))
+        self.assertEqual([(o.precio_pp, o.total, o.deposito) for o in r.opciones], [(600, 1200, 600), (680, 1360, 680)])
+        self.assertEqual(r.precios_no_autorizados, [])  # 600 existe en la cotización: el control de precios no lo ve
+        self.assertTrue(any("un solo depósito" in a for a in r.advertencias))
+
+    def test_deposito_de_cada_opcion_no_avisa(self):
+        mensaje = MENSAJE_BUENO.replace(
+            "Deposit: 50 % of the total of the option you choose; the balance up to 30 days before the trek.",
+            "Deposit to book: US$ 600 (4 days) or US$ 680 (5 days); balance US$ 600 or US$ 680.")
+        r, _ = correr(respuesta=borrador(mensaje))
+        self.assertFalse(any("depósito" in a.lower() for a in r.advertencias), r.advertencias)
+
+    def test_deposito_que_no_es_de_ninguna_opcion(self):
+        mensaje = MENSAJE_BUENO.replace(
+            "Deposit: 50 % of the total of the option you choose; the balance up to 30 days before the trek.",
+            "Deposit US$ 480 to 600 to book.")
+        r, _ = correr(respuesta=borrador(mensaje))
+        self.assertTrue(any("no coincide" in a and "480" in a for a in r.advertencias))
+
+    def test_cincuenta_por_ciento_sin_monto_no_avisa(self):
+        r, _ = correr()
+        self.assertFalse(any("depósito" in a.lower() for a in r.advertencias))
+
+    def test_una_sola_opcion_con_su_deposito(self):
+        perfil = dict(PERFIL_SALKANTAY, treks_de_interes=["camino_inca"], mes_viaje=8, num_personas=1,
+                      dias_disponibles=None, nivel_preferido="economico", presupuesto_usd_pp=300)
+        r, _ = correr(perfil=perfil, respuesta=borrador("Hi!\nInca Trail 4 days: US$ 670.\n"
+                                                         "Deposit US$ 335; balance US$ 335.\nWhich date?"))
+        self.assertFalse(any("no coincide" in a for a in r.advertencias))
 
 
 class PruebasCasos(unittest.TestCase):

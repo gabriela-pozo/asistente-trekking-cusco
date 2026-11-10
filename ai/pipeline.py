@@ -117,6 +117,52 @@ _PROMETE_CUPO = re.compile(
 )
 
 
+# Montos que siguen a "depósito" o "saldo" (en los idiomas del demo), en la misma frase.
+_CLAVES_DEPOSITO = r"deposits?|dep[óo]sitos?|anticipo|adelanto|sinal|acompte|anzahlung"
+_CLAVES_SALDO = r"balance|saldo|restante|solde|restbetrag"
+_DEPOSITO = re.compile(rf"\b(?:{_CLAVES_DEPOSITO})\b", flags=re.IGNORECASE)
+_SALDO = re.compile(rf"\b(?:{_CLAVES_SALDO})\b", flags=re.IGNORECASE)
+_MONTO_USD = re.compile(r"(?:US\$|USD|\$)\s?(\d{1,3}(?:[.,]\d{3})+|\d+)")
+_FIN_FRASE = re.compile(r"[\n;]|\.\s|\.$")
+
+
+def _montos(clave: re.Pattern, otra: re.Pattern, texto: str) -> list[int]:
+    """Todos los montos en US$ desde la palabra clave hasta el fin de la frase o la otra palabra clave.
+    Así "Deposit US$ 600 (4 days) or US$ 680 (5 days)" da [600, 680]."""
+    montos = []
+    for m in clave.finditer(texto):
+        tramo = texto[m.end():m.end() + 80]
+        for corte in (_FIN_FRASE.search(tramo), otra.search(tramo)):
+            if corte:
+                tramo = tramo[:corte.start()]
+        montos += [int(re.sub(r"[.,]", "", x)) for x in _MONTO_USD.findall(tramo)]
+    return montos
+
+
+def revisar_deposito(texto: str, opciones: list[OpcionCotizada]) -> list[str]:
+    """Advertencias si el depósito o el saldo no coinciden con ninguna opción, o si con varias
+    opciones se da un solo depósito sin decir de cuál."""
+    if not opciones:
+        return []
+    advertencias = []
+    depositos, saldos = _montos(_DEPOSITO, _SALDO, texto), _montos(_SALDO, _DEPOSITO, texto)
+    validos_deposito = {o.deposito for o in opciones}
+    if any(o.requiere_permiso for o in opciones):
+        validos_deposito.add(NO_REEMBOLSABLE_CAMINO_INCA_PP)  # "US$ 200 del depósito no son reembolsables"
+    validos_saldo = {o.saldo for o in opciones}
+    malos = sorted({d for d in depositos if d not in validos_deposito} | {s for s in saldos if s not in validos_saldo})
+    if malos:
+        esperados = ", ".join(f"US$ {o.deposito} / US$ {o.saldo}" for o in opciones)
+        advertencias.append(f"El depósito o saldo del mensaje (US$ {', '.join(map(str, malos))}) no coincide con "
+                            f"ninguna opción. Depósito / saldo de cada opción: {esperados}.")
+    if len(opciones) > 1:
+        cubiertas = {d for d in depositos if d in {o.deposito for o in opciones}}
+        if 0 < len(cubiertas) < len(opciones) or (saldos and len(set(saldos)) < len(opciones)):
+            advertencias.append("Con varias opciones, el mensaje da un solo depósito o saldo sin decir de cuál. "
+                                "Di el de cada opción o escribe \"50 % del total de la opción elegida\".")
+    return advertencias
+
+
 def contar_palabras(texto: str) -> int:
     return len(texto.split())
 
@@ -140,6 +186,7 @@ def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
     palabras = contar_palabras(texto)
     if palabras >= prompts.LIMITE_PALABRAS:
         advertencias.append(f"El mensaje tiene {palabras} palabras; debe tener menos de {prompts.LIMITE_PALABRAS}.")
+    advertencias += revisar_deposito(texto, opciones)
     lineas = contar_lineas(texto)
     if lineas < prompts.MINIMO_LINEAS:
         advertencias.append(f"El mensaje tiene {lineas} línea(s); sepáralo en al menos {prompts.MINIMO_LINEAS} "
