@@ -19,7 +19,7 @@ Proyecto final de la Diplomatura de Ciencia de Datos para las Ciencias Sociales 
 </td>
 <td valign="top">
 
-**Gabriela Pozo.** En el centro de Cusco converso seguido con turistas que van a hacer trekking, como el Salkantay, y mis amigos me piden que les recomiende una agencia, pero no siempre tengo la respuesta. Escribí a 6 agencias de trekking, grandes y pequeñas: todas respondieron recién al día siguiente, la mitad sin precio en el chat y dos en otro idioma. Por eso creé un asistente que prepara en segundos una respuesta clara, con los precios de cada agencia y en el idioma del turista, para que cualquier agencia responda rápido y bien a cualquier hora.
+**Gabriela Pozo.** En el centro de Cusco converso seguido con turistas que van a hacer trekking, como el Salkantay, y mis amigos me piden que les recomiende una agencia, pero no siempre tengo la respuesta. Escribí a 6 agencias de trekking, grandes y pequeñas: ninguna respondió esa noche con una persona; las respuestas humanas llegaron al día siguiente, la mitad sin precio en el chat y dos en otro idioma. Por eso creé un asistente que prepara en segundos una respuesta clara, con los precios de cada agencia y en el idioma del turista, para que cualquier agencia responda rápido y bien a cualquier hora.
 
 </td>
 </tr>
@@ -39,7 +39,7 @@ Proyecto final de la Diplomatura de Ciencia de Datos para las Ciencias Sociales 
 Escribimos a 6 agencias de trekking de Cusco (2 grandes, 2 medianas y 2 pequeñas) con el mismo mensaje en inglés, enviado por WhatsApp entre las 11:55 p. m. del 9 de noviembre y las 12:07 a. m. del 10. Ninguna persona respondió esa noche (solo una agencia envió un mensaje automático, en español): la primera respuesta humana llegó a las 8:23 a. m., entre 8 y 10 horas y media después. Solo 3 de 6 dieron el precio en el chat; las demás lo mandaron en un PDF de 11 o 12 páginas o en enlaces. 2 de 6 respondieron en español a un mensaje en inglés. Solo 1 hizo una pregunta al viajero (pidió su correo). Los precios del Salkantay que nos dieron fueron de US$ 499 a 755 por persona (mediana US$ 695). Es una prueba pequeña e ilustrativa, no una muestra representativa. Datos: [`docs/research/cliente_misterioso.csv`](docs/research/cliente_misterioso.csv).
 
 - A los viajeros les cuesta entender qué incluye y qué no cada cotización (lo dicen las 2 respuestas de la encuesta); por eso el borrador siempre lo explica.
-- De día, la agencia más rápida responde en menos de 1 hora; a medianoche, en la prueba de cliente misterioso, las agencias tardaron de 8 a 10 horas: el problema se concentra fuera de horario.
+- A medianoche, en la prueba de cliente misterioso, las agencias tardaron de 8 a 10 horas en responder: el problema se concentra fuera de horario.
 - Vender por plataformas de reservas sale caro: Viator cobra a la agencia una comisión que suele ser de 20 a 30 % de cada reserva y se negocia con cada agencia ([guía de Ventrata para conectarse con Viator](https://support.ventrata.com/en/article/viator-reseller-connection-5aey1r/)). Responder rápido por WhatsApp permite vender directo.
 - Evidencia y sus límites (2 conversaciones informales, una encuesta con 2 respuestas y un cliente misterioso con 6 agencias): [`docs/research/`](docs/research/).
 
@@ -117,7 +117,7 @@ Qué se ve en la app:
 ## 7. Modelo de negocio
 
 - **Costo por consulta (medido):** cada consulta hace 2 llamadas al modelo (extraer el perfil y redactar el borrador) y usa unos 2 100 tokens de entrada y 450 de salida en total (en el ejemplo guardado: 2 097 y 452).
-- **El demo usa el nivel gratuito de Gemini** (20 solicitudes por día y por modelo; cada consulta usa 2). No incluimos el precio del nivel de pago porque no lo verificamos en la página oficial.
+- **El demo usa el nivel gratuito de Gemini** (20 solicitudes por día y por modelo (límite observado en mi cuenta; puede cambiar); cada consulta usa 2). No incluimos el precio del nivel de pago porque no lo verificamos en la página oficial.
 - **Para la agencia:** primero un piloto gratis de 2 semanas con 3 agencias, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
 
 **Precios: hipótesis a validar en el piloto (todavía no validada con agencias).** Suscripción mensual, con el primer mes gratis:
@@ -140,7 +140,8 @@ Todas estas cifras son **hipótesis de trabajo**: todavía no se midieron con ag
 | Planes | S/ 99, S/ 249 y S/ 599 al mes, equivalentes a **S/ 0,33, S/ 0,25 y S/ 0,20 por consulta** (con 300, 1 000 y 3 000 consultas) |
 | Costo de IA por consulta (2 100 tokens de entrada y 450 de salida) | `gemini-3.5-flash-lite`: S/ 0,006. `gemini 3.8 flash`: S/ 0,011, que **sube a S/ 0,022 desde el 1 de enero de 2027** |
 | WhatsApp vía Twilio | US$ 0,005 por mensaje |
-| Servidor (Render) | US$ 7 al mes (≈ S/ 24) |
+| Servidor (Render) | Hoy corre en el plan gratuito; US$ 7 al mes (≈ S/ 24) es el costo previsto del plan de pago |
+| Servidor por agencia (hipótesis) | En el escenario de 10 agencias, S/ 24 ÷ 10 ≈ S/ 2,4 al mes por agencia |
 | Tipo de cambio | S/ 3,43 por US$ (SUNAT, 9 de noviembre de 2026) |
 | Escenario de 10 agencias | ≈ S/ 1 940 al mes |
 
@@ -195,7 +196,7 @@ Conversaciones: [conversación 1](docs/research/conversacion_1.md) (personal de 
 
 - **El modelo puede equivocarse.** Por eso los precios los calcula el código, un control revisa el borrador y el vendedor siempre lo revisa antes de enviarlo.
 - **Las reglas cambian** (permisos, entradas a Machu Picchu, horarios). Cada archivo de conocimiento tiene fecha y fuentes, y hay que revisarlo cada temporada.
-- **Límites de la capa gratuita de Gemini**: 20 solicitudes por día y por modelo. Cada consulta usa 2. Por eso hay un modelo de respaldo y un ejemplo guardado.
+- **Límites de la capa gratuita de Gemini**: 20 solicitudes por día y por modelo (límite observado en mi cuenta; puede cambiar). Cada consulta usa 2. Por eso hay un modelo de respaldo y un ejemplo guardado.
 - **Marca:** Abra ya se usa en otros rubros de software (criptomonedas, gestión empresarial); antes de lanzar habría que registrar la marca en Indecopi.
 
 ### Límites conocidos (evaluación del 11 de nov. de 2026)
@@ -229,12 +230,14 @@ streamlit run app/app.py  # y abre http://localhost:8501
 
 ### Modo nocturno con WhatsApp (sandbox de Twilio)
 
-`server/webhook.py` (FastAPI) responde solo las consultas que llegan **fuera de horario** (8:00–20:00, hora de Lima):
+**Esto es el diseño.** El servidor (`server/webhook.py`) está escrito y probado con pruebas automáticas, pero **NO está conectado a un número real de WhatsApp**. Así funcionaría:
 
-1. El viajero escribe al número del sandbox; Twilio hace `POST /whatsapp`.
-2. Se valida la firma `X-Twilio-Signature` con el auth token y se contesta al instante con un TwiML vacío.
-3. En segundo plano, el modelo extrae el perfil y el código arma la respuesta segura de `core/respuesta_nocturna.py` (precio "desde" del tarifario, qué incluye, lo que falta preguntar y la hora del asesor). Si queda en espera del vendedor, se envía solo un acuse de recibo sin montos.
-4. Se envía con la API de Twilio. Un mismo `MessageSid` no se responde dos veces; el log no guarda textos ni teléfonos.
+`server/webhook.py` (FastAPI) respondería solo las consultas que llegaran **fuera de horario** (8:00–20:00, hora de Lima):
+
+1. El viajero escribiría al número del sandbox; Twilio haría `POST /whatsapp`.
+2. Se validaría la firma `X-Twilio-Signature` con el auth token y se contestaría al instante con un TwiML vacío.
+3. En segundo plano, el modelo extraería el perfil y el código armaría la respuesta segura de `core/respuesta_nocturna.py` (precio "desde" del tarifario, qué incluye, lo que falta preguntar y la hora del asesor). Si quedara en espera del vendedor, se enviaría solo un acuse de recibo sin montos.
+4. Se enviaría con la API de Twilio. Un mismo `MessageSid` no se respondería dos veces; el log no guardaría textos ni teléfonos.
 
 Despliegue: `render.yaml` (Render, plan gratuito) con `requirements-server.txt`; salud en `GET /salud`. Para probar de día: `FORZAR_MODO_NOCTURNO=1`. En local: `uvicorn server.webhook:app --port 8000`.
 
