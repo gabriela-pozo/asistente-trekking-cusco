@@ -62,6 +62,15 @@ class PruebasPagina(unittest.TestCase):
         # 6 meses por defecto: 20 reservadas de 111 respondidas (las mismas cifras de metricas())
         self.assertTrue(any(c.value == "Reservadas ÷ respondidas: 20 ÷ 111" for c in app.caption))
 
+    def test_orden_de_lectura_y_titulos_con_la_conclusion(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+        titulos = [str(h.proto) for h in app.get("html") if "pregunta" in str(h.proto)]
+        orden = ["¿Cómo voy?", "La mayor caída es de", "concentra el", "llega fuera de horario", "mes de viaje",
+                 "suman el"]
+        posiciones = [next(i for i, t in enumerate(titulos) if frase in t) for frase in orden]
+        self.assertEqual(posiciones, sorted(posiciones))
+
 
 if __name__ == "__main__":
     unittest.main()

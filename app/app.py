@@ -804,8 +804,14 @@ def dibujar(grafico: alt.Chart, alto: int) -> None:
 
 
 def pregunta(titulo: str, hallazgo: str) -> None:
-    """Título = la pregunta del dueño; debajo, el hallazgo calculado con los datos filtrados."""
-    st.html(f'<h3 class="pregunta">{html.escape(titulo)}</h3><p class="hallazgo">{html.escape(hallazgo)}</p>')
+    """La pregunta del dueño como rótulo; el título es la conclusión (la frase de core/tablero.py).
+
+    Si no hay conclusión (p. ej., sin datos para ese gráfico), el título es la pregunta.
+    """
+    if hallazgo:
+        st.html(f'<p class="rotulo">{html.escape(titulo)}</p><h3 class="pregunta">{html.escape(hallazgo)}</h3>')
+    else:
+        st.html(f'<h3 class="pregunta">{html.escape(titulo)}</h3>')
 
 
 def tarjeta(nombre: str):
@@ -964,7 +970,7 @@ def pagina_tablero() -> None:
                + f". Cada indicador se compara con los {meses} meses anteriores.")
 
     # 1. ¿Cómo voy?
-    pregunta("¿Cómo voy?", "Los 4 indicadores del período, frente al período anterior de igual largo.")
+    pregunta("¿Cómo voy?", "")
     m = metricas(datos)
     v = variaciones(datos, anteriores) if comparable else None
     k1, k2, k3, k4 = st.columns(4)
@@ -986,9 +992,52 @@ def pagina_tablero() -> None:
     if v is None:
         st.caption(f"Sin variación: los datos no cubren los {meses} meses anteriores completos.")
 
-    # 2. ¿Cuándo escriben?
+    izquierda, derecha = st.columns(2, gap="medium")
+    # 2. Embudo: dónde se cae el proceso
+    with izquierda, tarjeta("embudo"):
+        e = embudo(datos)
+        pregunta("¿En qué paso se pierden las ventas?", hallazgo_embudo(e))
+        e["porcentaje"] = [None if p is None or pd.isna(p) else pct(p) for p in e["pct_anterior"]]
+        e["etiqueta"] = [miles(n) if pd.isna(p) else f"{miles(n)} · {p}"
+                         for n, p in zip(e["numero"], e["porcentaje"])]
+        barras = alt.Chart(e).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
+            y=alt.Y("etapa:N", sort=list(e["etapa"]), title=None, scale=alt.Scale(paddingInner=.45),
+                    axis=alt.Axis(ticks=False, domain=False)),
+            x=alt.X("numero:Q", title="Consultas", scale=alt.Scale(domain=[0, max(e["numero"]) * 1.45]),
+                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
+            tooltip=[alt.Tooltip("etapa:N", title="Etapa"), alt.Tooltip("numero:Q", title="Consultas"),
+                     alt.Tooltip("porcentaje:N", title="% de la etapa anterior")])
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+            text="etiqueta:N")
+        dibujar(barras + etiquetas, alto=200)
+        st.caption("Cada % compara la etapa con la anterior. Cotizadas: respondidas con un precio.")
+        ver_tabla(e[["etapa", "numero", "porcentaje"]].rename(columns={
+            "etapa": "Etapa", "numero": "Consultas", "porcentaje": "% de la etapa anterior"}), "embudo")
+
+    # 3. Dónde se pierde: por trek
+    with derecha, tarjeta("treks"):
+        t = cierre_por_trek(datos)
+        pregunta("¿En qué trek se pierden?", hallazgo_treks(t))
+        t["etiqueta"] = [f"{pct(x)} cierre" for x in t["tasa_cierre"]]
+        t["tasa"] = t["tasa_cierre"].map(pct)
+        barras = alt.Chart(t).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
+            y=alt.Y("nombre:N", sort=list(t["nombre"]), title=None,
+                    scale=alt.Scale(paddingInner=.45), axis=alt.Axis(ticks=False, domain=False, labelLimit=150)),
+            x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 1.45]),
+                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
+            tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
+                     alt.Tooltip("respondidas:Q", title="Respondidas"),
+                     alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+            text="etiqueta:N")
+        dibujar(barras + etiquetas, alto=40 * len(t) + 40)
+        ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
+            "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas", "reservadas": "Reservadas",
+            "tasa": "Tasa de cierre"}), "treks")
+
+    # 4. Cuándo llega
     with tarjeta("cuando"):
-        pregunta("¿Cuándo escriben?", hallazgo_horario(datos))
+        pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos))
         celdas = por_dia_y_hora(datos)
         celdas["dia_corto"] = celdas["dia"].str[:3].str.capitalize()
         orden_dias = list(dict.fromkeys(celdas["dia_corto"]))
@@ -1015,50 +1064,7 @@ def pagina_tablero() -> None:
         ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
                                                                          "consultas": "Consultas"}), "cuando_escriben")
 
-    izquierda, derecha = st.columns(2, gap="medium")
-    # 3. ¿Qué piden y qué se cierra?
-    with izquierda, tarjeta("treks"):
-        t = cierre_por_trek(datos)
-        pregunta("¿Qué piden y qué se cierra?", hallazgo_treks(t))
-        t["etiqueta"] = [f"{pct(x)} cierre" for x in t["tasa_cierre"]]
-        t["tasa"] = t["tasa_cierre"].map(pct)
-        barras = alt.Chart(t).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
-            y=alt.Y("nombre:N", sort=list(t["nombre"]), title=None,
-                    scale=alt.Scale(paddingInner=.45), axis=alt.Axis(ticks=False, domain=False, labelLimit=150)),
-            x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 1.45]),
-                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
-            tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
-                     alt.Tooltip("respondidas:Q", title="Respondidas"),
-                     alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
-            text="etiqueta:N")
-        dibujar(barras + etiquetas, alto=40 * len(t) + 40)
-        ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
-            "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas", "reservadas": "Reservadas",
-            "tasa": "Tasa de cierre"}), "treks")
-
-    # 6. Embudo
-    with derecha, tarjeta("embudo"):
-        e = embudo(datos)
-        pregunta("¿Dónde se pierden las ventas?", hallazgo_embudo(e))
-        e["porcentaje"] = [None if p is None or pd.isna(p) else pct(p) for p in e["pct_anterior"]]
-        e["etiqueta"] = [miles(n) if pd.isna(p) else f"{miles(n)} · {p}"
-                         for n, p in zip(e["numero"], e["porcentaje"])]
-        barras = alt.Chart(e).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
-            y=alt.Y("etapa:N", sort=list(e["etapa"]), title=None, scale=alt.Scale(paddingInner=.45),
-                    axis=alt.Axis(ticks=False, domain=False)),
-            x=alt.X("numero:Q", title="Consultas", scale=alt.Scale(domain=[0, max(e["numero"]) * 1.45]),
-                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
-            tooltip=[alt.Tooltip("etapa:N", title="Etapa"), alt.Tooltip("numero:Q", title="Consultas"),
-                     alt.Tooltip("porcentaje:N", title="% de la etapa anterior")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
-            text="etiqueta:N")
-        dibujar(barras + etiquetas, alto=200)
-        st.caption("Cada % compara la etapa con la anterior. Cotizadas: respondidas con un precio.")
-        ver_tabla(e[["etapa", "numero", "porcentaje"]].rename(columns={
-            "etapa": "Etapa", "numero": "Consultas", "porcentaje": "% de la etapa anterior"}), "embudo")
-
-    # 4. ¿Para qué meses?
+    # 5. ¿Para qué meses?
     with tarjeta("meses"):
         mes_estado = por_mes_y_estado(datos)
         pregunta("¿Para qué meses?", hallazgo_meses(mes_estado))
@@ -1077,7 +1083,7 @@ def pagina_tablero() -> None:
         tabla_meses = mes_estado.pivot(index=["mes", "mes_nombre"], columns="estado", values="consultas")
         ver_tabla(tabla_meses.reset_index().drop(columns="mes").rename(columns={"mes_nombre": "Mes"}), "meses")
 
-    # 5. ¿De dónde escriben?
+    # 6. ¿De dónde escriben?
     with tarjeta("paises"):
         p = paises_con_otros(datos)
         pregunta("¿De dónde escriben?", hallazgo_paises(p))
