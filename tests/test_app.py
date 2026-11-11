@@ -95,6 +95,39 @@ class PruebasApp(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertIn("US$ 600", app.text_area(key="borrador").value)
 
+    def test_modelo_colgado_cae_al_ejemplo_y_no_gira_sin_fin(self):
+        """Si el modelo no responde a tiempo, se muestra el ejemplo guardado con un aviso (nunca queda girando)."""
+        import time
+
+        from streamlit.testing.v1 import AppTest
+
+        def colgado(*args, **kwargs):
+            time.sleep(5)
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "clave-de-prueba", "ABRA_LIMITE_RESPUESTA_S": "0.3"}),                 mock.patch("ai.ejemplo.responder_con_respaldo", side_effect=colgado):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            app.text_area(key="consulta").set_value("Hi! Salkantay in March for 2?").run()
+            inicio = time.time()
+            next(b for b in app.button if b.label == "Preparar respuesta").click().run()
+            self.assertLess(time.time() - inicio, 4)
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state["origen"], "tardo")
+        self.assertIn("US$ 600", app.text_area(key="borrador").value)
+        self.assertTrue(any("tardó demasiado" in w.value for w in app.warning))
+
+    def test_sin_claves_el_ejemplo_no_llama_a_la_api_y_preparar_esta_desactivado(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "ANTHROPIC_API_KEY": ""}),                 mock.patch("ai.llm.crear_llm", side_effect=AssertionError("no debe llamar a la API")),                 mock.patch("ai.ejemplo.responder_con_respaldo", side_effect=AssertionError("no debe llamar a la API")):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+        self.assertFalse(app.exception)
+        self.assertTrue(next(b for b in app.button if b.label == "Preparar respuesta").disabled)
+        self.assertTrue(any("GEMINI_API_KEY" in w.value for w in app.warning))  # aviso claro de la clave
+        self.assertIn("US$ 600", app.text_area(key="borrador").value)
+
     def test_cronometro_solo_con_respuesta_del_modelo(self):
         from streamlit.testing.v1 import AppTest
 

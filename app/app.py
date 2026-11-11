@@ -161,7 +161,7 @@ st.sidebar.html('<p class="pie-lateral"><span class="material-symbols-rounded">v
 
 def estado_sistema_corto() -> str:
     """Insignia de la cabecera: qué modelo responde, o si lo que se ve es el ejemplo guardado."""
-    if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
+    if st.session_state.get("origen") in ("ejemplo", "sin_cuota", "tardo"):
         return "Ejemplo guardado"
     if falta_clave():
         return "Sin clave: solo ejemplo"
@@ -333,6 +333,24 @@ def registrar_consulta(estado: str) -> None:
     celebrar(leer_registradas(RUTA_REGISTRO), hoy_en_lima())
 
 
+LIMITE_RESPUESTA_S = float(os.getenv("ABRA_LIMITE_RESPUESTA_S") or 45)  # tope total: pasado ese tiempo se muestra el ejemplo guardado en vez de girar sin fin
+
+
+def responder_con_limite(consulta, llm, base, tarifario, extras, agencia):
+    """Como responder_con_respaldo, pero con un tope de tiempo. Devuelve (resultado, False | True | "tardo")."""
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as TiempoAgotado
+
+    pool = ThreadPoolExecutor(max_workers=1)
+    futuro = pool.submit(responder_con_respaldo, consulta, llm, base, tarifario, extras, agencia)
+    try:
+        return futuro.result(timeout=LIMITE_RESPUESTA_S)
+    except TiempoAgotado:
+        resultado, _ = cargar_ejemplo()
+        return resultado, "tardo"
+    finally:
+        pool.shutdown(wait=False)
+
+
 def boton_copiar(texto: str) -> None:
     """Botón "Copiar": Streamlit no tiene portapapeles propio, así que va en un componente mínimo (sin red)."""
     import json
@@ -481,21 +499,23 @@ def pagina_consulta() -> None:
         try:
             with st.status("Leyendo el mensaje → Buscando tu tarifa → Redactando", expanded=False) as avance:
                 # Cadena de respaldo: modelo principal -> modelo de respaldo -> ejemplo guardado.
-                resultado, es_ejemplo = responder_con_respaldo(
+                resultado, es_ejemplo = responder_con_limite(
                     consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
                     st.session_state.extras, st.session_state.agencia)
                 avance.update(label="Respuesta lista", state="complete")
         except ClaveInvalidaError as error:  # esperar no sirve: hay que cambiar la clave
+            avance.update(label="No se pudo preparar la respuesta", state="error")
             st.error(str(error), icon=":material/key_off:")
             return
         except Exception as error:  # noqa: BLE001 - se muestra un mensaje claro en vez del error técnico
+            avance.update(label="No se pudo preparar la respuesta", state="error")
             st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.", icon=":material/error:")
             with st.expander("Detalle técnico"):
                 st.code(f"{type(error).__name__}: {error}")
             return
         st.session_state.resultado = resultado
         st.session_state.borrador = resultado.borrador.mensaje_para_cliente
-        st.session_state.origen = "sin_cuota" if es_ejemplo else "modelo"
+        st.session_state.origen = "tardo" if es_ejemplo == "tardo" else "sin_cuota" if es_ejemplo else "modelo"
         if not es_ejemplo:  # para "Estado del sistema": cuántas consultas al modelo en esta sesión
             st.session_state.consultas_modelo = st.session_state.get("consultas_modelo", 0) + 1
         st.session_state.registrada = None
@@ -513,6 +533,9 @@ def pagina_consulta() -> None:
     if origen == "sin_cuota":
         st.warning(f"**{AVISO_SIN_CUOTA}.** Este resultado no corresponde al mensaje que pegaste; "
                    "vuelve a intentarlo mañana.", icon=":material/hourglass_empty:")
+    elif origen == "tardo":
+        st.warning("**El modelo tardó demasiado en responder.** Se muestra el ejemplo guardado, que no corresponde "
+                   "al mensaje que pegaste. Vuelve a intentarlo en un minuto.", icon=":material/hourglass_empty:")
     elif origen == "ejemplo":
         fecha = html.escape(str(st.session_state.get("fecha_ejemplo", "")))
         st.html(f'<span class="insignia insignia-guardado" title="No se llamó a la API, así que no gastó cuota.">'
@@ -614,7 +637,7 @@ def pagina_fuentes() -> None:
         st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a,
                   args=("Consulta",), key="fuentes_ir_consulta")
     else:
-        if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
+        if st.session_state.get("origen") in ("ejemplo", "sin_cuota", "tardo"):
             st.caption(":material/bookmark: Es el ejemplo guardado: estos son los fragmentos que se usaron en esa consulta.")
         mostrar_fuentes_usadas(resultado, hoy)
 
@@ -634,6 +657,7 @@ ORIGENES = {
     "modelo": "No: respondió el modelo",
     "ejemplo": "Sí: botón «Usar mensaje de ejemplo»",
     "sin_cuota": "Sí: el modelo no tenía cuota",
+    "tardo": "Sí: el modelo tardó demasiado",
 }
 
 
