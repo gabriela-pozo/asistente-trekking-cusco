@@ -2,7 +2,7 @@
 
 ## 1. One-liner
 
-> Abra Travel prepara en segundos la respuesta a cada consulta de viajeros para las agencias de turismo, empezando por Cusco, con sus propios precios y en el idioma de cada viajero.
+> Hacemos respuestas listas para cada consulta de viajeros, **para** las agencias de trekking de Cusco, **mediante** un modelo de lenguaje que extrae el perfil del viajero y redacta el borrador con los precios del propio tarifario de la agencia, en el idioma del viajero.
 
 **El nombre:** el abra es el punto más alto de un trek (como el abra Salkantay) y viene de "abrir": abre cada conversación con el viajero.
 
@@ -42,6 +42,12 @@ Escribimos a 6 agencias de trekking de Cusco (2 grandes, 2 medianas y 2 pequeña
 - De día, la agencia más rápida responde en menos de 1 hora; a medianoche, en la prueba de cliente misterioso, las agencias tardaron de 8 a 10 horas: el problema se concentra fuera de horario.
 - Vender por plataformas de reservas sale caro: Viator cobra a la agencia una comisión que suele ser de 20 a 30 % de cada reserva y se negocia con cada agencia ([guía de Ventrata para conectarse con Viator](https://support.ventrata.com/en/article/viator-reseller-connection-5aey1r/)). Responder rápido por WhatsApp permite vender directo.
 - Evidencia y sus límites (2 conversaciones informales, una encuesta con 2 respuestas y un cliente misterioso con 6 agencias): [`docs/research/`](docs/research/).
+
+**Notas de las conversaciones** (en `docs/research/`):
+
+- **[Conversación 1](docs/research/conversacion_1.md)** (personal de un hotel en Cusco): el hotel no recomienda agencias, manda a los turistas a la plaza. Contradice nuestra idea de que el hotel fuera un canal hacia las agencias.
+- **[Conversación 2](docs/research/conversacion_2.md)** (persona que conoce el trekking en el Perú): hay viajeros que hacen treks por su cuenta con aplicaciones de rutas; a esa persona le interesó ver la ruta en un mapa. Contradice en parte: hay un segmento independiente que no sería cliente de las agencias.
+- **Conversación 3: pendiente.** Todavía no se hizo; faltan hablar con un dueño o vendedor de una agencia.
 
 ## 4. Solución e insight
 
@@ -86,7 +92,12 @@ Video de respaldo: [enlace pendiente]
 
 Detalle y guion del video: [docs/video/README.md](docs/video/README.md).
 
-Modelo: **Gemini** (`gemini-3.5-flash`), con respaldo `gemini-3.5-flash-lite` si se queda sin cuota o está saturado, y un **ejemplo guardado** de una consulta real si los dos fallan. El botón "Usar mensaje de ejemplo" muestra ese resultado sin llamar a la API.
+**Arquitectura:** el diagrama está en la sección 4 (Solución e insight).
+
+**Modelos y APIs, y por qué:**
+
+- **Gemini** (`gemini-3.5-flash`), con respaldo `gemini-3.5-flash-lite` si se queda sin cuota o está saturado, y un **ejemplo guardado** de una consulta real si los dos fallan. Se eligió porque devuelve salidas estructuradas que el código valida y porque su nivel gratuito alcanza para el demo.
+- **Twilio (WhatsApp)**, solo en el modo nocturno: el sandbox sirve para probar el webhook sin una cuenta de negocio aprobada por Meta (ver Qué sigue). El botón "Usar mensaje de ejemplo" muestra ese resultado sin llamar a la API.
 
 Qué se ve en la app:
 
@@ -139,12 +150,21 @@ Todas estas cifras son **hipótesis de trabajo**: todavía no se midieron con ag
 
 | Sesión | Qué usamos | Dónde está |
 | --- | --- | --- |
-| **08: salidas estructuradas + RAG** | El modelo devuelve el perfil del viajero como un esquema pydantic; la respuesta se apoya en fragmentos recuperados de una base de conocimiento con fuentes y fechas | `ai/schemas.py`, `ai/llm.py`, `ai/prompts.py`, `ai/pipeline.py`, `ai/knowledge.py`, `data/knowledge/`, `data/knowledge_huaraz/` |
-| **05: Tablero** | Métricas, gráficos y filtros de las consultas, y la sección Mi semana | `core/tablero.py`, `core/mi_semana.py`, `app/app.py` (página Tablero), `data/consultas_sinteticas.csv`, `scripts/generar_consultas_sinteticas.py` |
+| **08: LLMs con salidas estructuradas y RAG** | El modelo devuelve el perfil del viajero como un esquema pydantic; la respuesta se apoya en fragmentos recuperados de una base de conocimiento con fuentes y fechas | `ai/schemas.py`, `ai/llm.py`, `ai/prompts.py`, `ai/pipeline.py`, `ai/knowledge.py`, `data/knowledge/`, `data/knowledge_huaraz/`; pruebas: `tests/test_pipeline.py`, `tests/test_knowledge.py` |
+| **05: Dashboards (el Tablero)** | Métricas, gráficos y filtros de las consultas, y la sección Mi semana | `core/tablero.py`, `core/mi_semana.py`, `app/app.py` (página Tablero), `data/consultas_sinteticas.csv`, `scripts/generar_consultas_sinteticas.py`; pruebas: `tests/test_tablero.py`, `tests/test_mi_semana.py` |
 
 ## 9. Qué hizo el agente
 
 **Claude Code (el agente)** escribió el código de la app, del flujo con el modelo, del Tablero, de los paquetes y del webhook de WhatsApp; las pruebas automáticas (`tests/`, sin llamadas a la API); la base de conocimiento de Cusco y Huaraz a partir de fuentes públicas citadas en cada archivo; el análisis de precios de mercado y las capturas.
+
+En concreto, Claude Code generó:
+
+- **La app** (`app/`): las páginas Nueva consulta, Mi agencia y Tablero, y su diseño.
+- **El flujo con el modelo** (`ai/`): esquemas, instrucciones, búsqueda en la base de conocimiento y el control que revisa cada borrador (por ejemplo, que no aparezcan precios fuera del tarifario).
+- **La lógica de negocio** (`core/`): cotización con el tarifario, paquetes, PDF de la cotización, enlace de WhatsApp, respuesta del modo nocturno, mapa de la ruta, Tablero y Mi semana.
+- **El webhook de WhatsApp** (`server/webhook.py`) y su despliegue (`render.yaml`).
+- **Scripts** (`scripts/`): análisis de precios, consultas sintéticas y prueba con el modelo real.
+- **Pruebas y documentación**: `tests/`, y borradores de `docs/` y de este README.
 
 **Yo decidí** el problema, el cliente (agencias de trekking), el nicho (Cusco, empezando por el Salkantay), los precios del tarifario demo y sus fuentes, e hice la prueba de cliente misterioso con 6 agencias, las conversaciones y la encuesta.
 
