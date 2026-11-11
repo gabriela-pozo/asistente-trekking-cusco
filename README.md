@@ -136,7 +136,7 @@ Qué se ve en la app:
 1. **Piloto gratis de 2 semanas con 3 agencias**, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
 2. **Modo nocturno con WhatsApp real:** el webhook ya funciona con el sandbox de Twilio. La integración directa con Meta se intentó, pero la cuenta quedó bloqueada temporalmente por iniciar sesión desde un dispositivo nuevo.
 3. **Paquetes** (trek + extras + días en Cusco) para subir el ticket de cada venta.
-4. **Mapa de la ruta en la respuesta al viajero:** lo pidió la [conversación 2](docs/research/conversacion_2.md); los trazados de 3 rutas ya están en `data/rutas/`.
+4. **Mapa de la ruta:** lo pidió la [conversación 2](docs/research/conversacion_2.md). Ya hay un expander "Ver la ruta en el mapa" en "Nueva consulta" para Salkantay, Camino Inca y Lares (este último incompleto), con perfil de altitud y enlace al inicio en Google Maps; los demás treks muestran "Mapa no disponible todavía". Datos en `data/rutas/`: © OpenStreetMap contributors (ODbL). Falta mostrar el mapa dentro de la respuesta al viajero.
 5. **Luego Huaraz, Arequipa y Puno**; después los departamentos con boleto turístico (Ley 32586) y Latinoamérica. Un destino nuevo es solo una carpeta nueva de conocimiento más el tarifario de la agencia: `data/knowledge_huaraz/` (Santa Cruz y Laguna 69) ya tiene el mismo formato que la de Cusco, sin cambiar el código.
 
 ### Riesgos
@@ -150,7 +150,7 @@ Qué se ve en la app:
 
 Evaluamos 5 consultas con el modelo real (no es una evaluación estadística; una sola corrida, lectura manual hecha por la autora). Resultado: 3 correctas, 1 parcial y 1 con fallas. Cero precios inventados, idioma correcto y respuestas de menos de 150 palabras en los 5 casos.
 
-Lo que falla: (1) con un mensaje muy vago, cotiza antes de pedir los datos y puede dar por hecho un tamaño de grupo; (2) cuando el viajero llega en una semana, no le dice que casi seguro no hay permisos para el Camino Inca; (3) a veces omite avisos de temporada alta o de cierre mensual, que sí aparecen en las advertencias internas para la agencia; (4) el control de depósito y saldo da falsos positivos cuando el mensaje menciona un monto no reembolsable.
+Lo que falla: (1) con un mensaje muy vago, cotiza antes de pedir los datos y puede dar por hecho un tamaño de grupo; (2) cuando el viajero llega en una semana, no le dice que casi seguro no hay permisos para el Camino Inca; (3) a veces omite avisos de temporada alta (C17) o del cierre del Camino Inca en febrero (C16); este último sí aparece en las advertencias internas para la agencia, el de temporada alta no; (4) el control de depósito y saldo da falsos positivos cuando el mensaje menciona un monto no reembolsable.
 
 Por eso la agencia revisa y aprueba cada mensaje antes de enviarlo. Detalle en [docs/evaluacion.md](docs/evaluacion.md).
 
