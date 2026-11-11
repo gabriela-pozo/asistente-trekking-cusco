@@ -35,6 +35,29 @@ def _dibujar(st, ruta: mapa.Ruta) -> None:
     st.pydeck_chart(pdk.Deck(layers=capas, initial_view_state=vista, tooltip=tooltip), height=420)
 
 
+def _perfil(st, ruta: mapa.Ruta) -> None:
+    """Perfil de altitud con los puntos que tienen altitud; no dibuja nada si hay menos de 3."""
+    perfil = mapa.perfil_altitud(ruta)
+    if not perfil:
+        return
+    import altair as alt
+    import pandas as pd
+
+    datos = pd.DataFrame(perfil, columns=["Lugar", "Km en línea recta", "Altitud (m)"])
+    base = alt.Chart(datos).encode(
+        x=alt.X("Km en línea recta:Q", title="Km acumulados en línea recta"),
+        y=alt.Y("Altitud (m):Q", title="Altitud (m)", scale=alt.Scale(zero=False)),
+        tooltip=["Lugar", alt.Tooltip("Altitud (m):Q", format=",.0f")])
+    grafico = (base.mark_line(color="#1E6B52") + base.mark_circle(color="#C9741D", size=70)).properties(height=220)
+    st.markdown("**Perfil de altitud**")
+    st.altair_chart(grafico)
+    d = mapa.desnivel(ruta)
+    if d:
+        miles = lambda n: f"{n:,}".replace(",", " ")  # noqa: E731
+        st.caption(f"Altitud entre {miles(d['minima_m'])} y {miles(d['maxima_m'])} m, calculada con "
+                   f"{d['puntos_con_altitud']} de {d['puntos']} puntos (los demás no tienen altitud en las fuentes).")
+
+
 def mostrar_mapa(trek: str | None) -> None:
     """Dibuja la ruta del trek (id de ruta: 'salkantay', 'camino_inca', 'lares'). Nunca lanza excepciones."""
     try:
@@ -49,6 +72,7 @@ def mostrar_mapa(trek: str | None) -> None:
         dias = mapa.archivo_dias(ruta.archivo)
         st.caption(f"Puntos clave de un itinerario de referencia de {dias} días; las rutas varían entre agencias. "
                    f"{mapa.ATRIBUCION}")
+        _perfil(st, ruta)
         claves = [f"{ETIQUETA_TIPO.get(p.tipo, 'Lugar')}: {p.lugar}" for p in ruta.de_tipo("inicio", "campamento", "fin")]
         if claves:
             st.markdown("**Inicio, campamentos y fin:** " + " · ".join(claves))
