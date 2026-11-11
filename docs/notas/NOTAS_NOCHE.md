@@ -451,3 +451,12 @@ Más el commit de este informe (hash en el mensaje final).
 - `reportlab==5.1.0` en `requirements.txt`: Cloud debe reinstalar dependencias (reiniciar la app).
 - Los datos de ruta son un solo itinerario por trek y Lares está incompleto; el PDF lo rotula, pero un cliente puede leerlo como oficial: el pie pide confirmar con la agencia.
 - La vigencia de 7 días sigue siendo un supuesto (se marca en el PDF).
+
+
+## Revisión del PDF (ejemplo Salkantay)
+1. **★ y otros símbolos:** todo texto del PDF pasa por `_limpio()`: "3★" sale como "3-star hotel" / "hotel de 3 estrellas" / "hotel 3 estrelas"; cualquier otro carácter fuera de WinAnsi se reemplaza o se quita. El mensaje de WhatsApp no se toca (una prueba lo verifica).
+2. **Itinerario:** la ruta se rotula "itinerario de referencia de 5 días (datos del repositorio)"; si la cotización tiene otros días, dice que la agencia confirmará cómo se organiza la opción cotizada. No se inventó un itinerario de 4 días.
+3. **Etiquetas del mapa:** colocación automática (derecha o izquierda según el espacio, con desplazamiento vertical y línea guía) sin pisar otras etiquetas, la línea ni los puntos. Revisado en SVG en el navegador; el PDF completo sigue sin verse renderizado.
+4. **Perfil de altitud:** eje horizontal con marcas de km y unidad.
+5. **Aviso de demostración** traducido a es/en/pt; la prueba del español usa un PDF en español.
+pytest: 311 pasan, 1 falla (la conocida de `anthropic`).

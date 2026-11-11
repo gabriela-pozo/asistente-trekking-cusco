@@ -81,6 +81,8 @@ def test_la_ruta_solo_usa_puntos_de_data_rutas(ejemplo):
 
 
 def test_los_montos_coinciden_con_el_resultado(ejemplo):
+    ejemplo = deepcopy(ejemplo)
+    ejemplo["perfil"]["idioma"] = "es"  # el aviso en español, en un PDF en español
     texto = texto_pdf(generar_cotizacion_pdf(ejemplo))
     for o in ejemplo["opciones"]:
         op = OpcionCotizada(**o)
@@ -200,3 +202,82 @@ def test_concepto_sin_traduccion_queda_en_el_original():
 def test_contacto_en_el_pie_si_existe():
     r, paquete = _paquete_de_la_app()
     assert "Contact: +51 900 000 000" in texto_pdf(generar_cotizacion_pdf(r, paquete=paquete, contacto="+51 900 000 000"))
+
+
+# ---- Revisión del PDF del ejemplo (símbolos, itinerario de referencia, aviso traducido, km) --------------------
+
+def en_idioma(ejemplo: dict, idioma: str) -> dict:
+    d = deepcopy(ejemplo)
+    d["perfil"]["idioma"] = idioma
+    return d
+
+
+@pytest.mark.parametrize("idioma,hotel", [("en", "3-star hotel"), ("es", "hotel de 3 estrellas"),
+                                          ("pt", "hotel 3 estrelas")])
+def test_la_estrella_sale_como_texto_en_el_pdf(idioma, hotel):
+    from ai.pipeline import aplicar_paquete
+
+    r, paquete = _paquete_de_la_app()
+    r.perfil.idioma = idioma
+    res = aplicar_paquete(r, paquete)
+    t = texto_pdf(generar_cotizacion_pdf(res, paquete=paquete))
+    assert "★" not in t and hotel in t
+    assert "★" in res.borrador.mensaje_para_cliente  # el mensaje de WhatsApp no se toca
+
+
+def test_ningun_texto_del_pdf_sale_de_winansi():
+    """Helvetica solo trae WinAnsi: todo lo que se dibuja pasa por _limpio y cabe en cp1252."""
+    import csv
+
+    from core.cotizacion_pdf import CONCEPTOS, TEXTOS, _limpio
+    from core.mapa import CARPETA_RUTAS
+
+    textos = [v for idi in TEXTOS.values() for v in idi.values() if isinstance(v, str)]
+    textos += [x for c in CONCEPTOS.values() for x in c.values()]
+    for archivo in CARPETA_RUTAS.glob("*.csv"):
+        textos += [f["lugar"] for f in csv.DictReader(archivo.open(encoding="utf-8"))]
+    for extra in csv.DictReader(open("data/extras_demo.csv", encoding="utf-8")):
+        textos += [extra["extra"], extra.get("beneficio_para_el_viajero", "")]
+    for idioma in ("es", "en", "pt"):
+        for t in textos + ["hotel 3★ en Cusco", "4★", "★ → ≈ – “x”"]:
+            _limpio(t, idioma).encode("cp1252")  # no lanza
+    assert "★" not in _limpio("hotel 4★", "es")
+
+
+def test_itinerario_de_referencia_de_5_dias_para_una_cotizacion_de_4(ejemplo):
+    t = texto_pdf(generar_cotizacion_pdf(ejemplo))
+    assert "reference itinerary of 5 days" in t
+    assert "Your quote is for 4 days: the agency will confirm how the quoted option is organised" in t
+    es = texto_pdf(generar_cotizacion_pdf(en_idioma(ejemplo, "es")))
+    assert "itinerario de referencia de 5 días" in es and "la agencia confirmará cómo se organiza" in es
+
+
+def test_perfil_de_altitud_con_marcas_de_km(ejemplo):
+    t = texto_pdf(generar_cotizacion_pdf(ejemplo))
+    assert " km " in f" {t} " and "50" in t  # el eje horizontal tiene marcas y la unidad
+
+
+def test_las_etiquetas_del_mapa_no_se_pisan():
+    from core.cotizacion_pdf import _colocar_etiquetas
+    from core.mapa import cargar_ruta
+
+    ruta = cargar_ruta("salkantay")
+    xy = [(100 + i * 12, 50 + i * 6) for i in range(len(ruta.puntos))]  # puntos muy juntos
+    nombres = [f"{i + 1}. {p.lugar}" for i, p in enumerate(ruta.puntos)]
+    pos = _colocar_etiquetas(xy, nombres, 510, 280)
+    cajas = []
+    for (tx, ty, ancla, _), nombre in zip(pos, nombres):
+        w = len(nombre) * 6.8 * 0.52 + 2
+        x0 = tx if ancla == "start" else tx - w
+        cajas.append((x0, ty, x0 + w, ty + 6.8))
+    for i, a in enumerate(cajas):
+        for b in cajas[i + 1:]:
+            assert a[2] < b[0] or a[0] > b[2] or a[3] < b[1] or a[1] > b[3]
+
+
+@pytest.mark.parametrize("idioma,aviso", [
+    ("es", "Datos de demostración. Confirmar disponibilidad y permisos antes de reservar."),
+    ("en", "Demo data. Confirm availability and permits before booking."),
+    ("pt", "Dados de demonstração. Confirmar disponibilidade e permissões antes de reservar.")])
+def test_aviso_de_demostracion_en_el_idioma_del_pdf(ejemplo, idioma, aviso):
+    assert aviso in texto_pdf(generar_cotizacion_pdf(en_idioma(ejemplo, idioma)))

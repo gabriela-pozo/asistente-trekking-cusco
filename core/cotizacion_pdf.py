@@ -12,6 +12,9 @@ Colores: paleta "Abra: del glaciar al amanecer" (docs/diseno.md), con fondo blan
 from __future__ import annotations
 
 import io
+import re
+import unicodedata
+from contextvars import ContextVar
 from datetime import date, datetime, timezone
 from xml.sax.saxutils import escape
 
@@ -42,7 +45,7 @@ SECUNDARIO = colors.HexColor("#4A5F66")
 AVISO_FONDO = colors.HexColor("#FFF1D6")
 AVISO_TEXTO = colors.HexColor("#7A4B00")
 
-AVISO_DEMO = "Datos de demostración. Confirmar disponibilidad y permisos antes de reservar."
+AVISO_DEMO = "Datos de demostración. Confirmar disponibilidad y permisos antes de reservar."  # es (por defecto)
 
 MESES = {
     "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
@@ -78,6 +81,9 @@ TEXTOS = {
         "puntos": "Puntos de la ruta", "altitud": "Altitud", "sin_altitud": "sin dato", "dia_n": "Día",
         "sin_perfil": "Sin altitudes suficientes para dibujar el perfil.",
         "parcial_nota": "Ruta parcial: faltan puntos del recorrido (campamentos y tramo alto).",
+        "aviso_demo": "Datos de demostración. Confirmar disponibilidad y permisos antes de reservar.",
+        "itinerario_ref": "itinerario de referencia de {n} días (datos del repositorio)",
+        "ref_difiere": "Tu cotización es de {dias} días: la agencia confirmará cómo se organiza la opción cotizada.",
     },
     "en": {
         "saludo": "Thank you for your enquiry. Here is the quote we prepared for you.",
@@ -102,6 +108,9 @@ TEXTOS = {
         "puntos": "Route points", "altitud": "Altitude", "sin_altitud": "no data", "dia_n": "Day",
         "sin_perfil": "Not enough altitude data to draw the profile.",
         "parcial_nota": "Partial route: some points of the route are missing (camps and the high section).",
+        "aviso_demo": "Demo data. Confirm availability and permits before booking.",
+        "itinerario_ref": "reference itinerary of {n} days (repository data)",
+        "ref_difiere": "Your quote is for {dias} days: the agency will confirm how the quoted option is organised.",
     },
     "pt": {
         "saludo": "Obrigado pela sua consulta. Esta é a cotação que preparamos para você.",
@@ -126,6 +135,9 @@ TEXTOS = {
         "puntos": "Pontos da rota", "altitud": "Altitude", "sin_altitud": "sem dado", "dia_n": "Dia",
         "sin_perfil": "Altitudes insuficientes para desenhar o perfil.",
         "parcial_nota": "Rota parcial: faltam pontos do percurso (acampamentos e trecho alto).",
+        "aviso_demo": "Dados de demonstração. Confirmar disponibilidade e permissões antes de reservar.",
+        "itinerario_ref": "itinerário de referência de {n} dias (dados do repositório)",
+        "ref_difiere": "Sua cotação é de {dias} dias: a agência confirmará como a opção cotada é organizada.",
     },
 }
 # Conceptos de "incluye / no incluye" del tarifario (data/tarifario_demo.csv). Clave en minúsculas; si un concepto
@@ -233,12 +245,83 @@ def _usd(n: int) -> str:
     return f"US$ {n}"  # mismo formato que OpcionCotizada.resumen(): sin separador de miles
 
 
+_IDIOMA_PDF: ContextVar[str] = ContextVar("idioma_pdf", default="en")
+_ESTRELLAS = {"es": r"de \1 estrellas", "en": r"\1-star", "pt": r"\1 estrelas"}
+
+
+def _limpio(texto: str, idioma: str | None = None) -> str:
+    """Helvetica (WinAnsi) no trae ★ ni otros símbolos: se reemplazan por texto y, si algo no cabe en WinAnsi,
+    se quita el acento o el carácter. Así el PDF nunca muestra cuadrados. No toca el texto de la respuesta."""
+    idioma = idioma or _IDIOMA_PDF.get()
+    texto = str(texto)
+    if idioma == "es":  # "hotel 3★" -> "hotel de 3 estrellas"
+        texto = re.sub(r"hotel (\d)\s*★", r"hotel de \1 estrellas", texto)
+    texto = re.sub(r"(\d)\s*★", _ESTRELLAS.get(idioma, _ESTRELLAS["en"]), texto)
+    texto = texto.replace("★", "").replace("→", "-").replace("≈", "~").replace("–", "-")
+    salida = []
+    for c in texto:
+        try:
+            c.encode("cp1252")
+            salida.append(c)
+        except UnicodeEncodeError:
+            base = unicodedata.normalize("NFKD", c).encode("ascii", "ignore").decode()
+            salida.append(base)
+    return "".join(salida)
+
+
 def _p(texto: str, estilo: ParagraphStyle) -> Paragraph:
-    return Paragraph(escape(str(texto)), estilo)
+    return Paragraph(escape(_limpio(texto)), estilo)
 
 
 COLOR_TIPO = {"inicio": LAGUNA, "fin": CUMBRE, "campamento": TIERRA, "paso": colors.HexColor("#B4471F"),
               "sitio": SECUNDARIO}
+
+
+def _choca(caja, cajas, segmentos, puntos) -> bool:
+    """¿La caja (x0, y0, x1, y1) pisa otra etiqueta, la línea de la ruta o un punto?"""
+    x0, y0, x1, y1 = caja
+    if any(not (x1 < a or x0 > c or y1 < b_ or y0 > d) for a, b_, c, d in cajas):
+        return True
+    for (ax, ay), (bx, by) in segmentos:
+        for i in range(21):
+            px, py = ax + (bx - ax) * i / 20, ay + (by - ay) * i / 20
+            if x0 - 1 <= px <= x1 + 1 and y0 - 1 <= py <= y1 + 1:
+                return True
+    return any(x0 - 3 <= px <= x1 + 3 and y0 - 3 <= py <= y1 + 3 for px, py in puntos)
+
+
+def _colocar_etiquetas(xy, nombres, ancho, alto, tam=6.8):
+    """Para cada punto elige lado (derecha o izquierda) y desplazamiento vertical sin pisar otras etiquetas, la
+    línea de la ruta ni otros puntos. Devuelve (x_texto, y_texto, ancla, línea_guía) por punto."""
+    segmentos = list(zip(xy, xy[1:]))
+    cajas, salida = [], []
+    for i, ((x, y), nombre) in enumerate(zip(xy, nombres)):
+        w = len(nombre) * tam * 0.52 + 2
+        # primero el lado con más espacio libre; luego el otro
+        lados = ["der", "izq"] if x < ancho / 2 else ["izq", "der"]
+        elegido = None
+        for dy in (0, 8, -8, 16, -16, 24, -24, 32, -32):
+            for lado in lados:
+                x0 = x + 6 if lado == "der" else x - 6 - w
+                y0 = y - 2.5 + dy
+                caja = (x0, y0 - 1, x0 + w, y0 + tam + 1)
+                if x0 < 2 or x0 + w > ancho - 2 or y0 < 2 or y0 + tam > alto - 2:
+                    continue
+                if not _choca(caja, cajas, [sg for k, sg in enumerate(segmentos) if k not in (i - 1, i)] +
+                              [sg for k, sg in enumerate(segmentos) if k in (i - 1, i)],
+                              [pt for k, pt in enumerate(xy) if k != i]):
+                    elegido = (lado, dy, caja, x0, y0)
+                    break
+            if elegido:
+                break
+        if elegido is None:  # sin sitio libre: lado preferido sin desplazar (poco probable con <= 12 puntos)
+            lado = lados[0]
+            x0 = x + 6 if lado == "der" else x - 6 - w
+            elegido = (lado, 0, (x0, y - 3.5, x0 + w, y + tam), x0, y - 2.5)
+        lado, dy, caja, x0, y0 = elegido
+        cajas.append(caja)
+        salida.append((x0 if lado == "der" else x0 + w, y0, "start" if lado == "der" else "end", dy != 0))
+    return salida
 
 
 def _dibujo_mapa(ruta: Ruta, ancho: float, alto: float) -> Drawing:
@@ -260,19 +343,25 @@ def _dibujo_mapa(ruta: Ruta, ancho: float, alto: float) -> Drawing:
     d = Drawing(ancho, alto)
     d.add(Rect(0, 0, ancho, alto, fillColor=colors.white, strokeColor=BORDE, strokeWidth=0.6))
     d.add(PolyLine([c for par in xy for c in par], strokeColor=LAGUNA, strokeWidth=1.6, strokeDashArray=[4, 2]))
-    mitad = ox + sx * escala / 2
-    for i, (p, (x, y)) in enumerate(zip(pts, xy)):
-        color = COLOR_TIPO.get(p.tipo, SECUNDARIO)
-        d.add(Circle(x, y, 3.4, fillColor=color, strokeColor=colors.white, strokeWidth=0.8))
-        derecha = i % 2 == 0  # alterna lados para que los nombres de puntos cercanos no se pisen
-        nombre = f"{i + 1}. {p.lugar}"
-        d.add(String(x + 6 if derecha else x - 6, y - 2.5, nombre, fontName="Helvetica", fontSize=6.8,
-                     fillColor=TINTA, textAnchor="start" if derecha else "end"))
+    nombres = [_limpio(f"{i + 1}. {p.lugar}") for i, p in enumerate(pts)]
+    for (tx, ty, ancla, guia), (x, y) in zip(_colocar_etiquetas(xy, nombres, ancho, alto), xy):
+        if guia:  # etiqueta desplazada: una línea fina la une a su punto
+            d.add(Line(x, y, tx + (-1 if ancla == "start" else 1), ty + 2.5, strokeColor=BORDE, strokeWidth=0.5))
+    for p, (x, y), nombre, (tx, ty, ancla, _) in zip(pts, xy, nombres, _colocar_etiquetas(xy, nombres, ancho, alto)):
+        d.add(Circle(x, y, 3.4, fillColor=COLOR_TIPO.get(p.tipo, SECUNDARIO), strokeColor=colors.white, strokeWidth=0.8))
+        d.add(String(tx, ty, nombre, fontName="Helvetica", fontSize=6.8, fillColor=TINTA, textAnchor=ancla))
     return d
 
 
+def _paso_km(kmax: float) -> int:
+    for paso in (1, 2, 5, 10, 20, 25, 50, 100):
+        if kmax / paso <= 8:
+            return paso
+    return 100
+
+
 def _dibujo_perfil(ruta: Ruta, ancho: float, alto: float, t: dict) -> Drawing:
-    """Altitud contra km acumulados en línea recta. Los puntos sin altitud van marcados con × en la base."""
+    """Altitud contra km acumulados en línea recta, con marcas de km. Los puntos sin altitud van con × abajo."""
     acum, previo, datos = 0.0, None, []
     for i, p in enumerate(ruta.puntos):
         if previo is not None:
@@ -285,7 +374,7 @@ def _dibujo_perfil(ruta: Ruta, ancho: float, alto: float, t: dict) -> Drawing:
     if len(con) < 2:
         d.add(String(10, alto / 2, t["sin_perfil"], fontName="Helvetica", fontSize=8, fillColor=SECUNDARIO))
         return d
-    izq, der, aba, arr = 44, 14, 24, 12
+    izq, der, aba, arr = 44, 18, 40, 12
     lo = (min(a for _, _, a in con) // 500) * 500
     hi = -(-max(a for _, _, a in con) // 500) * 500
     hi = hi if hi > lo else lo + 500
@@ -297,28 +386,49 @@ def _dibujo_perfil(ruta: Ruta, ancho: float, alto: float, t: dict) -> Drawing:
         d.add(Line(izq, fy(v), ancho - der, fy(v), strokeColor=BORDE, strokeWidth=0.4))
         d.add(String(izq - 4, fy(v) - 2.5, f"{v} m", fontName="Helvetica", fontSize=6.5, fillColor=SECUNDARIO,
                      textAnchor="end"))
-    d.add(PolyLine([c for _, km, a in con for c in (fx(km), fy(a))], strokeColor=LAGUNA, strokeWidth=1.6))
-    for n, km, a in con:
-        d.add(Circle(fx(km), fy(a), 2.6, fillColor=LAGUNA, strokeColor=colors.white, strokeWidth=0.6))
-        d.add(String(fx(km), fy(a) + 5, str(n), fontName="Helvetica-Bold", fontSize=6.5, fillColor=TINTA,
+    # eje horizontal con marcas de km
+    d.add(Line(izq, aba, ancho - der, aba, strokeColor=SECUNDARIO, strokeWidth=0.6))
+    pk = _paso_km(kmax)
+    km = 0
+    while km <= kmax + 1e-9:
+        d.add(Line(fx(km), aba, fx(km), aba - 3, strokeColor=SECUNDARIO, strokeWidth=0.6))
+        d.add(String(fx(km), aba - 11, str(km), fontName="Helvetica", fontSize=6.5, fillColor=SECUNDARIO,
                      textAnchor="middle"))
-    for n, km, a in datos:
+        km += pk
+    d.add(String(ancho - der + 2, aba - 11, "km", fontName="Helvetica-Bold", fontSize=6.5, fillColor=SECUNDARIO))
+    d.add(PolyLine([c for _, km_, a in con for c in (fx(km_), fy(a))], strokeColor=LAGUNA, strokeWidth=1.6))
+    for n, km_, a in con:
+        d.add(Circle(fx(km_), fy(a), 2.6, fillColor=LAGUNA, strokeColor=colors.white, strokeWidth=0.6))
+        d.add(String(fx(km_), fy(a) + 5, str(n), fontName="Helvetica-Bold", fontSize=6.5, fillColor=TINTA,
+                     textAnchor="middle"))
+    for n, km_, a in datos:
         if a is None:
-            x = fx(km)
-            d.add(Line(x - 2.5, aba - 8 - 2.5, x + 2.5, aba - 8 + 2.5, strokeColor=TIERRA, strokeWidth=1))
-            d.add(Line(x - 2.5, aba - 8 + 2.5, x + 2.5, aba - 8 - 2.5, strokeColor=TIERRA, strokeWidth=1))
-            d.add(String(x, aba - 19, str(n), fontName="Helvetica", fontSize=6, fillColor=TIERRA, textAnchor="middle"))
+            x = fx(km_)
+            d.add(Line(x - 2.5, aba - 22 - 2.5, x + 2.5, aba - 22 + 2.5, strokeColor=TIERRA, strokeWidth=1))
+            d.add(Line(x - 2.5, aba - 22 + 2.5, x + 2.5, aba - 22 - 2.5, strokeColor=TIERRA, strokeWidth=1))
+            d.add(String(x, aba - 32, str(n), fontName="Helvetica", fontSize=6, fillColor=TIERRA, textAnchor="middle"))
     return d
 
 
-def _pagina_ruta(ruta: Ruta, trek: str, t: dict, base, peq, h2) -> list:
-    """Segunda página: trazado, perfil de altitud y lista de puntos. Solo datos de data/rutas/."""
+def _pagina_ruta(ruta: Ruta, trek: str, dias_cotizados: int, t: dict, base, peq, h2) -> list:
+    """Segunda página: trazado, perfil de altitud y lista de puntos. Solo datos de data/rutas/.
+
+    Es un itinerario de REFERENCIA con los días de los datos (p. ej. 5 días del Salkantay): si la opción cotizada
+    tiene otros días, se dice que la agencia confirmará cómo se organiza; no se inventa un itinerario."""
     parcial = ruta.ruta == "lares"
-    titulo = f"{t['ruta']}: {trek}" + (f" ({t['ruta_parcial']})" if parcial else "")
-    h = [_p(titulo, h2), Spacer(1, 2), _dibujo_mapa(ruta, 180 * mm, 100 * mm), Spacer(1, 2), _p(t["mapa_nota"], peq)]
+    dias_ref = ruta.dias_itinerario
+    titulo = f"{t['ruta']}: {trek}"
+    if dias_ref:
+        titulo += f" - {t['itinerario_ref'].format(n=dias_ref)}"
+    if parcial:
+        titulo += f" ({t['ruta_parcial']})"
+    h = [_p(titulo, h2), Spacer(1, 2)]
+    if dias_ref and dias_ref != dias_cotizados:
+        h += [_p(t["ref_difiere"].format(dias=dias_cotizados), peq), Spacer(1, 2)]
+    h += [_dibujo_mapa(ruta, 180 * mm, 100 * mm), Spacer(1, 2), _p(t["mapa_nota"], peq)]
     if parcial:
         h += [_p(t["parcial_nota"], peq)]
-    h += [_p(t["perfil"], h2), _dibujo_perfil(ruta, 180 * mm, 52 * mm, t), Spacer(1, 2), _p(t["perfil_nota"], peq),
+    h += [_p(t["perfil"], h2), _dibujo_perfil(ruta, 180 * mm, 56 * mm, t), Spacer(1, 2), _p(t["perfil_nota"], peq),
           _p(t["puntos"], h2)]
     fila = lambda i, p: [_p(str(i + 1), peq), _p(p.lugar, base), _p(f"{t['dia_n']} {p.dia}", peq),  # noqa: E731
                          _p(f"{p.altitud_m:,} m".replace(",", " ") if p.altitud_m is not None else t["sin_altitud"], peq)]
@@ -431,6 +541,7 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
     idioma_monto = idioma if idioma in TEXTOS else "en"
     t = TEXTOS.get(idioma, TEXTOS["en"])
     nivel_txt = NIVEL_TXT.get(idioma, NIVEL_TXT["en"])
+    _IDIOMA_PDF.set(idioma if idioma in TEXTOS else "en")
 
     hoy = _hoy_lima(ahora)
     vence = date.fromordinal(hoy.toordinal() + int(vigencia_dias))
@@ -496,7 +607,7 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
 
     # Aviso de demostración, visible
     aviso = ParagraphStyle("aviso", parent=base, fontName="Helvetica-Bold", textColor=AVISO_TEXTO)
-    av = Table([[_p(AVISO_DEMO, aviso)]], colWidths=[180 * mm])
+    av = Table([[_p(t["aviso_demo"], aviso)]], colWidths=[180 * mm])
     av.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), AVISO_FONDO), ("BOX", (0, 0), (-1, -1), 0.8, AMANECER),
                             ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                             ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
@@ -517,7 +628,7 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
         if ruta is not None:
             h2r = ParagraphStyle("h2r", parent=base, fontName="Helvetica-Bold", fontSize=11, leading=14, textColor=LAGUNA,
                                  spaceBefore=6, spaceAfter=3)
-            paginas += [PageBreak(), KeepInFrame(marco[0], marco[1], _pagina_ruta(ruta, elegida.trek, t, base, peq, h2r),
+            paginas += [PageBreak(), KeepInFrame(marco[0], marco[1], _pagina_ruta(ruta, elegida.trek, elegida.dias, t, base, peq, h2r),
                                                  mode="shrink")]
     except Exception:  # noqa: BLE001
         paginas = paginas[:1]
