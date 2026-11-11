@@ -117,3 +117,39 @@ def html_desglose(paquete) -> str:
     pie += (f'<tr><td>Depósito (50 %)<div class="desglose-calculo">Saldo {usd(p.saldo_c / 100)} hasta 30 días antes'
             f'</div></td><td class="desglose-monto">{usd(p.deposito_c / 100)}</td></tr>')
     return f'<table class="desglose"><tbody>{cuerpo}{pie}</tbody></table>'
+
+
+# ---------------------------------------------------------------- Consulta en tres pasos
+ICONO_FICHA = {"Trek": "hiking", "Personas": "group", "Mes del viaje": "calendar_month", "Fechas": "event",
+               "Días": "schedule", "Nivel": "signal_cellular_alt", "Presupuesto": "payments",
+               "Llega a Cusco": "flight_land", "Idioma": "translate"}
+
+
+def icono(nombre: str) -> str:
+    """Ícono Material como texto (la fuente la trae Streamlit); decorativo, no lo lee el lector de pantalla."""
+    return f'<span class="ico" aria-hidden="true">{escape(nombre)}</span>'
+
+
+def html_chips(perfil) -> str:
+    """"Lo que entendimos del viajero": chips pequeños con ícono; lo que falta, como chip de aviso."""
+    chips = "".join(f'<span class="chip" title="{escape(k)}">{icono(ICONO_FICHA.get(k, "label"))}{escape(v)}</span>'
+                    for k, v in fichas_perfil(perfil))
+    faltan = "".join(f'<span class="chip chip-falta">{icono("help")}Falta: {escape(f)}</span>'
+                     for f in perfil.datos_faltantes)
+    return f'<div class="chips">{chips}{faltan}</div>'
+
+
+def html_opciones_compactas(opciones) -> str:
+    """Cada opción en dos líneas: qué es y cuánto cuesta."""
+    filas = []
+    for o in opciones:
+        alternativa = '<span class="etiqueta etiqueta-alternativa">Alternativa</span>' if o.es_alternativa else ""
+        personas = "1 persona" if o.personas == 1 else f"{o.personas} personas"
+        filas.append(
+            '<div class="opcion-compacta">'
+            f'<div class="opcion-linea">{escape(o.trek)}{alternativa}'
+            f'<span class="opcion-meta"> · {o.dias} días · {escape(nivel(o.nivel))} · {personas}</span></div>'
+            f'<div class="opcion-linea"><span class="precio-chico">{usd(o.precio_pp)}</span>'
+            f'<span class="opcion-meta"> por persona · total {usd(o.total)} · depósito {usd(o.deposito)}</span></div>'
+            '</div>')
+    return f'<div class="opciones">{"".join(filas)}</div>'

@@ -57,7 +57,8 @@ from core.tablero import (  # noqa: E402
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
-    html_desglose, html_opciones, html_perfil, idioma, lista_markdown, separar_advertencias, usd,
+    html_chips, html_desglose, html_opciones_compactas, icono, idioma, lista_markdown,
+    separar_advertencias, usd,
 )
 
 marcar_cargados(RAIZ)
@@ -259,7 +260,7 @@ def cambiar_paquete() -> None:
 
 
 def mostrar_paquete(resultado) -> None:
-    """(2b) Armar paquete: trek base + extras + días en Cusco + forma de pago, con el desglose."""
+    """Paso 3, Ajustar: el resumen siempre visible y, cerrado, todo lo que se puede cambiar."""
     if not resultado.opciones or resultado.paquete is None:
         return
     estado, sel = st.session_state, st.session_state.seleccion
@@ -273,30 +274,43 @@ def mostrar_paquete(resultado) -> None:
         if clave not in estado or (clave == "w_metodo" and estado[clave] not in pagos.values()):
             estado[clave] = valor
     sugeridos = {s.extra_id: s for s in resultado.perfil.extras_sugeridos}
+    p = resultado.paquete
 
     with st.container(border=True, key="tarjeta_paquete"):
-        rotulo("Armar paquete")
-        st.selectbox("Trek base", bases, key="w_base", on_change=cambiar_paquete)
-        st.markdown("**Extras opcionales**")
-        for _, e in aplicables.iterrows():
-            i = str(e["extra_id"])
-            st.checkbox(f"{e['extra']} · {usd(e['precio_usd'])} {e['unidad']}", key=f"w_extra_{i}",
-                        on_change=cambiar_paquete, help=f"Precio: {e.get('origen_precio', '')}")
-            if i in sugeridos:
-                st.caption(f":material/auto_awesome: Sugerido por lo que escribió: {sugeridos[i].motivo}")
-        st.markdown("**Días en Cusco antes del trek**")
-        with st.container(horizontal=True):
-            st.radio("Noches", NOCHES, key="w_noches", on_change=cambiar_paquete, horizontal=True)
-            st.radio("Hotel", list(HOTELES.values()), key="w_estrellas", on_change=cambiar_paquete, horizontal=True,
-                     disabled=estado.w_noches == NOCHES[0])
-        llegada = resultado.perfil.llega_a_cusco
-        if llegada != "antes":
-            motivo = "llega a Cusco el mismo día del trek" if llegada == "mismo_dia" else "no dice cuándo llega a Cusco"
-            st.caption(f":material/auto_awesome: Sugerido: {motivo}. Una noche antes ayuda a aclimatarse a la altura. "
-                       "Incluye el traslado del aeropuerto.")
-        st.radio("Forma de pago", list(pagos.values()), key="w_metodo", on_change=cambiar_paquete, horizontal=True)
-        st.html(html_desglose(resultado.paquete))
-        st.caption("Al cambiar el paquete, el borrador se vuelve a armar (se pierden los cambios hechos a mano).")
+        rotulo("3 · Ajustar")
+        st.html('<div class="resumen"><div><span class="resumen-total">' + usd(p.total_c / 100) + '</span>'
+                '<span class="resumen-dato">total del grupo</span></div>'
+                f'<div><span class="resumen-cifra">{usd(p.por_persona_c / 100)}</span>'
+                '<span class="resumen-dato">por persona</span></div>'
+                f'<div><span class="resumen-cifra">{usd(p.deposito_c / 100)}</span>'
+                '<span class="resumen-dato">depósito (50 %)</span></div></div>')
+        with st.expander("Ajustar paquete y extras", icon=":material/tune:"):
+            st.selectbox("Trek base", bases, key="w_base", on_change=cambiar_paquete)
+            pestana_extras, pestana_mas, pestana_desglose = st.tabs(["Extras", "Más opciones", "Desglose"])
+            with pestana_extras:
+                for _, e in aplicables.iterrows():
+                    i = str(e["extra_id"])
+                    st.checkbox(f"{e['extra']} · {usd(e['precio_usd'])} {e['unidad']}", key=f"w_extra_{i}",
+                                on_change=cambiar_paquete, help=f"Precio: {e.get('origen_precio', '')}")
+                    if i in sugeridos:
+                        st.caption(f":material/auto_awesome: Sugerido por lo que escribió: {sugeridos[i].motivo}")
+            with pestana_mas:
+                st.markdown("**Días en Cusco antes del trek**")
+                with st.container(horizontal=True):
+                    st.radio("Noches", NOCHES, key="w_noches", on_change=cambiar_paquete, horizontal=True)
+                    st.radio("Hotel", list(HOTELES.values()), key="w_estrellas", on_change=cambiar_paquete,
+                             horizontal=True, disabled=estado.w_noches == NOCHES[0])
+                llegada = resultado.perfil.llega_a_cusco
+                if llegada != "antes":
+                    motivo = ("llega a Cusco el mismo día del trek" if llegada == "mismo_dia"
+                              else "no dice cuándo llega a Cusco")
+                    st.caption(f":material/auto_awesome: Sugerido: {motivo}. Una noche antes ayuda a aclimatarse "
+                               "a la altura. Incluye el traslado del aeropuerto.")
+                st.radio("Forma de pago", list(pagos.values()), key="w_metodo", on_change=cambiar_paquete,
+                         horizontal=True)
+            with pestana_desglose:
+                st.html(html_desglose(p))
+            st.caption("Al cambiar el paquete, el borrador se vuelve a armar (se pierden los cambios hechos a mano).")
 
 
 def registrar_consulta(estado: str) -> None:
@@ -309,21 +323,51 @@ def registrar_consulta(estado: str) -> None:
     celebrar(leer_registradas(RUTA_REGISTRO), hoy_en_lima())
 
 
+def boton_copiar(texto: str) -> None:
+    """Botón "Copiar": Streamlit no tiene portapapeles propio, así que va en un componente mínimo (sin red)."""
+    import json
+
+    try:
+        import streamlit.components.v1 as componentes
+        _copiar_con_componente(componentes, json.dumps(texto))
+    except Exception:  # noqa: BLE001 - si Streamlit quita el componente: el ícono de copiar de st.code
+        with st.popover("Copiar", icon=":material/content_copy:"):
+            st.code(texto, language=None, wrap_lines=True)
+
+
+def _copiar_con_componente(componentes, texto_json: str) -> None:
+    componentes.html(
+        """<button id="b" style="width:100%;height:44px;border:1px solid #0B6E7F;border-radius:12px;background:#fff;
+        color:#0B6E7F;font:700 16px Nunito,sans-serif;cursor:pointer">Copiar</button>
+        <script>const t=__TEXTO__,b=document.getElementById('b');
+        b.onclick=async()=>{try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');
+        a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
+        b.textContent='Copiado';setTimeout(()=>b.textContent='Copiar',1800)}</script>""".replace("__TEXTO__", texto_json),
+        height=48)
+
+
 def mostrar_borrador(resultado, telefono: str) -> None:
-    """(1) Lo que se envía: el borrador editable y el botón de WhatsApp."""
+    """Paso 2, Revisar: la respuesta como burbuja de WhatsApp, con Copiar y Abrir en WhatsApp."""
     with st.container(border=True, key="tarjeta_borrador"):
-        rotulo("Respuesta lista para enviar")
+        etiqueta_idioma = (f'<span class="etiqueta-idioma">{icono("translate")}'
+                           f'{html.escape(idioma(resultado.perfil.idioma))}</span>')
+        meta = [etiqueta_idioma, f'<span class="hora">{datetime.now(ZONA):%H:%M}</span>']
         if resultado.segundos is not None and st.session_state.get("origen") == "modelo":
             segundos = f"{resultado.segundos:.1f}".replace(".", ",")
-            st.html(f'<span class="cronometro">Respuesta lista en {segundos} s</span>')
-        texto = st.text_area("Revisa el mensaje y edítalo si hace falta", key="borrador", height=230)
-        st.caption(f"{len(texto.split())} palabras · se envía desde tu WhatsApp, nada sale solo")
+            meta.append(f'<span class="cronometro">Respuesta lista en {segundos} s</span>')
+        st.html('<div class="burbuja-meta"><span class="rotulo">2 · Revisar la respuesta</span>' + "".join(meta) + "</div>")
+        texto = st.text_area("Respuesta para el viajero (puedes editarla)", key="borrador", height=220,
+                             label_visibility="collapsed")
         # Justo encima del botón, para que se vea sin bajar.
         st.caption(f"Respondió: {resultado.uso.modelos_que_respondieron()} · Tokens usados: "
                    f"{resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
                    f"(2 llamadas al modelo).")
-        st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary",
-                       icon=":material/send:", disabled=not texto.strip(), width="stretch")
+        enviar, copiar = st.columns([3, 2], gap="small")
+        with enviar:
+            st.link_button("Abrir en WhatsApp", enlace_whatsapp(texto, telefono), type="primary",
+                           icon=":material/send:", disabled=not texto.strip(), width="stretch")
+        with copiar:
+            boton_copiar(texto)
         registrada = st.session_state.get("registrada")
         with st.container(horizontal=True, vertical_alignment="center", key="registro"):
             for estado in ("cotizada", "reservada"):
@@ -331,42 +375,43 @@ def mostrar_borrador(resultado, telefono: str) -> None:
                           on_click=registrar_consulta, args=(estado,), disabled=bool(registrada),
                           help="Guarda solo el perfil de la consulta para el Tablero, sin el mensaje ni el teléfono.")
         if registrada:
-            st.caption(f":material/check: Registrada como {registrada}.")
+            st.caption(f":material/check: Registrada como {registrada}. Alimenta el Tablero.")
+        else:
+            st.caption(":material/trending_up: Alimenta el Tablero")
 
 
 def mostrar_avisos(resultado) -> None:
-    """(2) Avisos del control, agrupados: lo grave en rojo y arriba."""
+    """Advertencias para la agencia: un panel de máximo 3 viñetas; lo grave primero y en rojo."""
     graves, revisar = separar_advertencias(resultado.advertencias)
-    if graves:
-        st.error("**Corrige antes de enviar**\n\n" + lista_markdown(graves), icon=":material/error:")
-    if revisar:
-        st.warning("**Revisa antes de enviar**\n\n" + lista_markdown(revisar), icon=":material/visibility:")
-    if not graves and not revisar:
-        st.success("El control no encontró problemas. Igual lee el mensaje antes de enviarlo.",
-                   icon=":material/check_circle:")
+    todas = graves + revisar
+    if not todas:
+        st.html(f'<div class="aviso aviso-ok">{icono("check_circle")}<span>El control no encontró problemas. '
+                'Igual lee el mensaje antes de enviarlo.</span></div>')
+        return
+    clase, nombre = ("aviso-grave", "error") if graves else ("aviso-revisar", "visibility")
+    titulo = "Corrige antes de enviar" if graves else "Revisa antes de enviar"
+    items = "".join(f"<li>{html.escape(a)}</li>" for a in todas[:3])
+    st.html(f'<div class="aviso {clase}">{icono(nombre)}<div><strong>{titulo}</strong><ul>{items}</ul></div></div>')
+    if len(todas) > 3:
+        with st.expander(f"Ver las {len(todas)} advertencias"):
+            st.markdown(lista_markdown(todas))
 
 
 def mostrar_opciones(resultado) -> None:
-    """(3) Opciones del tarifario como filas comparables."""
+    """Opciones del tarifario en dos líneas cada una; la información consultada vive en Fuentes."""
     rotulo("Opciones de tu tarifario")
     if not resultado.opciones:
         st.warning("Ninguna fila de tu tarifario encaja con esta consulta.")
     else:
-        st.html(html_opciones(resultado.opciones))
-    if resultado.aviso:  # el aviso más importante para el viajero: visible, no en letra chica
-        st.info(f"**Aviso para el viajero:** {resultado.aviso}", icon=":material/info:")
-    with st.expander("Información consultada (con fecha)"):
-        for f in resultado.fragmentos:
-            st.markdown(f"**{f.titulo}** · `{f.archivo}` · actualizado {f.actualizado}")
-        st.button("Ver fuentes y verificación", type="tertiary", icon=":material/fact_check:",
-                  on_click=ir_a, args=("Fuentes",))
+        st.html(html_opciones_compactas(resultado.opciones))
+    st.button(f"Información consultada ({len(resultado.fragmentos)})", type="tertiary", icon=":material/fact_check:",
+              on_click=ir_a, args=("Fuentes",), key="ir_fuentes", help="Ver de dónde sale cada dato en Fuentes.")
 
 
 def mostrar_perfil(perfil) -> None:
-    """(4) Perfil del viajero en fichas compactas; lo que falta, como etiquetas."""
-    with st.container(border=True, key="tarjeta_perfil"):
-        rotulo("Lo que entendimos del viajero")
-        st.html(html_perfil(perfil))
+    """Lo que entendimos del viajero: chips pequeños con ícono."""
+    rotulo("Lo que entendimos del viajero")
+    st.html(html_chips(perfil))
 
 
 def mostrar_respuesta_nocturna(resultado) -> None:
@@ -386,43 +431,48 @@ def mostrar_respuesta_nocturna(resultado) -> None:
                    f"de {st.session_state.apertura:%H:%M} a {st.session_state.cierre:%H:%M}. No se envió nada.")
 
 
+def pasos(actual: int) -> None:
+    nombres = ["Pegar", "Revisar", "Ajustar"]
+    st.html('<ol class="pasos">' + "".join(
+        f'<li class="{"activo" if i + 1 == actual else "hecho" if i + 1 < actual else ""}"><b>{i + 1}</b>{n}</li>'
+        for i, n in enumerate(nombres)) + "</ol>")
+
+
 def pagina_consulta() -> None:
+    resultado = st.session_state.get("resultado")
     st.header("Nueva consulta")
-    st.html('<p class="subtitulo">Pega el mensaje del viajero y recibe una respuesta en su idioma, '
-            'con precios de tu tarifario, lista para WhatsApp.</p>')
+    pasos(2 if resultado else 1)
 
     variable = falta_clave()
     if variable:
-        st.warning(
-            f"Falta la clave **{variable}** para el proveedor **{proveedor()}**. "
-            "Cópiala en el archivo `.env` de la carpeta del proyecto (ver `.env.example`) y vuelve a abrir la app. "
-            "Mientras tanto puedes ver un resultado guardado con **Usar mensaje de ejemplo** o revisar tu "
-            "tarifario en **Mi agencia**.", icon=":material/key_off:")
+        st.warning(f"Falta la clave **{variable}** ({proveedor()}). Ponla en `.env` (ver `.env.example`). "
+                   "Mientras tanto usa **Usar mensaje de ejemplo**.", icon=":material/key_off:")
 
-    resultado = st.session_state.get("resultado")
     with st.container(border=True, key="tarjeta_entrada"):
-        consulta = st.text_area("Mensaje del viajero", key="consulta", height=96 if resultado else 140,
-                                placeholder=EJEMPLO)
-        with st.container(horizontal=True):
+        rotulo("1 · Pegar el mensaje del viajero")
+        consulta = st.text_area("Mensaje del viajero", key="consulta", height=68 if resultado else 112, placeholder=EJEMPLO,
+                                label_visibility="collapsed")
+        with st.container(horizontal=True, vertical_alignment="center"):
+            preparar = st.button("Preparar respuesta", type="primary", icon=":material/edit_note:",
+                                 disabled=not consulta or bool(variable))
+            st.button("Usar mensaje de ejemplo", type="tertiary", on_click=usar_ejemplo,
+                      help="Muestra una consulta real ya resuelta. No gasta cuota del modelo.")
+        with st.expander("Opciones", icon=":material/settings:"):
             telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)",
                                      placeholder="+1 555 123 4567")
             st.session_state.hora_llegada = st.time_input(
                 "Hora de llegada de la consulta", st.session_state.hora_llegada, step=60,
                 help="Hora de Lima. Fuera de tu horario de atención, con el modo nocturno activo, "
                      "se muestra la respuesta automática que se enviaría.")
-        with st.container(horizontal=True, vertical_alignment="center"):
-            preparar = st.button("Preparar respuesta", type="primary", icon=":material/edit_note:",
-                                 disabled=not consulta or bool(variable))
-            st.button("Usar mensaje de ejemplo", type="tertiary", on_click=usar_ejemplo,
-                      help="Muestra una consulta real ya resuelta. No gasta cuota del modelo.")
 
     if preparar:
         try:
-            with st.spinner("Leyendo el mensaje, cotizando con tu tarifario y redactando la respuesta…"):
+            with st.status("Leyendo el mensaje → Buscando tu tarifa → Redactando", expanded=False) as avance:
                 # Cadena de respaldo: modelo principal -> modelo de respaldo -> ejemplo guardado.
                 resultado, es_ejemplo = responder_con_respaldo(
                     consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
                     st.session_state.extras, st.session_state.agencia)
+                avance.update(label="Respuesta lista", state="complete")
         except ClaveInvalidaError as error:  # esperar no sirve: hay que cambiar la clave
             st.error(str(error), icon=":material/key_off:")
             return
@@ -443,9 +493,8 @@ def pagina_consulta() -> None:
         componer_paquete()  # cambiaron los extras o los recargos en "Mi agencia"
     resultado = st.session_state.get("resultado")
     if not resultado:
-        st.html('<div class="vacio"><strong>Aquí aparecerá la respuesta.</strong> Abra Travel entiende qué pide '
-                'el viajero, elige opciones de tu tarifario y redacta el mensaje. Tú lo revisas y lo envías '
-                'por WhatsApp.</div>')
+        st.html('<div class="vacio"><strong>Aquí aparecerá la respuesta.</strong> Pega el mensaje y pulsa '
+                '«Preparar respuesta».</div>')
         return
 
     origen = st.session_state.get("origen", "modelo")
@@ -453,22 +502,23 @@ def pagina_consulta() -> None:
         st.warning(f"**{AVISO_SIN_CUOTA}.** Este resultado no corresponde al mensaje que pegaste; "
                    "vuelve a intentarlo mañana.", icon=":material/hourglass_empty:")
     elif origen == "ejemplo":
-        st.info(f"Resultado guardado de una consulta real al modelo ({st.session_state.get('fecha_ejemplo', '')}). "
-                "No se llamó a la API, así que no gastó cuota.", icon=":material/bookmark:")
+        fecha = html.escape(str(st.session_state.get("fecha_ejemplo", "")))
+        st.html(f'<span class="insignia insignia-guardado" title="No se llamó a la API, así que no gastó cuota.">'
+                f'{icono("bookmark")}Resultado guardado · {fecha} · No se llamó a la API</span>')
 
-    llegada = datetime.combine(hoy_en_lima(), st.session_state.hora_llegada)  # sin zona = hora de Lima
-    if st.session_state.modo_nocturno and fuera_de_horario(llegada, st.session_state.apertura, st.session_state.cierre):
-        mostrar_respuesta_nocturna(resultado)
-
-    # Laptop: borrador y opciones lado a lado. Celular: una columna, el borrador primero.
+    # Laptop: respuesta a la izquierda; lo entendido, advertencias y opciones a la derecha.
     izquierda, derecha = st.columns([7, 5], gap="large")
     with izquierda:
         mostrar_borrador(resultado, telefono)
     with derecha:
+        mostrar_perfil(resultado.perfil)
         mostrar_avisos(resultado)
-        mostrar_paquete(resultado)
         mostrar_opciones(resultado)
-    mostrar_perfil(resultado.perfil)
+    mostrar_paquete(resultado)
+
+    llegada = datetime.combine(hoy_en_lima(), st.session_state.hora_llegada)  # sin zona = hora de Lima
+    if st.session_state.modo_nocturno and fuera_de_horario(llegada, st.session_state.apertura, st.session_state.cierre):
+        mostrar_respuesta_nocturna(resultado)
     mostrar_mapa_del_resultado(resultado)
 
 

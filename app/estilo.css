@@ -234,3 +234,90 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-pagina [role="radiogroup"] > div:nth-child(6) label p::before { content: "info"; }
 .pie-lateral { font-size: 14px; color: #A9C3CA; display: flex; gap: 8px; align-items: flex-start; margin: 24px 0 0; line-height: 1.4; }
 .pie-lateral span { font-family: var(--icono); font-size: 18px; flex: none; color: #A9C3CA; }
+
+/* ---------- Tamaños y formas (retícula de 12 columnas, mínimo 14 px, cuerpo 16 px) ---------- */
+[data-testid="stAppViewContainer"] { background: var(--arena); }
+h2 { margin: 0 0 4px; padding: 8px 0 0; }
+[data-testid="stVerticalBlockBorderWrapper"] { border-color: var(--borde); border-radius: 14px; }
+[class*="st-key-tarjeta_"], [class*="st-key-grafico_"], .st-key-mi_semana {
+  background: var(--nieve); padding: 4px 4px; box-shadow: 0 1px 2px rgba(18, 48, 58, .05), 0 2px 10px rgba(18, 48, 58, .04); }
+.rotulo { font-size: 14px; color: var(--secundario); }
+.ico { font-family: var(--icono); font-weight: 400; font-size: 18px; line-height: 1; letter-spacing: 0;
+  text-transform: none; font-feature-settings: "liga"; vertical-align: middle; margin-right: 6px; }
+/* Campos blancos con borde visible, 44 px de alto. */
+[data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"] > div { background: var(--nieve) !important;
+  border-color: var(--borde-campo) !important; border-radius: 12px !important; }
+[data-baseweb="input"] input, [data-baseweb="select"] input { min-height: 44px; }
+[data-testid="stTextInput"] input, [data-testid="stTimeInput"] input { min-height: 44px; }
+.stButton button, .stDownloadButton button, [data-testid="stLinkButton"] a { min-height: 44px; border-radius: 12px;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease; }
+button[kind="primary"], [data-testid="stBaseLinkButton-primary"] { background: var(--laguna) !important; color: #FFFFFF !important;
+  border-color: var(--laguna) !important; font-weight: 700; }
+button[kind="primary"]:hover:not(:disabled), [data-testid="stBaseLinkButton-primary"]:hover { background: var(--laguna-hover) !important;
+  border-color: var(--laguna-hover) !important; transform: translateY(-1px); }
+button[kind="primary"]:disabled { opacity: .45; }
+button[kind="tertiary"] { color: var(--laguna); font-weight: 600; }
+label p, [data-testid="stWidgetLabel"] p { font-size: 14px; }
+[data-testid="stCaptionContainer"], .stCaption, small { font-size: 14px; color: var(--tenue); }
+
+/* Pasos */
+.pasos { list-style: none; display: flex; gap: 8px; padding: 0 !important; margin: 0 0 12px !important; flex-wrap: wrap; }
+.pasos li { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--tenue);
+  background: var(--nieve); border: 1px solid var(--borde); border-radius: 999px; padding: 4px 14px 4px 6px; margin: 0 !important; }
+.pasos li b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--arena);
+  color: var(--tinta); font-size: 14px; }
+.pasos li.activo { color: var(--tinta); border-color: var(--laguna); }
+.pasos li.activo b { background: var(--laguna); color: #FFFFFF; }
+.pasos li.hecho b { background: var(--sendero); color: #FFFFFF; }
+
+/* Burbuja de WhatsApp: la respuesta es el protagonista. */
+.burbuja-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 4px; }
+.burbuja-meta .rotulo { margin: 0 auto 0 0; }
+.etiqueta-idioma { display: inline-flex; align-items: center; font-size: 14px; font-weight: 700; color: var(--tinta);
+  background: var(--arena); border-radius: 999px; padding: 2px 12px 2px 8px; }
+.hora { font-size: 14px; color: var(--tenue); }
+.st-key-borrador textarea { font-size: 16px; line-height: 1.55; max-width: none; max-height: 220px;
+  background: color-mix(in srgb, var(--sendero) 11%, white) !important; color: var(--tinta);
+  border-radius: 16px 16px 4px 16px; padding: 14px 16px; }
+.st-key-borrador [data-baseweb="textarea"] { border-radius: 16px 16px 4px 16px !important; background: transparent !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .st-key-tarjeta_borrador { animation: entra .35s ease both; }
+  @keyframes entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  [class*="st-key-tarjeta_"], [class*="st-key-grafico_"] { transition: box-shadow .2s ease; }
+  [class*="st-key-tarjeta_"]:hover, [class*="st-key-grafico_"]:hover { box-shadow: 0 2px 4px rgba(18, 48, 58, .06), 0 6px 18px rgba(18, 48, 58, .08); }
+}
+
+/* Insignias y chips */
+.insignia-guardado { background: var(--nieve); color: var(--tinta); border: 1px solid var(--borde); margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; font-size: 14px; font-weight: 600; color: var(--tinta);
+  background: var(--nieve); border: 1px solid var(--borde); border-radius: 999px; padding: 3px 12px 3px 8px; }
+.chip .ico { color: var(--laguna); }
+.chip-falta { background: var(--aviso-fondo); color: var(--aviso-texto); border-color: transparent; }
+.chip-falta .ico { color: var(--aviso-texto); }
+
+/* Advertencias para la agencia */
+.aviso { display: flex; gap: 8px; align-items: flex-start; border-radius: 12px; padding: 12px 14px; font-size: 14px; margin: 8px 0; line-height: 1.4; }
+.aviso .ico { font-size: 22px; margin: 0; flex: none; }
+.aviso ul { margin: 4px 0 0 !important; padding-left: 18px !important; }
+.aviso li { margin: 0 !important; }
+.aviso-revisar { background: var(--aviso-fondo); color: var(--aviso-texto); }
+.aviso-grave { background: #FBEDE8; color: #9A3A17; }
+.aviso-ok { background: #E3F3EC; color: #0A5F43; align-items: center; }
+
+/* Opciones compactas y resumen del paquete */
+.opcion-compacta { background: var(--nieve); border: 1px solid var(--borde); border-radius: 12px; padding: 8px 14px; }
+.opcion-linea { font-size: 16px; font-weight: 700; color: var(--tinta); line-height: 1.45; }
+.opcion-linea .opcion-meta { font-weight: 400; font-size: 14px; color: var(--secundario); }
+.precio-chico { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 16px; color: var(--tierra); }
+.etiqueta-alternativa { color: var(--laguna); border-color: var(--laguna); background: var(--nieve); margin-left: 8px; }
+.resumen { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 40px; margin: 4px 0 12px; }
+.resumen div { display: flex; flex-direction: column; }
+.resumen-total { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 40px; line-height: 1.05; color: var(--tierra-barra); }
+.resumen-cifra { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--tinta); }
+.resumen-dato { font-size: 14px; color: var(--secundario); }
+
+@media (max-width: 640px) {
+  [data-testid="stMainBlockContainer"] { padding-left: 16px; padding-right: 16px; }
+  .resumen-total { font-size: 32px; }
+}

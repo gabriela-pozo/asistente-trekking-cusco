@@ -64,7 +64,7 @@ class PruebasApp(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertIn("Salkantay", app.text_area(key="consulta").value)
         self.assertIn("US$ 600", app.text_area(key="borrador").value)          # el borrador guardado
-        self.assertTrue(any("No se llamó a la API" in i.value for i in app.info))
+        self.assertTrue(any("No se llamó a la API" in str(h.proto) for h in app.get("html")))  # insignia "Resultado guardado"
         self.assertTrue(any("Respondió: gemini-3.5-flash" in c.value for c in app.caption))
 
     def test_respondio_va_justo_encima_del_boton_de_whatsapp(self):
@@ -79,7 +79,7 @@ class PruebasApp(unittest.TestCase):
         elementos = list(app.main)
         boton = next(i for i, e in enumerate(elementos)
                      if e.type == "link_button" or getattr(e.proto, "label", "") == "Abrir en WhatsApp")
-        anterior = elementos[boton - 1]
+        anterior = next(e for e in reversed(elementos[:boton]) if e.type not in ("column", "flex_container"))  # va en columnas
         self.assertEqual(anterior.type, "caption")
         self.assertTrue(anterior.value.startswith("Respondió: gemini-3.5-flash · Tokens usados"))
 
