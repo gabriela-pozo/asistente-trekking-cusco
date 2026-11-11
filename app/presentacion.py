@@ -153,3 +153,19 @@ def html_opciones_compactas(opciones) -> str:
             f'<span class="opcion-meta"> por persona · total {usd(o.total)} · depósito {usd(o.deposito)}</span></div>'
             '</div>')
     return f'<div class="opciones">{"".join(filas)}</div>'
+
+
+# ---------------------------------------------------------------- Guía rápida ("¿Cómo se usa?")
+# El mismo contenido está en docs/manual_consultas.md.
+GUIA_PASOS = [
+    ("content_paste", "Pega el mensaje del viajero tal como llegó."),
+    ("edit_note", "Pulsa «Preparar respuesta»: verás el mensaje en su idioma con los precios de tu tarifario."),
+    ("fact_check", "Revisa las advertencias y «Lo que entendimos», edita si hace falta y copia o abre WhatsApp: "
+                   "ningún mensaje se envía solo."),
+]
+GUIA_NOTAS = [
+    "Después marca la consulta como cotizada o reservada para que el Tablero aprenda.",
+    "Si falta algo, la respuesta pide la fecha, el trek o el nivel.",
+    "Si el modelo no responde se usa el de respaldo y luego un ejemplo guardado, y la app lo avisa.",
+    "Para cambiar precios: Mi agencia.",
+]

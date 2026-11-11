@@ -321,3 +321,15 @@ label p, [data-testid="stWidgetLabel"] p { font-size: 14px; }
   [data-testid="stMainBlockContainer"] { padding-left: 16px; padding-right: 16px; }
   .resumen-total { font-size: 32px; }
 }
+
+/* Botón de la guía dentro de la barra oscura */
+.st-key-barra { justify-content: space-between; }
+.st-key-barra .stButton { margin-left: auto; }
+.st-key-barra button { color: var(--cumbre-texto) !important; border: 1px solid rgba(230, 241, 243, .55); background: transparent; min-height: 36px; }
+.st-key-barra button:hover { border-color: var(--amanecer); color: var(--amanecer) !important; background: rgba(245, 158, 46, .12); }
+/* Ventana de la guía */
+.guia-paso { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.45; margin: 0 0 12px; color: var(--tinta); }
+.guia-paso b { flex: none; width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center;
+  background: var(--laguna); color: #FFFFFF; font-size: 14px; }
+.guia-notas { margin: 8px 0 0 !important; padding-left: 20px !important; font-size: 14px; color: var(--secundario); line-height: 1.5; }
+.guia-notas li { margin-bottom: 4px !important; }

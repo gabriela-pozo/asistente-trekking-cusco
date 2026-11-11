@@ -31,7 +31,7 @@ Proyecto final de la Diplomatura de Ciencia de Datos para las Ciencias Sociales 
 | --- | --- |
 | Producto | Investigación de usuarios (2 conversaciones y una encuesta), prueba de cliente misterioso con 6 agencias y decisión del flujo principal |
 | Ingeniería | Claude Code como co-founder técnico: estructura, núcleo de IA, pruebas, app y servidor del modo nocturno |
-| Diseño | Sistema visual propio ([`docs/diseno.md`](docs/diseno.md)) aplicado en Streamlit, con capturas de revisión |
+| Diseño | Sistema visual propio ([`docs/diseno.md`](docs/diseno.md)) aplicado en Streamlit, con capturas de revisión. Manual de una página: [`docs/manual_consultas.md`](docs/manual_consultas.md) |
 | Ventas | Análisis de precios de mercado, plan de piloto con agencias y pitch |
 
 ## 3. Problema

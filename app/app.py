@@ -57,7 +57,7 @@ from core.tablero import (  # noqa: E402
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
-    html_chips, html_desglose, html_opciones_compactas, icono, idioma, lista_markdown,
+    GUIA_NOTAS, GUIA_PASOS, html_chips, html_desglose, html_opciones_compactas, icono, idioma, lista_markdown,
     separar_advertencias, usd,
 )
 
@@ -167,6 +167,13 @@ def estado_sistema_corto() -> str:
     return f"Modelo: {modelos_configurados(proveedor())[0]}"
 
 
+@st.dialog("¿Cómo se usa?")
+def guia_rapida() -> None:
+    for numero, (nombre_icono, texto) in enumerate(GUIA_PASOS, start=1):
+        st.html(f'<div class="guia-paso"><b>{numero}</b><span>{html.escape(texto)}</span></div>')
+    st.html('<ul class="guia-notas">' + "".join(f"<li>{html.escape(n)}</li>" for n in GUIA_NOTAS) + "</ul>")
+
+
 def cabecera() -> None:
     """Barra superior de contexto, siempre visible: marca, agencia, UNA insignia de demo y el estado."""
     with st.container(horizontal=True, vertical_alignment="center", key="barra"):
@@ -177,6 +184,8 @@ def cabecera() -> None:
             f'{ETIQUETA_SINTETICOS}</span>'
             f'<span class="insignia insignia-estado">{html.escape(estado_sistema_corto())}</span>'
             '</div>')
+        if st.button("¿Cómo se usa?", icon=":material/help:", key="guia", type="tertiary"):
+            guia_rapida()
 
 
 def rotulo(texto: str) -> None:
