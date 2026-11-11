@@ -35,7 +35,7 @@ class PruebasImports(unittest.TestCase):
                         revisados += 1
         self.assertGreater(revisados, 30)
 
-    def test_la_app_carga_sin_errores_en_las_tres_paginas(self):
+    def test_la_app_carga_sin_errores_en_todas_las_paginas(self):
         from streamlit.testing.v1 import AppTest
 
         with tempfile.TemporaryDirectory() as carpeta, \
@@ -43,11 +43,33 @@ class PruebasImports(unittest.TestCase):
             app = AppTest.from_file(str(APP), default_timeout=60)
             app.run()
             self.assertFalse(app.exception)
-            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
-            self.assertFalse(app.exception)
-            for pagina in ("Mi agencia", "Tablero", "Nueva consulta"):
+            for pagina in app.sidebar.radio[0].options:  # antes de la primera consulta (estado vacío)
                 app.sidebar.radio[0].set_value(pagina).run()
                 self.assertFalse(app.exception, pagina)
+            app.sidebar.radio[0].set_value("Nueva consulta").run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            self.assertFalse(app.exception)
+            for pagina in [*app.sidebar.radio[0].options, "Nueva consulta"]:
+                app.sidebar.radio[0].set_value(pagina).run()
+                self.assertFalse(app.exception, pagina)
+
+    def test_fuentes_muestra_los_fragmentos_de_la_ultima_consulta(self):
+        from streamlit.testing.v1 import AppTest
+
+        from ai.ejemplo import cargar_ejemplo
+
+        _, datos = cargar_ejemplo()
+        with tempfile.TemporaryDirectory() as carpeta,                 mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "ABRA_REGISTRO": str(Path(carpeta) / "r.csv")}):
+            app = AppTest.from_file(str(APP), default_timeout=60)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            app.sidebar.radio[0].set_value("Fuentes y verificación").run()
+            self.assertFalse(app.exception)
+            pagina = " ".join(str(h.proto) for h in app.get("html"))
+            for fragmento in datos["fragmentos"]:
+                self.assertIn(fragmento["titulo"].split(":")[0], pagina)
+            app.text_input(key="buscar_base").input("elperuano").run()
+            self.assertTrue(any("de 10 archivos" in c.value for c in app.caption))
 
 
 class PruebasRecarga(unittest.TestCase):

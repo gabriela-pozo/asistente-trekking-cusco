@@ -115,3 +115,35 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-mi_semana { background: var(--superficie); border-left: 4px solid var(--primario); margin-bottom: 16px; }
 .st-key-seguimiento { background: var(--aviso-fondo); }
 .st-key-mi_semana [data-testid="stMetricValue"] { font-size: 40px; }
+
+/* Fuentes y verificación: cada fragmento usado, con su fecha y sus enlaces. */
+.st-key-tarjeta_fuentes, .st-key-tarjeta_base { background: var(--superficie); }
+.fuentes { display: flex; flex-direction: column; gap: 8px; }
+.fuente { border: 1px solid var(--borde); border-left: 4px solid var(--primario); border-radius: 10px; padding: 12px 16px; }
+.fuente-verificar { border-left-color: #B7791F; background: var(--aviso-fondo); }
+.fuente-cabecera { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.fuente-titulo { font-weight: 700; font-size: 15px; color: var(--tinta); }
+.fuente-fecha, .tabla-estado, .sin-fuente { font-size: 13px; color: var(--secundario); }
+.fuente code, .tabla-base code { font-size: 13px; color: var(--secundario); background: var(--suave);
+  border-radius: 6px; padding: 1px 6px; }
+.etiqueta-verificar { background: var(--aviso-fondo); color: var(--aviso-texto); border: 1px solid #B7791F; margin-left: 0; }
+.etiqueta-oficial { background: var(--suave); color: var(--primario); border: 1px solid var(--primario); font-size: 12px; }
+.enlaces { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.enlaces a { color: var(--primario); font-weight: 600; overflow-wrap: anywhere; }
+
+/* Base de conocimiento: tabla que se desliza sola en el celular, sin mover la página. */
+.tabla-desliza { overflow-x: auto; }
+.tabla-base { width: 100%; border-collapse: collapse; font-size: 15px; color: var(--tinta); }
+.tabla-base th { text-align: left; font-size: 13px; font-weight: 700; color: var(--secundario); text-transform: uppercase;
+  letter-spacing: .06em; padding: 8px 12px 8px 0; border-bottom: 2px solid var(--borde); }
+.tabla-base td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.tabla-base .enlaces { margin: 0; flex-direction: column; }
+.tabla-fecha { white-space: nowrap; }
+.tabla-num { text-align: right; }
+@media (max-width: 640px) {
+  .tabla-base thead { display: none; }
+  .tabla-base tr { display: block; border-bottom: 1px solid var(--borde); padding: 8px 0; }
+  .tabla-base td { display: block; border: 0; padding: 4px 0; }
+  .tabla-num { text-align: left; }
+  .tabla-num::after { content: " fragmentos"; color: var(--secundario); font-size: 13px; }
+}

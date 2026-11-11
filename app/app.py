@@ -33,6 +33,9 @@ from ai.fecha import ZONA, hoy_en_lima  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA, aplicar_paquete  # noqa: E402
+from ai.trazabilidad import (  # noqa: E402
+    DIAS_PARA_VERIFICAR, ETIQUETA_VERIFICAR, buscar_en_base, dominio, es_oficial, fuentes_usadas, tabla_base,
+)
 from core.cotizacion import NOMBRE_NIVEL, NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
 from core.mi_semana import (  # noqa: E402
     META_POR_DEFECTO, cambiar_estado, inicio_semana, leer_registradas, pendientes, progreso_meta, racha, semana,
@@ -143,7 +146,8 @@ if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lim
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia", "Tablero"], key="pagina")
+pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia"],
+                          key="pagina")
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -328,6 +332,8 @@ def mostrar_opciones(resultado) -> None:
     with st.expander("Información consultada (con fecha)"):
         for f in resultado.fragmentos:
             st.markdown(f"**{f.titulo}** · `{f.archivo}` · actualizado {f.actualizado}")
+        st.button("Ver fuentes y verificación", type="tertiary", icon=":material/fact_check:",
+                  on_click=ir_a, args=("Fuentes y verificación",))
 
 
 def mostrar_perfil(perfil) -> None:
@@ -435,6 +441,104 @@ def pagina_consulta() -> None:
         mostrar_paquete(resultado)
         mostrar_opciones(resultado)
     mostrar_perfil(resultado.perfil)
+
+
+# ---------------------------------------------------------------- Fuentes y verificación
+CARPETA_BASE = RAIZ / "data" / "knowledge"
+
+
+def ir_a(destino: str) -> None:
+    st.session_state.pagina = destino
+
+
+def html_enlaces(urls: list[str]) -> str:
+    """Cada fuente como enlace con su dominio; las del Estado peruano, marcadas como oficiales."""
+    if not urls:
+        return '<span class="sin-fuente">Sin fuente indicada</span>'
+    enlaces = []
+    for url in urls:
+        oficial = '<span class="etiqueta etiqueta-oficial">Oficial</span>' if es_oficial(url) else ""
+        enlaces.append(f'<a href="{html.escape(url)}" target="_blank" rel="noopener">{html.escape(dominio(url))}</a>'
+                       f"{oficial}")
+    return '<ul class="enlaces">' + "".join(f"<li>{e}</li>" for e in enlaces) + "</ul>"
+
+
+def html_etiqueta_fecha(actualizado: str, dias: int | None, verificar: bool) -> str:
+    if verificar:
+        detalle = "sin fecha" if dias is None else f"hace {dias} días"
+        return f'<span class="etiqueta etiqueta-verificar">{ETIQUETA_VERIFICAR} · {detalle}</span>'
+    cuando = "hoy" if dias == 0 else ("ayer" if dias == 1 else f"hace {dias} días")
+    return f'<span class="fuente-fecha">Actualizado el {html.escape(actualizado)} ({cuando})</span>'
+
+
+def mostrar_fuentes_usadas(resultado, hoy) -> None:
+    usadas = fuentes_usadas(resultado.fragmentos, hoy)
+    a_verificar = sum(u.verificar for u in usadas)
+    with st.container(border=True, key="tarjeta_fuentes"):
+        rotulo("Lo que se usó en la última consulta")
+        consulta = st.session_state.get("consulta", "")
+        if consulta:
+            st.caption(f"Consulta: «{consulta[:140]}{'…' if len(consulta) > 140 else ''}»")
+        if a_verificar:
+            st.warning(f"**{a_verificar} de {len(usadas)} fragmentos tienen más de {DIAS_PARA_VERIFICAR} días.** "
+                       "Confirma esos datos en la fuente antes de enviar la respuesta.", icon=":material/history:")
+        else:
+            st.success(f"Los {len(usadas)} fragmentos se actualizaron en los últimos {DIAS_PARA_VERIFICAR} días.",
+                       icon=":material/verified:")
+        filas = []
+        for u in usadas:
+            filas.append(
+                f'<div class="fuente{" fuente-verificar" if u.verificar else ""}">'
+                f'<div class="fuente-cabecera"><span class="fuente-titulo">{html.escape(u.titulo)}</span>'
+                f'<code>{html.escape(u.archivo)}.md</code></div>'
+                f'{html_etiqueta_fecha(u.actualizado, u.dias, u.verificar)}'
+                f'{html_enlaces(u.fuentes)}</div>')
+        st.html('<div class="fuentes">' + "".join(filas) + "</div>")
+
+
+def html_tabla_base(tabla: pd.DataFrame) -> str:
+    filas = []
+    for fila in tabla.itertuples():
+        fecha = html.escape(fila.actualizado or "—")
+        if fila.verificar:
+            fecha += f'<br><span class="etiqueta etiqueta-verificar">{ETIQUETA_VERIFICAR}</span>'
+        filas.append(f'<tr><td><strong>{html.escape(fila.tema)}</strong><br><code>{html.escape(fila.archivo)}.md</code>'
+                     f'<div class="tabla-estado">{html.escape(fila.estado)}</div></td>'
+                     f'<td class="tabla-fecha">{fecha}</td><td class="tabla-num">{fila.fragmentos}</td>'
+                     f"<td>{html_enlaces(fila.fuentes)}</td></tr>")
+    return ('<div class="tabla-desliza"><table class="tabla-base"><thead><tr><th>Archivo</th><th>Actualizado</th>'
+            '<th>Fragmentos</th><th>Fuentes</th></tr></thead><tbody>' + "".join(filas) + "</tbody></table></div>")
+
+
+def pagina_fuentes() -> None:
+    st.header("Fuentes y verificación")
+    st.html('<p class="subtitulo">De dónde sale cada dato de la respuesta. Lo que tiene más de '
+            f'{DIAS_PARA_VERIFICAR} días se marca para verificar antes de enviarlo.</p>')
+    hoy = hoy_en_lima()
+    resultado = st.session_state.get("resultado")
+    if resultado is None:
+        st.html('<div class="vacio"><strong>Todavía no hay una consulta.</strong> Cuando prepares una respuesta, '
+                'aquí verás qué fragmentos de la base de conocimiento se usaron, su fecha y su fuente.</div>')
+        st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a,
+                  args=("Nueva consulta",), key="fuentes_ir_consulta")
+    else:
+        if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
+            st.info("Es el ejemplo guardado: estos son los fragmentos que se usaron en esa consulta.",
+                    icon=":material/bookmark:")
+        mostrar_fuentes_usadas(resultado, hoy)
+
+    tabla = tabla_base(CARPETA_BASE, hoy)
+    with st.container(border=True, key="tarjeta_base"):
+        rotulo("Base de conocimiento completa")
+        texto = st.text_input("Buscar por tema, archivo o fuente", placeholder="Por ejemplo: permisos, elperuano, lares",
+                              key="buscar_base")
+        encontrados = buscar_en_base(tabla, texto)
+        st.caption(f"{len(encontrados)} de {len(tabla)} archivos · {int(tabla['fragmentos'].sum())} fragmentos · "
+                   f"{int(tabla['oficiales'].sum())} enlaces a fuentes oficiales")
+        if encontrados.empty:
+            st.info("Ningún archivo coincide con la búsqueda.", icon=":material/search_off:")
+        else:
+            st.html(html_tabla_base(encontrados))
 
 
 # ---------------------------------------------------------------- Mi agencia
@@ -718,4 +822,5 @@ def pagina_tablero() -> None:
                "Se guarda solo el perfil de la consulta, nunca el mensaje ni el teléfono.")
 
 
-{"Nueva consulta": pagina_consulta, "Mi agencia": pagina_agencia, "Tablero": pagina_tablero}[pagina]()
+{"Nueva consulta": pagina_consulta, "Tablero": pagina_tablero, "Fuentes y verificación": pagina_fuentes,
+ "Mi agencia": pagina_agencia}[pagina]()
