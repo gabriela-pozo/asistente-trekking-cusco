@@ -974,10 +974,12 @@ def pagina_tablero() -> None:
     k2.metric("Tasa de cierre", porcentaje(m["tasa_cierre"]), border=True,
               delta=None if v is None else f"{con_signo(round(v['tasa_cierre_pp'], 1), decimal=True)} pp",
               help="Reservadas ÷ consultas respondidas. La variación está en puntos porcentuales (pp).")
-    k3.metric("Sin respuesta", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
+    k2.caption(f"Reservadas ÷ respondidas: {miles(m['reservadas'])} ÷ {miles(m['respondidas'])}")
+    k3.metric("Sin respuesta de la agencia", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
               delta=None if v is None else con_signo(v["sin_respuesta"]),
               help=f"{porcentaje(m['pct_sin_respuesta'])} de las consultas no recibieron respuesta. "
                    "Que baje es bueno.")
+    k3.caption(f"{porcentaje(m['pct_sin_respuesta'])} de las consultas: la agencia no contestó")
     k4.metric("Monto reservado", usd(m["monto_reservado"]), border=True,
               delta=None if v is None else usd_con_signo(v["monto_reservado"]),
               help="Suma del total de las consultas reservadas, en dólares.")

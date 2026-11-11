@@ -54,6 +54,14 @@ class PruebasPagina(unittest.TestCase):
         self.assertIn(PREGUNTA_TABLERO, pagina)
         self.assertIn("300 consultas sintéticas de demostración", pagina)
 
+    def test_definicion_de_la_tasa_de_cierre_y_sin_respuesta_de_la_agencia(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+        etiquetas = [m.label for m in app.metric]
+        self.assertIn("Sin respuesta de la agencia", etiquetas)
+        # 6 meses por defecto: 20 reservadas de 111 respondidas (las mismas cifras de metricas())
+        self.assertTrue(any(c.value == "Reservadas ÷ respondidas: 20 ÷ 111" for c in app.caption))
+
 
 if __name__ == "__main__":
     unittest.main()

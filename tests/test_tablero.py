@@ -137,7 +137,7 @@ class PruebasPaginaTablero(unittest.TestCase):
             app.sidebar.radio[0].set_value("Tablero").run()
         self.assertFalse(app.exception)
         self.assertEqual(app.header[0].value, "Tablero")
-        self.assertEqual([m.label for m in app.metric], ["Consultas", "Tasa de cierre", "Sin respuesta", "Monto reservado"])
+        self.assertEqual([m.label for m in app.metric], ["Consultas", "Tasa de cierre", "Sin respuesta de la agencia", "Monto reservado"])
         self.assertEqual(app.metric[0].value, "131")  # por defecto, los últimos 6 meses (may-oct 2026)
         self.assertIsNotNone(app.metric[0].delta)       # comparados con nov 2025-abr 2026
         self.assertTrue(any("Datos sintéticos del demo: no son de ninguna agencia real" in str(h.proto)
