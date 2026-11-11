@@ -93,4 +93,8 @@ En el producto:
 - **Límites de la capa gratuita de Gemini**: 20 solicitudes por día y por modelo. Cada consulta usa 2. Por eso hay un modelo de respaldo y un ejemplo guardado.
 - **Marca:** Abra ya se usa en otros rubros de software (criptomonedas, gestión empresarial); antes de lanzar habría que registrar la marca en Indecopi.
 
+## Quién lo hace
+
+<img src="docs/founder.jpg" alt="Founder de Abra Travel" width="240">
+
 Licencia: [MIT](LICENSE).
