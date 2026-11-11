@@ -23,6 +23,7 @@ sys.path.insert(0, str(RAIZ))
 sys.path.insert(0, str(RAIZ / "app"))
 
 from recarga import marcar_cargados, recargar_si_cambiaron  # noqa: E402
+from mapa_ui import mostrar_mapa_del_resultado  # noqa: E402
 
 # Streamlit solo recarga los módulos de app/: si ai/ o core/ cambiaron (un commit nuevo en Streamlit Cloud),
 # se vuelven a leer del disco. Sin esto, el demo se cayó con un ImportError de ai.pipeline (ver app/recarga.py).
@@ -436,6 +437,7 @@ def pagina_consulta() -> None:
         mostrar_paquete(resultado)
         mostrar_opciones(resultado)
     mostrar_perfil(resultado.perfil)
+    mostrar_mapa_del_resultado(resultado)
 
 
 # ---------------------------------------------------------------- Mi agencia
