@@ -1,3 +1,10 @@
-extra_id,extra,precio_usd_pp,aplica_a_niveles,n_precios_mercado
-huayna_picchu,Ingreso a Huayna Picchu,75,economico;estandar;premium,3
-vistadome,Mejora a tren Vistadome en el regreso,75,economico;estandar,2
+extra_id,extra,unidad,precio_usd,aplica_a,beneficio_para_el_viajero,origen_precio
+bolsa_dormir,Alquiler de bolsa de dormir,por persona,27.5,salkantay;camino_inca;choquequirao;lares,Duermes abrigado en las noches frías del campamento,"Mediana de 2 cotizaciones reales: US$ 25 y US$ 30 (cliente misterioso, agencias A y D)"
+bastones,Alquiler de bastones,por persona,22.5,todos,Menos carga en las rodillas en las bajadas,"Mediana de 2 cotizaciones reales: US$ 25 y US$ 20 (cliente misterioso, agencias A y D)"
+huayna_picchu,Ingreso a Huayna Picchu,por persona,60,machu_picchu,La mejor vista de Machu Picchu desde arriba,"Cotización real (cliente misterioso, agencia L)"
+caballo,Caballo de Soraypampa al abra Salkantay,por persona,100,salkantay,Subes el tramo más empinado sin cansarte,"Supuesto de la agencia demo: salkantaytrekking.com lo ofrece como opcional, sin precio publicado"
+habitacion_individual,Habitación individual,por noche,100,todos,Tu propia habitación en los hoteles del viaje,"Precio publicado: suplemento individual de US$ 100 por noche (samtravelperu.com, Salkantay 4 días)"
+servicio_privado,Servicio privado,por persona,100,todos,Guía y salida solo para tu grupo,"Precio publicado: servicio privado +US$ 100 por persona (samtravelperu.com, Salkantay 4 días)"
+hotel_cusco_3,Noche de hotel 3★ en Cusco,por noche,40,modulo_cusco,Tiempo para aclimatarte a la altura,Supuesto de la agencia demo
+hotel_cusco_4,Noche de hotel 4★ en Cusco,por noche,75,modulo_cusco,Tiempo para aclimatarte a la altura,Supuesto de la agencia demo
+traslado_aeropuerto,Traslado del aeropuerto al hotel,por grupo,25,modulo_cusco,Te esperamos en el aeropuerto de Cusco,Supuesto de la agencia demo

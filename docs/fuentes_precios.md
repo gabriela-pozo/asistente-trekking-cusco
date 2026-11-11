@@ -17,6 +17,7 @@ La prueba `test_archivo_coincide_con_el_generador` falla si alguien edita el CSV
 | `data/precios_mercado.csv` | 47 precios de grupo (Salkantay 4 y 5 días, Camino Inca clásico 4 días), del 2026-11-10: **42 precios publicados** en páginas web y **5 cotizaciones reales** recibidas por WhatsApp. 44 se usan en el análisis. La columna `tipo_fuente` dice de cuál de los dos tipos es cada fila |
 | `data/precios_otros_treks.csv` | 13 precios publicados de otros 4 treks, del 2026-11-10: Choquequirao 4 días (4), Lares 4 días (3), Inca Jungle 4 días (3) y Camino Inca corto 2 días (3). Todos tienen URL. No tiene columnas de nivel ni de exclusión: se usan todas las filas |
 | `data/extras_mercado.csv` | 7 precios de extras (Huayna Picchu y mejora a tren Vistadome) vistos en esas mismas páginas |
+| `data/extras_demo.csv` | Los extras del paquete, con unidad, a qué treks aplica y la fuente de cada precio (ver "Extras del paquete") |
 
 ### Precios por tipo de fuente
 
@@ -106,10 +107,33 @@ Ningún trek de `precios_otros_treks.csv` quedó fuera: todos tienen al menos 3 
 | Premium de los 7 treks | Supuesto (+60 %): ningún trek tiene 3 precios premium |
 | Precios para 3 a 4 y 5 o más personas | Supuesto (descuentos de 4 % y 8 %) |
 
-| Extra | Precios encontrados | Precio en el tarifario |
+Medianas de extras en los precios publicados (`data/extras_mercado.csv`). Quedan como referencia: los precios que usa el paquete están en la sección siguiente.
+
+| Extra | Precios encontrados | Mediana (múltiplo de 5) |
 | --- | --- | --- |
-| Ingreso a Huayna Picchu | 70, 75, 75 | **US$ 75** por persona |
-| Mejora a tren Vistadome en el regreso | 67, 80 | **US$ 75** por persona (no aplica a premium, que ya lo incluye) |
+| Ingreso a Huayna Picchu | 70, 75, 75 | US$ 75 por persona |
+| Mejora a tren Vistadome en el regreso | 67, 80 | US$ 75 por persona |
+
+## Extras del paquete (`data/extras_demo.csv`)
+
+"Armar paquete" (en Nueva consulta) suma al precio del trek los extras que marca el vendedor. El archivo se edita a mano (ya no lo genera `scripts/analisis_precios.py`) y también desde "Mi agencia". Cada fila dice su unidad, a qué treks aplica y de dónde sale su precio (`origen_precio`). Consulta de las páginas: 2026-11-10.
+
+| Extra | Unidad | Precio | Aplica a | Fuente |
+| --- | --- | --- | --- | --- |
+| Alquiler de bolsa de dormir | por persona | US$ 27,50 | Treks con campamento: Salkantay, Camino Inca, Choquequirao, Lares | Mediana de 2 cotizaciones reales: US$ 25 (agencia A) y US$ 30 (agencia D), en `docs/research/cliente_misterioso.md` |
+| Alquiler de bastones | por persona | US$ 22,50 | Todos | Mediana de 2 cotizaciones reales: US$ 25 (agencia A) y US$ 20 (agencia D) |
+| Ingreso a Huayna Picchu | por persona | US$ 60 | Treks que llegan a Machu Picchu | Cotización real de la agencia L |
+| Caballo de Soraypampa al abra Salkantay | por persona | US$ 100 | Salkantay | **Supuesto de la agencia demo.** La web de Salkantay Trekking lo lista como opcional, sin precio: "Optional Horseback Ride from Soraypampa to Salkantay Pass (Day 2)", en https://www.salkantaytrekking.com/trekking-in-peru/cusco/trekking-machu-picchu-salkantay-llactapata/ y https://www.salkantaytrekking.com/trekking-in-peru/cusco/salkantay-trek-4d/ |
+| Habitación individual | por noche | US$ 100 | Todos | Precio publicado por SAM Travel Peru: "Single supplement: $100 USD per night (for solo travelers with single room)", https://samtravelperu.com/?p=7211. No distingue hotel 3★ y 4★: se usa el mismo monto |
+| Servicio privado | por persona | US$ 100 | Todos | Precio publicado por SAM Travel Peru: "Private service is available for an extra $100 per person.", https://samtravelperu.com/?p=7211 |
+| Noche de hotel 3★ en Cusco | por noche | US$ 40 | Módulo "Días en Cusco" | **Supuesto de la agencia demo** |
+| Noche de hotel 4★ en Cusco | por noche | US$ 75 | Módulo "Días en Cusco" | **Supuesto de la agencia demo** |
+| Traslado del aeropuerto al hotel | por grupo | US$ 25 | Módulo "Días en Cusco" | **Supuesto de la agencia demo** |
+
+- **Unidades.** Por persona: precio × personas. Por noche: precio × personas × noches (el hotel cuenta las noches en Cusco; la habitación individual, las de todo el viaje: noches en Cusco más los días del trek menos 1). Por grupo: una vez, repartido entre las personas.
+- **Recargo por forma de pago:** 5 % con tarjeta y 8 % con PayPal, los de la agencia A del cliente misterioso. Editables en "Mi agencia". El depósito es el 50 % del total con recargo.
+- **Huayna Picchu:** la cotización real (US$ 60) queda por debajo de la mediana publicada (US$ 75) y cerca de la tarifa oficial (S/ 200 + S/ 11, unos US$ 57 a 62; `docs/research/verificacion_oficial.md`).
+- **El mercado no siempre coincide:** SAM Travel Peru publica también bastones a US$ 15 por par, por debajo de las dos cotizaciones reales.
 
 ### Efecto de las cotizaciones reales (Salkantay 5 días)
 
@@ -153,6 +177,7 @@ La regla se mantiene en el código como protección si una muestra futura vuelve
 - **Descuentos por grupo** (4 % y 8 %): ninguna fuente da precios por tamaño de grupo de forma comparable, salvo dos tablas de Camino Inca que quedan en las notas.
 - **Regla del Salkantay 4 días** (−10 % del de 5 días): hoy no se activa.
 - **Tamaño máximo de grupo y qué incluye cada nivel.**
+- **Extras del paquete:** el caballo, las noches de hotel en Cusco y el traslado del aeropuerto (ver "Extras del paquete").
 
 ## Límites de estos datos
 

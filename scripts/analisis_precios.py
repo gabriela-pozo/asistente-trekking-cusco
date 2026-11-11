@@ -5,7 +5,7 @@ Uso:  python scripts/analisis_precios.py
 1. Lee data/precios_mercado.csv y muestra mínimo, mediana y máximo por trek.
 2. Lee data/precios_otros_treks.csv (Choquequirao, Lares, Inca Jungle, Camino Inca corto).
 3. Genera data/tarifario_demo.csv para "Andes Trek Demo" con las reglas de abajo.
-4. Lee data/extras_mercado.csv y genera data/extras_demo.csv.
+4. Lee data/extras_mercado.csv y muestra la mediana de cada extra (data/extras_demo.csv se edita a mano).
 
 En precios_mercado.csv solo se usan las filas con incluir_en_analisis = "si".
 precios_otros_treks.csv no tiene esa columna ni el nivel: se usan todas sus filas.
@@ -338,6 +338,7 @@ if __name__ == "__main__":
                      "precio_usd_pp_grupo_5mas"]].to_string(index=False))
 
     extras = generar_extras(pd.read_csv(DATA / "extras_mercado.csv"))
-    extras.to_csv(DATA / "extras_demo.csv", index=False)
-    print("\nExtras generados en data/extras_demo.csv:")
+    # data/extras_demo.csv ya no se genera aquí: tiene unidades, a qué treks aplica y la fuente de cada precio
+    # (docs/fuentes_precios.md). Las medianas del mercado quedan solo como referencia.
+    print("\nMedianas de extras en el mercado (referencia; data/extras_demo.csv se edita a mano):")
     print(extras.to_string(index=False))

@@ -21,7 +21,16 @@ from pydantic import BaseModel, Field
 # "ruta" del tarifario (core/cotizacion.py). Así el modelo no puede inventar un trek.
 CodigoTrek = Literal["salkantay", "camino_inca", "camino_inca_corto", "lares", "choquequirao", "inca_jungle"]
 Nivel = Literal["economico", "estandar", "premium"]
-Extra = Literal["huayna_picchu", "vistadome"]
+
+
+class ExtraSugerido(BaseModel):
+    """Un extra de la lista de la agencia que conviene ofrecer, según lo que escribió el viajero."""
+
+    extra_id: str = Field(description="Código del extra, copiado de la lista EXTRAS DE LA AGENCIA.")
+    beneficio: str = Field(description="Beneficio para este viajero, en SU idioma, en 10 palabras o menos "
+                           "(por ejemplo 'stay warm on cold camp nights').")
+    motivo: str = Field(description="Por qué se lo ofreces, en español y en pocas palabras, según lo que escribió: "
+                        "'no tiene equipo', 'viaja solo', 'quiere Huayna Picchu', 'poco tiempo'.")
 
 
 class PerfilTurista(BaseModel):
@@ -38,7 +47,14 @@ class PerfilTurista(BaseModel):
     )
     nivel_preferido: Optional[Nivel] = Field(None, description="Nivel de servicio si lo pide o lo da a entender claramente; null si no.")
     presupuesto_usd_pp: Optional[float] = Field(None, description="Presupuesto por persona en dólares, solo si lo dice.")
-    extras_de_interes: list[Extra] = Field(default_factory=list, description="Extras que pide: Huayna Picchu o tren Vistadome.")
+    extras_sugeridos: list[ExtraSugerido] = Field(
+        default_factory=list,
+        description="Como máximo 3 extras de la lista EXTRAS DE LA AGENCIA que le servirían a este viajero según lo "
+        "que escribió. Solo de esa lista. Lista vacía si nada de lo que escribió los justifica.",
+    )
+    llega_a_cusco: Optional[Literal["mismo_dia", "antes"]] = Field(
+        None, description="'mismo_dia' si llega a Cusco el mismo día que empieza el trek; 'antes' si llega uno o "
+        "más días antes; null si no lo dice.")
     temas_consulta: list[str] = Field(
         default_factory=list,
         description="Temas que pregunta, en español y en pocas palabras: 'precio', 'qué incluye', 'altura', 'permisos', 'clima'.",

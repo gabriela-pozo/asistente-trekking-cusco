@@ -17,6 +17,7 @@ import analisis_precios as ap  # noqa: E402
 from core.cotizacion import (  # noqa: E402
     cargar_extras, cargar_tarifario, opciones_para_perfil, precio_por_persona,
 )
+from core.paquete import extras_aplicables, fila_del_trek  # noqa: E402
 
 TARIFARIO = cargar_tarifario(RAIZ / "data" / "tarifario_demo.csv")
 EXTRAS = cargar_extras(RAIZ / "data" / "extras_demo.csv")
@@ -27,7 +28,7 @@ OTROS = pd.read_csv(RAIZ / "data" / "precios_otros_treks.csv")
 def perfil(**datos):
     """Perfil mínimo del turista; lo que no se pasa queda como 'sin dato'."""
     base = dict(num_personas=None, mes_viaje=None, dias_disponibles=None, treks_de_interes=[],
-                nivel_preferido=None, presupuesto_usd_pp=None, extras_de_interes=[])
+                nivel_preferido=None, presupuesto_usd_pp=None)
     base.update(datos)
     return SimpleNamespace(**base)
 
@@ -145,9 +146,9 @@ class PruebasTarifario(unittest.TestCase):
         choque = TARIFARIO[TARIFARIO["ruta"] == "choquequirao"]
         self.assertTrue((choque["llega_a_machu_picchu"] == "no").all())
         self.assertFalse(choque["incluye"].str.contains("Machu Picchu|tren|Vistadome").any())
-        opciones = opciones_para_perfil(perfil(treks_de_interes=["choquequirao"], extras_de_interes=["huayna_picchu"]),
-                                        TARIFARIO, EXTRAS)
-        self.assertTrue(opciones and all(o.extras == [] for o in opciones))
+        opciones = opciones_para_perfil(perfil(treks_de_interes=["choquequirao"]), TARIFARIO)
+        fila = fila_del_trek(opciones[0], TARIFARIO)
+        self.assertNotIn("huayna_picchu", set(extras_aplicables(EXTRAS, fila)["extra_id"]))  # no llega a Machu Picchu
 
     def test_inca_jungle_y_corto_no_acampan(self):
         sin_campamento = TARIFARIO[TARIFARIO["ruta"].isin(["inca_jungle", "camino_inca_corto"])]
@@ -226,23 +227,11 @@ class PruebasCotizacion(unittest.TestCase):
                                                treks_de_interes=["salkantay"]), TARIFARIO)
         self.assertEqual((opciones[0].trek_id, opciones[0].nivel), ("salkantay_5d", "economico"))
 
-    def test_extras_suman_al_total(self):
-        opciones = opciones_para_perfil(
-            perfil(num_personas=2, mes_viaje=5, treks_de_interes=["camino_inca"],
-                   nivel_preferido="estandar", extras_de_interes=["huayna_picchu", "vistadome"]),
-            TARIFARIO, EXTRAS)
-        o = opciones[0]
-        self.assertEqual(o.precio_pp, 840)
-        self.assertEqual(o.precio_pp_con_extras, 840 + 75 + 75)
-        self.assertEqual(o.total, 990 * 2)
-        self.assertIn("Huayna Picchu", o.resumen())
-
-    def test_premium_no_cobra_vistadome_porque_ya_lo_incluye(self):
-        opciones = opciones_para_perfil(
-            perfil(treks_de_interes=["camino_inca"], nivel_preferido="premium", extras_de_interes=["vistadome"]),
-            TARIFARIO, EXTRAS)
-        self.assertEqual(opciones[0].nivel, "premium")
-        self.assertEqual(opciones[0].extras, [])
+    def test_las_opciones_cotizan_solo_el_trek(self):
+        """Los extras ya no se suman a las opciones: van en el paquete (tests/test_paquete.py)."""
+        o = opciones_para_perfil(perfil(num_personas=2, mes_viaje=5, treks_de_interes=["camino_inca"],
+                                        nivel_preferido="estandar"), TARIFARIO)[0]
+        self.assertEqual((o.precio_pp, o.total), (840, 1680))
 
     def test_trek_pedido_sin_precio_marca_las_opciones_como_alternativa(self):
         """Caso del demo: "Choquequirao, 1 persona, ¿precios?". Si Choquequirao no está en el tarifario,

@@ -14,10 +14,26 @@ No inventes datos: si algo no aparece en la consulta, déjalo en null o en una l
 Escribe 'temas_consulta' y 'datos_faltantes' en español, aunque el turista escriba en otro idioma."""
 
 
-def sistema_extraer(hoy: str) -> str:
-    """Instrucciones de extracción con la fecha de hoy, para convertir fechas relativas en mes_viaje."""
-    return (f"{SISTEMA_EXTRAER}\nHoy es {hoy} (hora de Cusco). Usa esta fecha para convertir fechas relativas "
-            "('esta semana', 'este mes', 'next month', 'in two weeks') en mes_viaje.")
+def sistema_extraer(hoy: str, extras: str | None = None) -> str:
+    """Instrucciones de extracción con la fecha de hoy (para convertir fechas relativas en mes_viaje) y la lista
+    de extras de la agencia, de la que el modelo puede sugerir hasta 3."""
+    texto = (f"{SISTEMA_EXTRAER}\nHoy es {hoy} (hora de Cusco). Usa esta fecha para convertir fechas relativas "
+             "('esta semana', 'este mes', 'next month', 'in two weeks') en mes_viaje.")
+    if extras:
+        texto += ("\n\nEXTRAS DE LA AGENCIA (código: nombre; a qué treks aplica). En 'extras_sugeridos' elige como "
+                  "máximo 3, solo de esta lista y solo si algo de lo que escribió el viajero lo justifica (no tiene "
+                  "equipo, viaja solo, quiere Huayna Picchu, poco tiempo, le preocupa la subida...). No inventes "
+                  "extras ni precios.\n" + extras)
+    return texto
+
+
+def lista_extras(extras) -> str:
+    """Los extras de la agencia para el prompt de extracción (sin precios: el modelo no los necesita).
+    Las filas del módulo de días en Cusco no van: ese módulo lo sugiere el código."""
+    if extras is None or len(extras) == 0:
+        return ""
+    filas = extras[extras["aplica_a"] != "modulo_cusco"]
+    return "\n".join(f"- {e['extra_id']}: {e['extra']}; aplica a: {e['aplica_a']}" for _, e in filas.iterrows())
 
 # Reglas de la respuesta y el hallazgo del cliente misterioso que corrige cada una:
 REGLAS_RESPUESTA = [

@@ -25,8 +25,12 @@ from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  
 from ai.fecha import ZONA, hoy_en_lima  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
-from ai.pipeline import AGENCIA  # noqa: E402
-from core.cotizacion import NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
+from ai.pipeline import AGENCIA, aplicar_paquete  # noqa: E402
+from core.cotizacion import NOMBRE_NIVEL, NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
+from core.paquete import (  # noqa: E402
+    METODOS, RECARGOS, UNIDADES, Seleccion, armar_paquete, extras_aplicables, fila_del_trek, noches_sugeridas,
+    sugeridos_validos,
+)
 from core.respuesta_nocturna import (  # noqa: E402
     APERTURA, CIERRE, advertencias_de_control, fuera_de_horario, respuesta_nocturna,
 )
@@ -35,7 +39,9 @@ from core.tablero import (  # noqa: E402
     registro_desde_resultado,
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
-from presentacion import html_opciones, html_perfil, idioma, lista_markdown, separar_advertencias, usd  # noqa: E402
+from presentacion import (  # noqa: E402
+    html_desglose, html_opciones, html_perfil, idioma, lista_markdown, separar_advertencias, usd,
+)
 
 try:  # .env en local (con la clave). En Streamlit Cloud se usan los secretos.
     from dotenv import load_dotenv
@@ -110,8 +116,10 @@ if "tarifario" not in st.session_state:
     # tarifario_base es lo que muestra el editor; tarifario es el resultado editado, con el que se cotiza.
     st.session_state.tarifario_base = cargar_tarifario(RAIZ / "data" / "tarifario_demo.csv")
     st.session_state.tarifario = st.session_state.tarifario_base
-if "extras" not in st.session_state:
-    st.session_state.extras = cargar_extras(RAIZ / "data" / "extras_demo.csv")
+if "extras" not in st.session_state:  # como el tarifario: extras_base para el editor, extras para cotizar
+    st.session_state.extras_base = cargar_extras(RAIZ / "data" / "extras_demo.csv")
+    st.session_state.extras = st.session_state.extras_base
+st.session_state.setdefault("recargos", dict(RECARGOS))  # % por forma de pago, editable en "Mi agencia"
 if "agencia" not in st.session_state:
     st.session_state.agencia = AGENCIA
 st.session_state.setdefault("apertura", APERTURA)  # horario de atención, en hora de Lima
@@ -145,6 +153,107 @@ def usar_ejemplo() -> None:
     st.session_state.origen = "ejemplo"
     st.session_state.fecha_ejemplo = datos.get("fecha", "")
     st.session_state.registrada = None
+    iniciar_paquete()
+
+
+# ---------------------------------------------------------------- Paquete
+# La selección del vendedor vive en st.session_state.seleccion; los widgets ("w_…") se rellenan desde ahí,
+# porque Streamlit borra el estado de un widget cuando se cambia de página.
+def seleccion_sugerida(resultado) -> Seleccion:
+    """Lo que propone Abra Travel: los extras que sugirió el modelo (máx. 3) y 1 noche en Cusco si hace falta."""
+    if not resultado.opciones:
+        return Seleccion()
+    fila = fila_del_trek(resultado.opciones[0], st.session_state.tarifario)
+    sugeridos = sugeridos_validos(resultado.perfil.extras_sugeridos, st.session_state.extras, fila)
+    return Seleccion(extras=[s.extra_id for s in sugeridos], noches_cusco=noches_sugeridas(resultado.perfil))
+
+
+def componer_paquete() -> None:
+    """Calcula el paquete con la selección actual y vuelve a armar el borrador (y sus controles)."""
+    resultado = st.session_state.resultado
+    paquete = armar_paquete(resultado.opciones, st.session_state.tarifario, st.session_state.extras,
+                            st.session_state.seleccion, st.session_state.recargos)
+    resultado = aplicar_paquete(resultado, paquete)
+    st.session_state.resultado = resultado
+    st.session_state.borrador = resultado.borrador.mensaje_para_cliente
+
+
+def iniciar_paquete() -> None:
+    """Con cada consulta nueva: selección sugerida y widgets en blanco."""
+    for clave in [k for k in st.session_state if str(k).startswith("w_")]:
+        del st.session_state[clave]
+    st.session_state.seleccion = seleccion_sugerida(st.session_state.resultado)
+    componer_paquete()
+
+
+# Los widgets usan las etiquetas como opciones (y no format_func): así también funcionan en las pruebas (AppTest).
+NOCHES = ["Ninguna", "1 noche", "2 noches"]
+HOTELES = {3: "3★", 4: "4★"}
+
+
+def etiquetas_base(opciones) -> list[str]:
+    return [f"{o.trek}, {o.dias} días, {NOMBRE_NIVEL.get(o.nivel, o.nivel)} · {usd(o.precio_pp)} por persona"
+            for o in opciones]
+
+
+def etiquetas_pago() -> dict[str, str]:
+    recargos = st.session_state.recargos
+    return {m: nombre + (f" (+{recargos[m]:g} %)" if recargos.get(m) else "") for m, nombre in METODOS.items()}
+
+
+def cambiar_paquete() -> None:
+    """Callback de los widgets del paquete: lee lo que marcó el vendedor y vuelve a armar el borrador."""
+    estado = st.session_state
+    pagos = {v: k for k, v in etiquetas_pago().items()}
+    estado.seleccion = Seleccion(
+        base=etiquetas_base(estado.resultado.opciones).index(estado.w_base),
+        noches_cusco=NOCHES.index(estado.w_noches),
+        estrellas={v: k for k, v in HOTELES.items()}[estado.w_estrellas],
+        metodo_pago=pagos.get(estado.w_metodo, "transferencia"),
+        extras=[str(i) for i in estado.extras["extra_id"] if estado.get(f"w_extra_{i}")],
+    )
+    componer_paquete()
+
+
+def mostrar_paquete(resultado) -> None:
+    """(2b) Armar paquete: trek base + extras + días en Cusco + forma de pago, con el desglose."""
+    if not resultado.opciones or resultado.paquete is None:
+        return
+    estado, sel = st.session_state, st.session_state.seleccion
+    base = min(sel.base, len(resultado.opciones) - 1)
+    aplicables = extras_aplicables(estado.extras, fila_del_trek(resultado.opciones[base], estado.tarifario))
+    bases, pagos = etiquetas_base(resultado.opciones), etiquetas_pago()
+    valores = {"w_base": bases[base], "w_noches": NOCHES[sel.noches_cusco], "w_estrellas": HOTELES[sel.estrellas],
+               "w_metodo": pagos.get(sel.metodo_pago, pagos["transferencia"])}
+    valores |= {f"w_extra_{i}": i in sel.extras for i in aplicables["extra_id"]}
+    for clave, valor in valores.items():
+        if clave not in estado or (clave == "w_metodo" and estado[clave] not in pagos.values()):
+            estado[clave] = valor
+    sugeridos = {s.extra_id: s for s in resultado.perfil.extras_sugeridos}
+
+    with st.container(border=True, key="tarjeta_paquete"):
+        rotulo("Armar paquete")
+        st.selectbox("Trek base", bases, key="w_base", on_change=cambiar_paquete)
+        st.markdown("**Extras opcionales**")
+        for _, e in aplicables.iterrows():
+            i = str(e["extra_id"])
+            st.checkbox(f"{e['extra']} · {usd(e['precio_usd'])} {e['unidad']}", key=f"w_extra_{i}",
+                        on_change=cambiar_paquete, help=f"Precio: {e.get('origen_precio', '')}")
+            if i in sugeridos:
+                st.caption(f":material/auto_awesome: Sugerido por lo que escribió: {sugeridos[i].motivo}")
+        st.markdown("**Días en Cusco antes del trek**")
+        with st.container(horizontal=True):
+            st.radio("Noches", NOCHES, key="w_noches", on_change=cambiar_paquete, horizontal=True)
+            st.radio("Hotel", list(HOTELES.values()), key="w_estrellas", on_change=cambiar_paquete, horizontal=True,
+                     disabled=estado.w_noches == NOCHES[0])
+        llegada = resultado.perfil.llega_a_cusco
+        if llegada != "antes":
+            motivo = "llega a Cusco el mismo día del trek" if llegada == "mismo_dia" else "no dice cuándo llega a Cusco"
+            st.caption(f":material/auto_awesome: Sugerido: {motivo}. Una noche antes ayuda a aclimatarse a la altura. "
+                       "Incluye el traslado del aeropuerto.")
+        st.radio("Forma de pago", list(pagos.values()), key="w_metodo", on_change=cambiar_paquete, horizontal=True)
+        st.html(html_desglose(resultado.paquete))
+        st.caption("Al cambiar el paquete, el borrador se vuelve a armar (se pierden los cambios hechos a mano).")
 
 
 def registrar_consulta(estado: str) -> None:
@@ -280,7 +389,10 @@ def pagina_consulta() -> None:
         st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         st.session_state.origen = "sin_cuota" if es_ejemplo else "modelo"
         st.session_state.registrada = None
+        iniciar_paquete()
 
+    if st.session_state.get("resultado") and st.session_state.pop("recomponer", False):
+        componer_paquete()  # cambiaron los extras o los recargos en "Mi agencia"
     resultado = st.session_state.get("resultado")
     if not resultado:
         st.html('<div class="vacio"><strong>Aquí aparecerá la respuesta.</strong> Abra Travel entiende qué pide '
@@ -306,6 +418,7 @@ def pagina_consulta() -> None:
         mostrar_borrador(resultado, telefono)
     with derecha:
         mostrar_avisos(resultado)
+        mostrar_paquete(resultado)
         mostrar_opciones(resultado)
     mostrar_perfil(resultado.perfil)
 
@@ -376,6 +489,34 @@ def pagina_agencia() -> None:
             st.download_button("Descargar tarifario", st.session_state.tarifario.to_csv(index=False).encode("utf-8"),
                                file_name="tarifario.csv", mime="text/csv", icon=":material/download:")
             st.caption("Los cambios valen mientras la app esté abierta. Descarga el CSV para guardarlos.")
+
+    with st.container(border=True, key="tarjeta_extras"):
+        rotulo("Extras y días en Cusco")
+        st.caption("Unidad: por persona, por noche (cada persona, cada noche) o por grupo. Aplica a: todos, "
+                   "machu_picchu (treks que llegan), rutas separadas por punto y coma, o modulo_cusco "
+                   "(hotel y traslado de los días en Cusco).")
+        editado = st.data_editor(
+            st.session_state.extras_base, num_rows="dynamic", width="stretch", key="editor_extras", hide_index=True,
+            column_config={
+                "extra_id": st.column_config.TextColumn("Código"),
+                "extra": st.column_config.TextColumn("Extra", width="medium"),
+                "unidad": st.column_config.SelectboxColumn("Unidad", options=list(UNIDADES), required=True),
+                "precio_usd": st.column_config.NumberColumn("US$", min_value=0, format="%.2f"),
+                "aplica_a": st.column_config.TextColumn("Aplica a"),
+                "beneficio_para_el_viajero": st.column_config.TextColumn("Beneficio para el viajero", width="large"),
+                "origen_precio": st.column_config.TextColumn("De dónde sale el precio", width="large"),
+            })
+        with st.container(horizontal=True, vertical_alignment="bottom"):
+            recargos = {"transferencia": 0.0}
+            recargos["tarjeta"] = st.number_input("Recargo con tarjeta (%)", 0.0, 30.0,
+                                                  float(st.session_state.recargos["tarjeta"]), step=0.5)
+            recargos["paypal"] = st.number_input("Recargo con PayPal (%)", 0.0, 30.0,
+                                                 float(st.session_state.recargos["paypal"]), step=0.5)
+            st.download_button("Descargar extras", editado.to_csv(index=False).encode("utf-8"),
+                               file_name="extras.csv", mime="text/csv", icon=":material/download:")
+        if not editado.equals(st.session_state.extras) or recargos != st.session_state.recargos:
+            st.session_state.extras, st.session_state.recargos = editado, recargos
+            st.session_state.recomponer = True  # el paquete de la consulta abierta se recalcula
 
 
 # ---------------------------------------------------------------- Tablero

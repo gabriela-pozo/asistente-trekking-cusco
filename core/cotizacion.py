@@ -11,7 +11,9 @@ falten se toman como "sin dato"):
     treks_de_interes: list[str]      ("salkantay", "camino_inca")
     nivel_preferido: str | None      ("economico", "estandar", "premium")
     presupuesto_usd_pp: int | None
-    extras_de_interes: list[str]     ("huayna_picchu", "vistadome")
+
+Los extras (bolsa de dormir, Huayna Picchu, días en Cusco...) no van en las opciones: se suman
+en el paquete que arma el vendedor (core/paquete.py).
 """
 from __future__ import annotations
 
@@ -54,7 +56,6 @@ class OpcionCotizada:
     nivel: str
     precio_pp: int                      # solo el trek, por persona
     personas: int
-    extras: list[tuple[str, int]] = field(default_factory=list)  # (nombre, precio por persona)
     requiere_permiso: bool = False
     es_alternativa: bool = False        # True si no es lo que pidió el turista
     # Por qué es alternativa: "no_disponible" (lo pedido no se opera ese mes o no cabe en sus días)
@@ -64,12 +65,8 @@ class OpcionCotizada:
     no_incluye: list[str] = field(default_factory=list)
 
     @property
-    def precio_pp_con_extras(self) -> int:
-        return self.precio_pp + sum(p for _, p in self.extras)
-
-    @property
     def total(self) -> int:
-        return self.precio_pp_con_extras * self.personas
+        return self.precio_pp * self.personas
 
     @property
     def deposito(self) -> int:
@@ -91,8 +88,6 @@ class OpcionCotizada:
             f"{self.trek}, {self.dias} días, nivel {NOMBRE_NIVEL.get(self.nivel, self.nivel)}: "
             f"US$ {self.precio_pp} por persona (grupo de {self.personas})"
         )
-        for nombre, precio in self.extras:
-            texto += f" + {nombre} US$ {precio} por persona"
         texto += (
             f". Total US$ {self.total}. Incluye: {', '.join(self.incluye)}. "
             f"No incluye: {', '.join(self.no_incluye)}. {self.linea_deposito()}"
@@ -134,26 +129,13 @@ def disponible_en_mes(fila: pd.Series, mes: int | None) -> bool:
     return mes not in cerrados
 
 
-def _extras_para(fila: pd.Series, pedidos: list[str], extras: pd.DataFrame | None) -> list[tuple[str, int]]:
-    """Huayna Picchu y Vistadome: solo en treks que llegan a Machu Picchu y en los niveles donde aplican."""
-    nivel = fila["nivel"]
-    if extras is None or not pedidos or fila.get("llega_a_machu_picchu", "si") == "no":
-        return []
-    elegidos = []
-    for _, e in extras.iterrows():
-        if e["extra_id"] in pedidos and nivel in str(e["aplica_a_niveles"]).split(";"):
-            elegidos.append((e["extra"], int(e["precio_usd_pp"])))
-    return elegidos
-
-
 def treks_sin_precio(perfil, tarifario: pd.DataFrame) -> list[str]:
     """Treks que pidió el turista y que no están en el tarifario de la agencia."""
     rutas = set(tarifario["ruta"])
     return [t for t in (getattr(perfil, "treks_de_interes", None) or []) if t not in rutas]
 
 
-def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame | None = None,
-                         maximo: int = 3) -> list[OpcionCotizada]:
+def opciones_para_perfil(perfil, tarifario: pd.DataFrame, maximo: int = 3) -> list[OpcionCotizada]:
     """Elige hasta `maximo` opciones del tarifario que encajan con el perfil."""
     personas = getattr(perfil, "num_personas", None) or PERSONAS_POR_DEFECTO
     mes = getattr(perfil, "mes_viaje", None)
@@ -164,7 +146,6 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
         interes = [t for p in pedidos for t in PARECIDOS.get(p, []) if t in set(tarifario["ruta"])]
     nivel_preferido = getattr(perfil, "nivel_preferido", None)
     presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
-    extras_pedidos = getattr(perfil, "extras_de_interes", None) or []
 
     cabe = tarifario["tamano_max_grupo"] >= personas
     df = tarifario[cabe]
@@ -207,7 +188,6 @@ def opciones_para_perfil(perfil, tarifario: pd.DataFrame, extras: pd.DataFrame |
             nivel=f["nivel"],
             precio_pp=int(f["precio_pp"]),
             personas=personas,
-            extras=_extras_para(f, extras_pedidos, extras),
             requiere_permiso=f["requiere_permiso_camino_inca"] == "si",
             es_alternativa=bool(motivo(f["ruta"])),
             motivo_alternativa=motivo(f["ruta"]),

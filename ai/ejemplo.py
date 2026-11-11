@@ -44,10 +44,8 @@ def resultado_a_dict(resultado: Resultado, consulta: str, fecha: str | None = No
 
 
 def resultado_desde_dict(datos: dict) -> Resultado:
-    opciones = []
-    for o in datos["opciones"]:
-        o = dict(o, extras=[tuple(e) for e in o.get("extras", [])])  # JSON guarda las tuplas como listas
-        opciones.append(OpcionCotizada(**o))
+    # "extras" venía en ejemplos guardados antes del paquete (core/paquete.py): ya no es parte de la opción.
+    opciones = [OpcionCotizada(**{k: v for k, v in o.items() if k != "extras"}) for o in datos["opciones"]]
     return Resultado(
         perfil=PerfilTurista.model_validate(datos["perfil"]),
         opciones=opciones,

@@ -101,3 +101,12 @@ body { font-variant-numeric: tabular-nums; }
   display: inline-block; font-size: 13px; font-weight: 700; color: var(--aviso-texto);
   background: var(--aviso-fondo); border: 1px solid #B7791F; border-radius: 999px; padding: 4px 12px;
 }
+
+/* Armar paquete: desglose con montos alineados a la derecha. */
+.st-key-tarjeta_paquete, .st-key-tarjeta_extras { background: var(--superficie); }
+.desglose { width: 100%; border-collapse: collapse; font-size: 15px; color: var(--tinta); }
+.desglose td { padding: 8px 0; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.desglose-monto { text-align: right; white-space: nowrap; font-weight: 600; padding-left: 16px !important; }
+.desglose-calculo { font-size: 13px; color: var(--secundario); }
+.desglose-total td { font-weight: 700; border-bottom: 2px solid var(--tinta); }
+.desglose-total .desglose-monto { color: var(--ocre-texto); font-family: Montserrat, sans-serif; font-size: 17px; }

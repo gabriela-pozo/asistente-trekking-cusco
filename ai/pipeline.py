@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Callable
 from datetime import date
 
@@ -24,6 +24,7 @@ from ai.llm import LLM, Uso
 from ai.schemas import BorradorRespuesta, PerfilTurista
 from core.cotizacion import (NO_REEMBOLSABLE_CAMINO_INCA_PP, NOMBRE_RUTA, OpcionCotizada, opciones_para_perfil,
                              treks_sin_precio)
+from core.paquete import Paquete, texto_paquete
 
 AGENCIA = "Andes Trek Demo"
 MAXIMO_OPCIONES = 2  # con 3 opciones y sus listas, el mensaje pasaba de 150 palabras
@@ -40,6 +41,9 @@ class Resultado:
     advertencias: list[str] = field(default_factory=list)  # las del modelo + las de los controles
     uso: Uso = field(default_factory=Uso)
     segundos: float | None = None  # cuánto tardó procesar_consulta; None en el ejemplo guardado
+    avisos_fijos: list[str] = field(default_factory=list)  # avisos del código que no dependen del texto
+    mensaje_modelo: str = ""       # el mensaje tal como lo escribió el modelo, antes de poner el paquete
+    paquete: Paquete | None = None  # el paquete que armó el vendedor (core/paquete.py)
 
 
 # --- Avisos ------------------------------------------------------------------
@@ -62,7 +66,7 @@ def nota_presupuesto(perfil, opciones: list[OpcionCotizada]) -> str | None:
     presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
     if not presupuesto or not opciones:
         return None
-    mas_barata = min(o.precio_pp_con_extras for o in opciones)
+    mas_barata = min(o.precio_pp for o in opciones)
     if presupuesto >= mas_barata:
         return None
     return (f"El presupuesto del turista (US$ {presupuesto:g} por persona) es menor que la opción más barata "
@@ -83,40 +87,46 @@ def nota_trek_sin_precio(sin_precio: list[str], opciones: list[OpcionCotizada]) 
 
 # --- Controles sobre el borrador ----------------------------------------------
 
+# Un monto: 1,360 / 1.360 / 1 360 (miles) o 27.50 / 27,50 (centavos: siempre 2 cifras).
+_NUMERO = r"\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{2})?|\d+(?:[.,]\d{2})?"
 _MONTO = re.compile(
-    r"(?:US\$|USD|\$)\s?(\d{1,3}(?:[.,\s]\d{3})+|\d+)"          # US$ 1,360 / $680 / USD 680
-    r"|(\d{1,3}(?:[.,\s]\d{3})+|\d+)\s?(?:USD|US\$|dólares|dollars|dólar|dollar)",  # 680 USD / 680 dólares
+    rf"(?:US\$|USD|\$)\s?({_NUMERO})"                                     # US$ 1,360 / $680 / USD 27.50
+    rf"|({_NUMERO})\s?(?:USD|US\$|dólares|dollars|dólar|dollar)",           # 680 USD / 680 dólares
     flags=re.IGNORECASE,
 )
 
 
-def precios_en_texto(texto: str) -> list[int]:
-    """Montos en dólares escritos en el mensaje: US$ 680, $1,360, 1.360 USD, 680 dollars."""
-    montos = []
-    for a, b in _MONTO.findall(texto):
-        crudo = re.sub(r"[.,\s]", "", a or b)
-        if crudo:
-            montos.append(int(crudo))
-    return montos
+def a_numero(crudo: str) -> int | float:
+    """'1,360' -> 1360; '27,50' -> 27.5 (dos cifras después del separador = centavos)."""
+    centavos = re.search(r"[.,](\d{2})$", crudo)
+    entero = re.sub(r"[.,\s]", "", crudo[:-3] if centavos else crudo)
+    return float(f"{entero}.{centavos.group(1)}") if centavos else int(entero)
 
 
-def precios_permitidos(opciones: list[OpcionCotizada], perfil=None) -> set[int]:
-    """Todos los montos que el código calculó y le pasó al modelo, más el presupuesto que dio el turista."""
-    permitidos: set[int] = set()
+def precios_en_texto(texto: str) -> list[int | float]:
+    """Montos en dólares escritos en el mensaje: US$ 680, $1,360, 1.360 USD, 680 dollars, US$ 27.50."""
+    return [a_numero(a or b) for a, b in _MONTO.findall(texto) if (a or b)]
+
+
+def precios_permitidos(opciones: list[OpcionCotizada], perfil=None, paquete: Paquete | None = None) -> set:
+    """Todos los montos que calculó el código (opciones y paquete), más el presupuesto que dio el turista."""
+    permitidos: set = set()
     presupuesto = getattr(perfil, "presupuesto_usd_pp", None)
     if presupuesto:
         permitidos.add(int(presupuesto))
     for o in opciones:
-        permitidos |= {o.precio_pp, o.precio_pp_con_extras, o.total, o.deposito, o.saldo}
-        permitidos |= {precio for _, precio in o.extras}
+        permitidos |= {o.precio_pp, o.total, o.deposito, o.saldo}
         if o.requiere_permiso:
             permitidos.add(NO_REEMBOLSABLE_CAMINO_INCA_PP)
+    if paquete:
+        permitidos |= paquete.montos()
     return permitidos
 
 
-def precios_no_autorizados(texto: str, opciones: list[OpcionCotizada], perfil=None) -> list[int]:
-    """Montos del mensaje que no salen de la cotización: señal de que el modelo inventó un precio."""
-    permitidos = precios_permitidos(opciones, perfil)
+def precios_no_autorizados(texto: str, opciones: list[OpcionCotizada], perfil=None,
+                           paquete: Paquete | None = None) -> list:
+    """Montos del mensaje que no salen de la cotización ni del paquete: señal de que se inventó un precio."""
+    permitidos = precios_permitidos(opciones, perfil, paquete)
     return [m for m in precios_en_texto(texto) if m not in permitidos]
 
 
@@ -140,7 +150,7 @@ _CLAVES_DEPOSITO = r"deposits?|dep[óo]sitos?|anticipo|adelanto|sinal|acompte|an
 _CLAVES_SALDO = r"balance|saldo|restante|solde|restbetrag"
 _DEPOSITO = re.compile(rf"\b(?:{_CLAVES_DEPOSITO})\b", flags=re.IGNORECASE)
 _SALDO = re.compile(rf"\b(?:{_CLAVES_SALDO})\b", flags=re.IGNORECASE)
-_MONTO_USD = re.compile(r"(?:US\$|USD|\$)\s?(\d{1,3}(?:[.,]\d{3})+|\d+)")
+_MONTO_USD = re.compile(rf"(?:US\$|USD|\$)\s?({_NUMERO})")
 _FIN_FRASE = re.compile(r"[\n;]|\.\s|\.$")
 
 
@@ -153,13 +163,13 @@ def _montos(clave: re.Pattern, otra: re.Pattern, texto: str) -> list[int]:
         for corte in (_FIN_FRASE.search(tramo), otra.search(tramo)):
             if corte:
                 tramo = tramo[:corte.start()]
-        montos += [int(re.sub(r"[.,]", "", x)) for x in _MONTO_USD.findall(tramo)]
+        montos += [a_numero(x) for x in _MONTO_USD.findall(tramo)]
     return montos
 
 
-def revisar_deposito(texto: str, opciones: list[OpcionCotizada]) -> list[str]:
-    """Advertencias si el depósito o el saldo no coinciden con ninguna opción, o si con varias
-    opciones se da un solo depósito sin decir de cuál."""
+def revisar_deposito(texto: str, opciones: list[OpcionCotizada], paquete: Paquete | None = None) -> list[str]:
+    """Advertencias si el depósito o el saldo no coinciden con ninguna opción (ni con el paquete), o si con
+    varias opciones se da un solo depósito sin decir de cuál."""
     if not opciones:
         return []
     advertencias = []
@@ -168,12 +178,17 @@ def revisar_deposito(texto: str, opciones: list[OpcionCotizada]) -> list[str]:
     if any(o.requiere_permiso for o in opciones):
         validos_deposito.add(NO_REEMBOLSABLE_CAMINO_INCA_PP)  # "US$ 200 del depósito no son reembolsables"
     validos_saldo = {o.saldo for o in opciones}
+    if paquete:
+        validos_deposito.add(paquete.deposito_c / 100)
+        validos_saldo.add(paquete.saldo_c / 100)
     malos = sorted({d for d in depositos if d not in validos_deposito} | {s for s in saldos if s not in validos_saldo})
     if malos:
         esperados = ", ".join(f"US$ {o.deposito} / US$ {o.saldo}" for o in opciones)
-        advertencias.append(f"El depósito o saldo del mensaje (US$ {', '.join(map(str, malos))}) no coincide con "
-                            f"ninguna opción. Depósito / saldo de cada opción: {esperados}.")
-    if len(opciones) > 1:
+        if paquete:
+            esperados += f"; del paquete: US$ {paquete.deposito_c / 100:g} / US$ {paquete.saldo_c / 100:g}"
+        advertencias.append(f"El depósito o saldo del mensaje (US$ {', '.join(f'{m:g}' for m in malos)}) no coincide "
+                            f"con ninguna opción. Depósito / saldo de cada opción: {esperados}.")
+    if len(opciones) > 1 and not paquete:  # con paquete hay un solo depósito: el del paquete
         cubiertas = {d for d in depositos if d in {o.deposito for o in opciones}}
         if 0 < len(cubiertas) < len(opciones) or (saldos and len(set(saldos)) < len(opciones)):
             advertencias.append("Con varias opciones, el mensaje da un solo depósito o saldo sin decir de cuál. "
@@ -190,7 +205,7 @@ _DICE_ALTERNATIVA = re.compile(
 def revisar_alternativas(texto: str, opciones: list[OpcionCotizada]) -> list[str]:
     """Advertencia si el mensaje da el precio de una opción alternativa sin decir que lo es."""
     montos = set(precios_en_texto(texto))
-    dadas = [o for o in opciones if o.es_alternativa and {o.precio_pp, o.precio_pp_con_extras, o.total} & montos]
+    dadas = [o for o in opciones if o.es_alternativa and {o.precio_pp, o.total} & montos]
     if not dadas or _DICE_ALTERNATIVA.search(texto):
         return []
     treks = ", ".join(dict.fromkeys(o.trek for o in dadas))
@@ -207,21 +222,24 @@ def contar_lineas(texto: str) -> int:
     return sum(1 for linea in texto.splitlines() if linea.strip())
 
 
-def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista,
-                       opciones: list[OpcionCotizada]) -> tuple[list[int], list[str]]:
-    """Revisa el borrador en código. Devuelve (precios no autorizados, advertencias)."""
+def controlar_borrador(borrador: BorradorRespuesta, perfil: PerfilTurista, opciones: list[OpcionCotizada],
+                       paquete: Paquete | None = None, bloque: str = "") -> tuple[list, list[str]]:
+    """Revisa el borrador en código. Devuelve (precios no autorizados, advertencias).
+    Con paquete, se aceptan también sus montos; `bloque` (el texto del paquete, armado por el código)
+    no cuenta para el límite de palabras."""
     texto = borrador.mensaje_para_cliente
     advertencias = []
-    no_autorizados = precios_no_autorizados(texto, opciones, perfil)
+    no_autorizados = precios_no_autorizados(texto, opciones, perfil, paquete)
     if no_autorizados:
-        advertencias.append(f"El mensaje tiene montos que no están en la cotización: {no_autorizados}. "
+        montos = ", ".join(f"{m:g}" for m in no_autorizados)
+        advertencias.append(f"El mensaje tiene montos que no están en la cotización: [{montos}]. "
                             "Corrígelos antes de enviar.")
     if opciones and not precios_en_texto(texto):
         advertencias.append("El mensaje no dice el precio. Agrega el precio por persona y el total.")
-    palabras = contar_palabras(texto)
+    palabras = contar_palabras(texto) - contar_palabras(bloque)
     if palabras >= prompts.LIMITE_PALABRAS:
         advertencias.append(f"El mensaje tiene {palabras} palabras; debe tener menos de {prompts.LIMITE_PALABRAS}.")
-    advertencias += revisar_deposito(texto, opciones)
+    advertencias += revisar_deposito(texto, opciones, paquete)
     advertencias += revisar_alternativas(texto, opciones)
     lineas = contar_lineas(texto)
     if lineas < prompts.MINIMO_LINEAS:
@@ -250,14 +268,15 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
     """`hoy` y `reloj` permiten fijar la fecha y el cronómetro en las pruebas."""
     inicio = reloj()
     hoy = hoy or hoy_en_lima()
-    perfil, uso1 = llm.estructurado(prompts.sistema_extraer(fecha_en_texto(hoy)), consulta, PerfilTurista)
+    sistema = prompts.sistema_extraer(fecha_en_texto(hoy), prompts.lista_extras(extras))
+    perfil, uso1 = llm.estructurado(sistema, consulta, PerfilTurista)
     if perfil.mes_viaje is None:  # respaldo en código si el modelo no convirtió "esta semana" en un mes
         mes = mes_relativo(perfil.fecha_texto, hoy) or mes_relativo(consulta, hoy)
         if mes:
             perfil = perfil.model_copy(update={"mes_viaje": mes})
 
     fragmentos = base.buscar(consulta_desde_perfil(perfil), k=8, archivos_prioritarios=archivos_desde_perfil(perfil))
-    opciones = opciones_para_perfil(perfil, tarifario, extras, maximo=MAXIMO_OPCIONES)
+    opciones = opciones_para_perfil(perfil, tarifario, maximo=MAXIMO_OPCIONES)
     fecha_posible = not any(o.motivo_alternativa == "no_disponible" for o in opciones)
     aviso = aviso_clave(perfil, opciones)
     presupuesto = nota_presupuesto(perfil, opciones)
@@ -278,9 +297,10 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
     borrador, uso2 = llm.estructurado(prompts.SISTEMA_RESPONDER, mensaje, BorradorRespuesta)
 
     no_autorizados, advertencias = controlar_borrador(borrador, perfil, opciones)
+    fijos = []
     if sin_precio:
         nombres = " y ".join(NOMBRE_RUTA.get(t, t) for t in sin_precio)
-        advertencias.insert(0, f"El viajero pidió {nombres}, que no está en tu tarifario: confírmale el precio.")
+        fijos.append(f"El viajero pidió {nombres}, que no está en tu tarifario: confírmale el precio.")
     return Resultado(
         perfil=perfil,
         opciones=opciones,
@@ -288,7 +308,67 @@ def procesar_consulta(consulta: str, llm: LLM, base: BaseConocimiento, tarifario
         aviso=aviso,
         borrador=borrador,
         precios_no_autorizados=no_autorizados,
-        advertencias=borrador.advertencias_para_agencia + advertencias,
+        advertencias=borrador.advertencias_para_agencia + fijos + advertencias,
         uso=uso1.sumar(uso2),
         segundos=reloj() - inicio,
+        avisos_fijos=fijos,
+    )
+
+
+# --- Paquete en el borrador ----------------------------------------------------------
+
+MARCA_PAQUETE = "[PAQUETE]"
+
+
+def _unidades(texto: str) -> tuple[list[str], str]:
+    """Partes del mensaje que se pueden quitar: líneas si el mensaje tiene varias; si no, frases."""
+    lineas = [linea for linea in texto.splitlines() if linea.strip()]
+    if len(lineas) >= prompts.MINIMO_LINEAS:
+        return lineas, "\n"
+    return [f for f in re.split(r"(?<=[.!?])\s+", texto.strip()) if f], " "
+
+
+def quitar_precios(texto: str, opciones: list[OpcionCotizada]) -> str:
+    """Deja en el mensaje del modelo la MARCA_PAQUETE en lugar de sus líneas (o frases) de precios y depósito.
+
+    Solo se quitan las que tienen montos que salen todos de la cotización, o que hablan del depósito o el
+    saldo: el paquete los repite con sus propios montos. Un monto inventado no se quita: lo ve el control."""
+    if MARCA_PAQUETE in texto:
+        return texto
+    permitidos = precios_permitidos(opciones)
+    unidades, union = _unidades(texto)
+    salida, puesta = [], False
+    for u in unidades:
+        montos = precios_en_texto(u)
+        de_la_cotizacion = montos and all(m in permitidos for m in montos)
+        if de_la_cotizacion or _DEPOSITO.search(u) or _SALDO.search(u):
+            if not puesta:
+                salida.append(MARCA_PAQUETE)
+                puesta = True
+            continue
+        salida.append(u)
+    if not puesta:  # sin líneas de precio: el paquete va antes de la última línea (las preguntas)
+        salida.insert(max(len(salida) - 1, 0), MARCA_PAQUETE)
+    return union.join(salida)
+
+
+def aplicar_paquete(resultado: Resultado, paquete: Paquete | None) -> Resultado:
+    """El borrador con el paquete del vendedor: el mensaje del modelo sin sus líneas de precio, más el bloque
+    del paquete armado por el código. Vuelve a correr los controles con los montos del paquete."""
+    if paquete is None:
+        return resultado
+    perfil = resultado.perfil
+    beneficios = {s.extra_id: s.beneficio for s in perfil.extras_sugeridos}
+    bloque = texto_paquete(paquete, perfil.idioma, beneficios, resultado.opciones)
+    original = resultado.mensaje_modelo or resultado.borrador.mensaje_para_cliente
+    plantilla = quitar_precios(original, resultado.opciones)
+    texto = plantilla.replace(MARCA_PAQUETE, "\n" + bloque + "\n")
+    texto = re.sub(r"[ \t]*\n[ \t]*", "\n", texto)
+    texto = re.sub(r"\n{2,}", "\n", texto).strip()
+    borrador = resultado.borrador.model_copy(update={"mensaje_para_cliente": texto})
+    no_autorizados, advertencias = controlar_borrador(borrador, perfil, resultado.opciones, paquete, bloque)
+    return replace(
+        resultado, borrador=borrador, mensaje_modelo=original, paquete=paquete,
+        precios_no_autorizados=no_autorizados,
+        advertencias=resultado.borrador.advertencias_para_agencia + resultado.avisos_fijos + advertencias,
     )

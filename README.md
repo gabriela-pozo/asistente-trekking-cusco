@@ -23,8 +23,9 @@ Hoy el vendedor revisa y envía cada respuesta: por la mañana responde en minut
 3. El código elige opciones del **tarifario de la agencia** y calcula precios, total y depósito. El modelo nunca calcula precios.
 4. Se buscan en la base de conocimiento (`data/knowledge/`, con fuentes y fechas) los fragmentos del trek y de las condiciones de reserva.
 5. El modelo redacta un borrador corto en el idioma del viajero, y un control revisa en código que no haya precios inventados, que esté en el idioma correcto y que tenga menos de 150 palabras.
-6. El vendedor revisa, edita y lo abre en WhatsApp con un clic. Puede registrar la consulta como cotizada o reservada (solo su perfil, sin el mensaje ni el teléfono).
-7. **Tablero:** consultas, tasa de cierre, sin respuesta y monto reservado, por mes del viaje, trek y país, con filtros por trek e idioma. En el demo usa **datos sintéticos** (`data/consultas_sinteticas.csv`, de `scripts/generar_consultas_sinteticas.py`) más las consultas registradas en la app.
+6. **Armar paquete**, como cotizan las agencias de Cusco: precio base del trek + extras opcionales con su unidad (bolsa de dormir, bastones, Huayna Picchu, caballo, habitación individual, servicio privado) + días en Cusco antes del trek (hotel 3★ o 4★ y traslado) + recargo si paga con tarjeta o PayPal. El modelo sugiere hasta 3 extras según lo que escribió el viajero; el vendedor marca o desmarca y el código recalcula el desglose y el borrador. Precios y fuentes: `docs/fuentes_precios.md`.
+7. El vendedor revisa, edita y lo abre en WhatsApp con un clic. Puede registrar la consulta como cotizada o reservada (solo su perfil, sin el mensaje ni el teléfono).
+8. **Tablero:** consultas, tasa de cierre, sin respuesta y monto reservado, por mes del viaje, trek y país, con filtros por trek e idioma. En el demo usa **datos sintéticos** (`data/consultas_sinteticas.csv`, de `scripts/generar_consultas_sinteticas.py`) más las consultas registradas en la app.
 
 ![Nueva consulta: la respuesta lista para WhatsApp](docs/captura_1_consulta.png)
 

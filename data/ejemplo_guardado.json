@@ -13,7 +13,8 @@
     ],
     "nivel_preferido": null,
     "presupuesto_usd_pp": null,
-    "extras_de_interes": [],
+    "extras_sugeridos": [],
+    "llega_a_cusco": null,
     "temas_consulta": [
       "precio",
       "qué incluye"
@@ -31,7 +32,6 @@
       "nivel": "estandar",
       "precio_pp": 600,
       "personas": 2,
-      "extras": [],
       "requiere_permiso": false,
       "es_alternativa": false,
       "motivo_alternativa": "",
@@ -57,7 +57,6 @@
       "nivel": "estandar",
       "precio_pp": 680,
       "personas": 2,
-      "extras": [],
       "requiere_permiso": false,
       "es_alternativa": false,
       "motivo_alternativa": "",

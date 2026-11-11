@@ -270,8 +270,7 @@ class PruebasTrekSinPrecio(unittest.TestCase):
 
     def correr(self, como_alternativa=True):
         from core.cotizacion import opciones_para_perfil
-        opciones = opciones_para_perfil(PerfilTurista.model_validate(self.PERFIL), self.SIN_CHOQUEQUIRAO, EXTRAS,
-                                        maximo=2)
+        opciones = opciones_para_perfil(PerfilTurista.model_validate(self.PERFIL), self.SIN_CHOQUEQUIRAO, maximo=2)
         respuesta = borrador(self.mensaje(opciones, como_alternativa), idioma="es",
                              preguntas=["¿Qué fecha exacta tienes en mente?"])
         return correr(perfil=self.PERFIL, respuesta=respuesta, consulta=self.CONSULTA, tarifario=self.SIN_CHOQUEQUIRAO)
