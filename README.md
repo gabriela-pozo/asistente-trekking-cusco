@@ -88,7 +88,7 @@ Modelo: **Gemini** (`gemini-3.5-flash`), con respaldo `gemini-3.5-flash-lite` si
 
 Qué se ve en la app:
 
-- **Nueva consulta:** el borrador listo para WhatsApp, con un **cronómetro** ("Respuesta lista en X s"), el perfil del viajero, las opciones del tarifario, los avisos del control y **Armar paquete** (trek + extras + días en Cusco + recargo por forma de pago).
+- **Consulta, en tres pasos:** pegar el mensaje; revisar la respuesta (burbuja de WhatsApp con **cronómetro**, "Lo que entendimos del viajero", advertencias del control y opciones del tarifario); y ajustar el **paquete** (trek + extras + días en Cusco + recargo por forma de pago). El botón **¿Cómo se usa?** de la cabecera explica el flujo.
 - **Modo nocturno:** si la consulta llega fuera de horario, muestra la respuesta segura que se enviaría sola. En la app es una **simulación**; el webhook de WhatsApp con Twilio (`server/webhook.py`) está escrito y probado, pero aún no conectado en vivo.
 - **Mi agencia:** tarifario editable, extras, recargos, horario de atención y meta semanal.
 - **Tablero:** arriba, **Mi semana** (solo las consultas registradas por el vendedor: meta semanal, monto reservado frente a la semana anterior, racha y cotizaciones que esperan seguimiento). Debajo, un tablero por preguntas (¿cómo voy?, ¿cuándo escriben?, ¿qué piden y qué se cierra?, ¿dónde se pierden las ventas?, ¿para qué meses?, ¿de dónde escriben?), cada una con un hallazgo calculado, filtros de período, trek e idioma, variación frente al período anterior y descarga de cada tabla, con **datos sintéticos** del demo (`data/consultas_sinteticas.csv`).

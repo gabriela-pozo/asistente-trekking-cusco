@@ -56,49 +56,49 @@ Los avisos se separan por gravedad:
 
 ## Tipografía
 
-- **Montserrat** 600–700 para títulos y el precio. **Nunito** 400–600 para el texto. Ambas desde Google Fonts, con la sintaxis `"Nombre:URL"` del tema.
-- Escala fija: **32 / 24 / 18 / 15 / 13** px.
-  - 24: título de página y precio.
-  - 18: borrador y nombre de cada opción.
-  - 15: texto base.
-  - 13: rótulos y notas.
+- **Montserrat** 600–700 para títulos, precios y cifras. **Nunito** 400–700 para el texto. Ambas desde Google Fonts, con la sintaxis `"Nombre:URL"` del tema.
+- Escala: **40 / 36–38 / 32 / 24 / 18 / 16 / 14** px. Texto mínimo 14 px (etiquetas y notas); cuerpo 16 px.
+  - 36–40: número de cada KPI y total del paquete.
+  - 24: título de página y precio por persona.
+  - 18: pregunta del Tablero y títulos de gráfico.
 - Cifras tabulares en toda la app (`font-variant-numeric: tabular-nums`), para que los montos se alineen.
-- El borrador tiene un ancho máximo de 70 caracteres e interlineado de 1,6. En el celular baja a 15 px.
 
 ## Espacio, forma y profundidad
 
-- Espaciado en múltiplos de 8. Radio de 12 a 16 px en tarjetas y de 12 px en botones y campos.
-- La sombra es casi imperceptible y va **solo en la tarjeta del borrador**: es lo único que "flota".
-- Iconos: Material Symbols de Streamlit, solo en acciones y avisos. Sin emojis decorativos.
+- Retícula de 12 columnas: 4 KPIs de 3 columnas y 2 gráficos de 6. Relleno de tarjetas de 16 a 20 px.
+- Campos y botones de 44 px de alto. Campos blancos con borde `--borde-campo`.
+- Radio de 12 a 16 px; sombra muy suave en las tarjetas, un poco más al pasar el cursor.
+- Animaciones sobrias (transición al pasar el cursor, entrada suave de la respuesta), solo si el usuario no pide menos movimiento (`prefers-reduced-motion`).
+- Íconos: Material Symbols de Streamlit (en el menú, los chips y los avisos las pone el CSS) y el logo SVG propio: un paso de montaña con el sol saliendo, en Cumbre y Amanecer.
+- Contraste fuerte entre bloques oscuros (barra lateral, cabecera, banda del Tablero) y claros (tarjetas). Un solo botón principal por pantalla. Los avisos legales van al pie, en gris y con ícono.
 
-## Orden de la pantalla "Nueva consulta"
+## Cabecera y navegación
 
-1. Encabezado de una línea y la tarjeta de entrada: mensaje, teléfono, "Preparar respuesta".
-2. **Tarjeta del borrador**: texto editable, contador de palabras, "Respondió: modelo · tokens" y el botón "Abrir en WhatsApp" a todo el ancho de la tarjeta.
-3. Avisos del control agrupados: lo grave en rojo y arriba.
-4. Opciones como filas comparables: trek, días, nivel, el **precio por persona destacado en ocre**, total y depósito, y la etiqueta "Alternativa" cuando corresponde.
-5. Perfil del viajero en fichas legibles ("Inglés", "Salkantay", "marzo"). Lo que falta va como etiqueta.
+- **Barra superior** siempre visible (pegada arriba al bajar): nombre de la agencia, **una sola** insignia "Datos de demostración", el estado del sistema en una insignia pequeña (modelo activo o "Ejemplo guardado") y el botón **¿Cómo se usa?** (ventana con `st.dialog`).
+- **Menú lateral** con nombres cortos e íconos, sin descripciones: Consulta, Tablero, Fuentes, Mi agencia, Sistema, Piloto. El ítem activo, en Amanecer sobre Cumbre.
 
-En la laptop, el borrador y las opciones van lado a lado (7:5). En el celular todo va en una columna, con el borrador primero. A 1440 × 900, el botón de WhatsApp queda en la primera pantalla.
+## Pantalla "Consulta": tres pasos
 
-## Navegación y páginas de respaldo
+1. **Pegar:** mensaje de 4 líneas, un solo botón grande "Preparar respuesta" y el enlace "Usar mensaje de ejemplo". El WhatsApp del viajero y la hora de llegada, en el expander "Opciones". Mientras carga: "Leyendo el mensaje → Buscando tu tarifa → Redactando" (`st.status`).
+2. **Revisar:** "Resultado guardado" como insignia pequeña; la respuesta en una burbuja tipo WhatsApp (idioma y hora arriba, "Copiar" y "Abrir en WhatsApp" abajo); a la derecha, "Lo que entendimos del viajero" en chips con ícono, las advertencias para la agencia en un panel de máximo 3 viñetas y las opciones en dos líneas. "Registrar como cotizada/reservada" lleva la frase "Alimenta el Tablero".
+3. **Ajustar:** el resumen (total grande, por persona y depósito) siempre visible; el expander cerrado "Ajustar paquete y extras" tiene el trek base, los extras, "Más opciones" (noches, hotel y forma de pago) y el desglose, en pestañas.
 
-La barra lateral lista las páginas en este orden, cada una con una línea que dice para qué sirve: **Nueva consulta**, **Tablero**, **Fuentes y verificación**, **Mi agencia**, **Estado del sistema** y **Acerca del piloto**. Arriba va el trabajo diario; abajo, lo que da confianza para enviar.
+"Información consultada" es un enlace pequeño a Fuentes. El mapa sigue en su expander. Con la consulta llegada fuera de horario, la respuesta automática simulada aparece debajo.
 
-- **Fuentes y verificación:** los fragmentos de la base de conocimiento que se usaron en la última consulta (título, archivo, fecha y enlaces a la fuente; las del Estado peruano llevan la etiqueta "Oficial"). Lo que tiene más de 90 días, o no tiene fecha, lleva la etiqueta ámbar "Verificar antes de enviar". Debajo, la base completa en una tabla con buscador; en el celular cada fila se apila.
-- **Estado del sistema:** seis cifras en dos filas de tres: modelo que respondió, consultas que quedan (solo se afirma el 0; si no se sabe, dice "No se conoce"), si se usó el ejemplo guardado, versión (huella del contenido) y fecha de la base, hora en Lima con el modo nocturno, y el número de pruebas (contadas, no ejecutadas). Las cifras van a 24 px, porque algunas son nombres de modelo.
-- **Acerca del piloto:** arriba, "El vendedor siempre revisa" en una franja verde suave; debajo, "Alcance" y "Lo que no hace" lado a lado (en el celular, una debajo de otra). Los límites llevan borde ámbar.
+## Páginas de respaldo
 
-La lógica de estas páginas está en `ai/trazabilidad.py`: solo lee archivos locales, nunca llama a la API.
+- **Fuentes:** arriba el buscador y lo usado en la última respuesta; la tabla completa de la base, plegada.
+- **Sistema:** una línea de estado (sin consulta todavía no se conoce el modelo ni la cuota); la versión de la base y las pruebas, al pie.
+- **Mi agencia:** el tarifario a la vista solo con el nivel estándar; "Editar todos los niveles" en un expander.
+- **Piloto:** "El vendedor siempre revisa" y dos bloques de 3 viñetas con ícono; el texto completo, en "Más detalle".
 
 ## Tablero
 
-- **Arriba, una banda** con la pregunta que responde ("¿Qué consultas se pierden y cuándo?") y el origen de los datos, contado del archivo: "300 consultas sintéticas de demostración" y, si las hay, cuántas registradas en la app.
-- **Orden de lectura:** Tu semana → filtros → KPIs → embudo y por trek (lado a lado) → cuándo llegan → meses → países. Cada gráfico lleva la pregunta como rótulo y **la conclusión como título** (las frases de `core/tablero.py`).
-- **Un color fijo por estado** en todos los gráficos, con la paleta validada: reservada `#0E7C58`, cotizada `#3A78C2`, sin respuesta `#C8660A` (la pérdida que el Tablero quiere mostrar), perdida `#5B6F6A`. Leyenda siempre visible, rejilla `#EDF2EF` y texto de 14 px para el proyector.
-- **Por trek:** barras apiladas por estado, con "x % cierre · n=respondidas". Con menos de 10 respondidas, la barra va al 35 % de opacidad y el texto en gris.
-- **Cuándo llegan:** por defecto 7 días × 4 franjas alineadas con el horario (madrugada 0–8 y noche 20–24 son fuera de horario), con el número en cada celda. "Hora por hora" muestra el 7 × 24.
-- **Bajo cada gráfico,** "Ver los datos en una tabla" (accesible, sin depender del color). Si un filtro no deja consultas, un aviso dice qué combinación no existe y un botón "Quitar filtros".
+- Banda oscura con la pregunta y el origen de los datos en una línea. "Tu semana" como barra de progreso compacta.
+- Período como control segmentado (3, 6 o 12 meses); trek e idioma en selectores compactos, en una sola fila.
+- 4 KPIs grandes con ícono y variación (las definiciones están en el "i"). Debajo: embudo y por trek (con `n=`), "Cuándo llegan" más pequeño con el % fuera de horario, y las pestañas **Más análisis** (por mes del viaje y países) y **Tablas** (los mismos datos de cada gráfico, accesibles y descargables).
+- El título de cada gráfico tiene 8 palabras o menos y dice la conclusión; la frase larga queda debajo en gris.
+- Sin resultados con los filtros: el aviso dice qué filtros chocan y "Quitar filtros" los limpia.
 
 ## Estados
 
@@ -112,7 +112,10 @@ La lógica de estas páginas está en `ai/trazabilidad.py`: solo lee archivos lo
 
 Verbos y español claro: "Preparar respuesta", "Abrir en WhatsApp", "Descargar tarifario", "Revisa antes de enviar", "Corrige antes de enviar". Para el vendedor no hay jerga técnica, salvo la línea de modelo y tokens, que es para la demo.
 
-## Límites de Streamlit 1.67
+## Límites de Streamlit
 
 - **El botón de subir archivos dice "Upload" y "5MB per file", en inglés.** `st.file_uploader` no tiene parámetro para ese texto, y cambiarlo exigiría CSS sobre clases internas. La etiqueta del campo sí está en español.
 - **Las fuentes se cargan desde Google Fonts.** Sin internet, la app usa las fuentes del sistema. El logo no depende de eso: lleva incrustadas las letras de "Abra Travel" en Montserrat (licencia OFL).
+
+- **Compatibilidad:** la app declara `streamlit>=1.40`. Solo usa funciones que existen en esa versión (`st.dialog`, `st.status`, `st.segmented_control`, `st.tabs`, íconos `:material/…:`). Los íconos del menú y de los KPI salen de CSS sobre la fuente Material de Streamlit.
+- **Portapapeles:** "Copiar" usa un componente mínimo (`st.components.v1.html`, sin red); si Streamlit lo quita, cae a un botón que abre el texto con el ícono de copiar de `st.code`.
