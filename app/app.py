@@ -148,7 +148,7 @@ if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lim
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
 pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia",
-                                  "Estado del sistema"], key="pagina")
+                                  "Estado del sistema", "Acerca del piloto"], key="pagina")
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -616,6 +616,56 @@ def pagina_estado() -> None:
             st.caption(f"En {archivos} archivos de tests/. Se cuentan, no se ejecutan desde la app.")
 
 
+# ---------------------------------------------------------------- Acerca del piloto
+ALCANCE = [
+    ("Es una demo con datos sintéticos",
+     "Las consultas del Tablero son inventadas para mostrar cómo se vería: no son de ninguna agencia real. "
+     "El ejemplo guardado sí es una consulta real al modelo, sin nombres ni teléfonos."),
+    ("La agencia es ficticia; sus precios son de mercado",
+     f"«{AGENCIA}» no existe. Su tarifario (7 treks en 3 niveles) se calculó con precios reales de mercado: "
+     "el del Salkantay de 5 días, con 17 (12 publicados en webs de agencias y 5 cotizaciones recibidas por "
+     "WhatsApp). El detalle está en docs/fuentes_precios.md."),
+    ("Los precios los pone el código, no el modelo",
+     "El modelo entiende el mensaje y redacta. Los montos salen de tu tarifario, y un control revisa que el "
+     "borrador no tenga precios que no estén en la cotización."),
+]
+NO_HACE = [
+    ("No envía mensajes solo",
+     "«Abrir en WhatsApp» abre el mensaje en tu WhatsApp; lo envías tú. Nada sale de la app sin que lo hagas."),
+    ("El modo nocturno es una simulación",
+     "En esta app solo muestra la respuesta que se enviaría fuera de horario. Enviarla de verdad requiere la API "
+     "de WhatsApp Business (hay un prototipo aparte con el sandbox de Twilio, no conectado a esta app)."),
+    ("No reserva ni cobra",
+     "No consulta cupos ni vende entradas a Machu Picchu o permisos del Camino Inca: eso se confirma en los "
+     "sistemas oficiales."),
+    ("No reemplaza información al día",
+     f"La base de conocimiento tiene fecha y fuentes. Lo que tiene más de {DIAS_PARA_VERIFICAR} días se marca en "
+     "«Fuentes y verificación» para revisarlo."),
+]
+
+
+def html_puntos(puntos: list[tuple[str, str]], clase: str) -> str:
+    return (f'<ul class="puntos {clase}">' + "".join(
+        f"<li><strong>{html.escape(t)}.</strong> {html.escape(d)}</li>" for t, d in puntos) + "</ul>")
+
+
+def pagina_acerca() -> None:
+    st.header("Acerca del piloto")
+    st.html('<p class="subtitulo">Qué es Abra Travel hoy, qué no hace y quién decide.</p>')
+    with st.container(border=True, key="tarjeta_revision"):
+        st.html('<p class="revision"><strong>El vendedor siempre revisa.</strong> Abra Travel prepara un borrador; '
+                'tú lo lees, lo corriges si hace falta y decides si lo envías.</p>')
+    izquierda, derecha = st.columns(2, gap="large")
+    with izquierda, st.container(border=True, key="tarjeta_alcance"):
+        rotulo("Alcance")
+        st.html(html_puntos(ALCANCE, "puntos-alcance"))
+    with derecha, st.container(border=True, key="tarjeta_limites"):
+        rotulo("Lo que no hace")
+        st.html(html_puntos(NO_HACE, "puntos-limites"))
+    st.caption("Las páginas «Fuentes y verificación» y «Estado del sistema» muestran de dónde sale cada dato y "
+               "qué está funcionando en este momento.")
+
+
 # ---------------------------------------------------------------- Mi agencia
 COLUMNAS_LEGIBLES = {
     "trek_id": st.column_config.TextColumn("Código"),
@@ -898,4 +948,5 @@ def pagina_tablero() -> None:
 
 
 {"Nueva consulta": pagina_consulta, "Tablero": pagina_tablero, "Fuentes y verificación": pagina_fuentes,
- "Mi agencia": pagina_agencia, "Estado del sistema": pagina_estado}[pagina]()
+ "Mi agencia": pagina_agencia, "Estado del sistema": pagina_estado,
+ "Acerca del piloto": pagina_acerca}[pagina]()

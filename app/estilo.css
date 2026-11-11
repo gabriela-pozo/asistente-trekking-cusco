@@ -151,3 +151,12 @@ body { font-variant-numeric: tabular-nums; }
 /* Estado del sistema: cifras más chicas que en el Tablero, porque algunas son nombres de modelo. */
 .st-key-estado_sistema [data-testid="stMetricValue"] { font-size: 24px; white-space: normal; overflow-wrap: anywhere; }
 .st-key-estado_sistema [data-testid="stMetric"] { background: var(--superficie); }
+
+/* Acerca del piloto: alcance y límites en dos listas legibles. */
+.st-key-tarjeta_alcance, .st-key-tarjeta_limites { background: var(--superficie); }
+.st-key-tarjeta_revision { background: var(--suave); border-left: 4px solid var(--primario); }
+.revision { font-size: 18px; line-height: 1.5; color: var(--tinta); margin: 0; max-width: 70ch; }
+.puntos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px;
+  font-size: 15px; line-height: 1.6; color: var(--tinta); }
+.puntos li { padding-left: 16px; border-left: 3px solid var(--borde); }
+.puntos-limites li { border-left-color: #B7791F; }

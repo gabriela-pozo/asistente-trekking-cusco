@@ -91,6 +91,19 @@ class PruebasImports(unittest.TestCase):
             self.assertIn("gemini", valores["Modelo que respondió"])
             self.assertTrue(valores["Base de conocimiento"].startswith("v. "))
 
+    def test_acerca_del_piloto_declara_los_limites(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            app = AppTest.from_file(str(APP), default_timeout=60)
+            app.run()
+            app.sidebar.radio[0].set_value("Acerca del piloto").run()
+        self.assertFalse(app.exception)
+        pagina = " ".join(str(h.proto) for h in app.get("html"))
+        for frase in ("datos sintéticos", "ficticia", "17", "No envía mensajes solo", "simulación",
+                      "El vendedor siempre revisa"):
+            self.assertIn(frase, pagina)
+
 
 class PruebasRecarga(unittest.TestCase):
     """La caída del demo: app.py nuevo con un ai.pipeline viejo en memoria."""
