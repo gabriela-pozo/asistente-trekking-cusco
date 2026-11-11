@@ -64,6 +64,15 @@ La barra lateral lista las páginas en este orden, cada una con una línea que d
 
 La lógica de estas páginas está en `ai/trazabilidad.py`: solo lee archivos locales, nunca llama a la API.
 
+## Tablero
+
+- **Arriba, una banda** con la pregunta que responde ("¿Qué consultas se pierden y cuándo?") y el origen de los datos, contado del archivo: "300 consultas sintéticas de demostración" y, si las hay, cuántas registradas en la app.
+- **Orden de lectura:** Tu semana → filtros → KPIs → embudo y por trek (lado a lado) → cuándo llegan → meses → países. Cada gráfico lleva la pregunta como rótulo y **la conclusión como título** (las frases de `core/tablero.py`).
+- **Un color fijo por estado** en todos los gráficos, con la paleta validada: reservada `#0E7C58`, cotizada `#3A78C2`, sin respuesta `#C8660A` (la pérdida que el Tablero quiere mostrar), perdida `#5B6F6A`. Leyenda siempre visible, rejilla `#EDF2EF` y texto de 14 px para el proyector.
+- **Por trek:** barras apiladas por estado, con "x % cierre · n=respondidas". Con menos de 10 respondidas, la barra va al 35 % de opacidad y el texto en gris.
+- **Cuándo llegan:** por defecto 7 días × 4 franjas alineadas con el horario (madrugada 0–8 y noche 20–24 son fuera de horario), con el número en cada celda. "Hora por hora" muestra el 7 × 24.
+- **Bajo cada gráfico,** "Ver los datos en una tabla" (accesible, sin depender del color). Si un filtro no deja consultas, un aviso dice qué combinación no existe y un botón "Quitar filtros".
+
 ## Estados
 
 - **Sin clave:** aviso con qué falta y dónde ponerla; "Preparar respuesta" queda deshabilitado.
