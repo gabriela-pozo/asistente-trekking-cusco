@@ -48,14 +48,25 @@ def lista_markdown(textos: list[str]) -> str:
     return "\n".join(f"- {t.replace('$', chr(92) + '$')}" for t in textos)
 
 
-def fichas_perfil(perfil) -> list[tuple[str, str]]:
+def duracion(perfil, opciones=None) -> str:
+    """"4–5 días" si las opciones cotizadas cubren un rango dentro de lo que dijo; si no, "N días". Nunca solo "5"."""
+    maximo = perfil.dias_disponibles
+    if not maximo:
+        return ""
+    dias = sorted({o.dias for o in (opciones or []) if o.dias <= maximo})
+    if len(dias) > 1:
+        return f"{dias[0]}–{dias[-1]} días"
+    return f"{maximo} días" if maximo != 1 else "1 día"
+
+
+def fichas_perfil(perfil, opciones=None) -> list[tuple[str, str]]:
     """(dato, valor legible) de lo que el viajero sí dijo, en orden de importancia para cotizar."""
     datos = [
         ("Trek", ", ".join(NOMBRE_RUTA.get(t, t) for t in perfil.treks_de_interes)),
         ("Personas", str(perfil.num_personas or "")),
         ("Mes del viaje", mes(perfil.mes_viaje)),
-        ("Fechas", perfil.fecha_texto or ""),
-        ("Días", str(perfil.dias_disponibles or "")),
+        ("Fechas", "" if perfil.mes_viaje and not any(c.isdigit() for c in (perfil.fecha_texto or "")) else perfil.fecha_texto or ""),
+        ("Días", duracion(perfil, opciones)),
         ("Nivel", nivel(perfil.nivel_preferido) if perfil.nivel_preferido else ""),
         ("Presupuesto", f"{usd(perfil.presupuesto_usd_pp)} por persona" if perfil.presupuesto_usd_pp else ""),
         ("Llega a Cusco", {"mismo_dia": "el mismo día del trek", "antes": "antes del trek"}.get(
@@ -130,10 +141,10 @@ def icono(nombre: str) -> str:
     return f'<span class="ico" aria-hidden="true">{escape(nombre)}</span>'
 
 
-def html_chips(perfil) -> str:
+def html_chips(perfil, opciones=None) -> str:
     """"Lo que entendimos del viajero": chips pequeños con ícono; lo que falta, como chip de aviso."""
     chips = "".join(f'<span class="chip" title="{escape(k)}">{icono(ICONO_FICHA.get(k, "label"))}{escape(v)}</span>'
-                    for k, v in fichas_perfil(perfil))
+                    for k, v in fichas_perfil(perfil, opciones))
     faltan = "".join(f'<span class="chip chip-falta">{icono("help")}Falta: {escape(f)}</span>'
                      for f in perfil.datos_faltantes)
     return f'<div class="chips">{chips}{faltan}</div>'

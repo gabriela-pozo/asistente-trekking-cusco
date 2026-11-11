@@ -30,6 +30,21 @@ class PruebasPresentacion(unittest.TestCase):
                          {"Trek": "Salkantay", "Personas": "2", "Mes del viaje": "marzo", "Idioma": "Inglés"})
         self.assertIn("Falta: fecha exacta", html_perfil(perfil))
 
+    def test_duracion_en_rango_y_sin_duplicar_el_mes(self):
+        from presentacion import duracion
+        perfil = PerfilTurista(idioma="en", mes_viaje=3, fecha_texto="late March", dias_disponibles=5,
+                               treks_de_interes=["salkantay"])
+        o4 = OpcionCotizada("salkantay_4d", "Salkantay", 4, "estandar", 600, 2)
+        o5 = OpcionCotizada("salkantay_5d", "Salkantay", 5, "estandar", 680, 2)
+        self.assertEqual(duracion(perfil, [o4, o5]), "4–5 días")
+        self.assertEqual(duracion(perfil), "5 días")  # nunca solo "5"
+        fichas = dict(fichas_perfil(perfil, [o4, o5]))
+        self.assertEqual(fichas["Días"], "4–5 días")
+        self.assertEqual(fichas["Mes del viaje"], "marzo")
+        self.assertNotIn("Fechas", fichas)  # "late March" repetía "marzo"
+        con_fecha = PerfilTurista(idioma="en", mes_viaje=3, fecha_texto="March 20-25")
+        self.assertIn("Fechas", dict(fichas_perfil(con_fecha)))
+
     def test_texto_del_viajero_se_escapa(self):
         perfil = PerfilTurista(idioma="en", fecha_texto="<script>x</script>")
         self.assertNotIn("<script>", html_perfil(perfil))

@@ -451,10 +451,10 @@ def mostrar_opciones(resultado) -> None:
               on_click=ir_a, args=("Fuentes",), key="ir_fuentes", help="Ver de dónde sale cada dato en Fuentes.")
 
 
-def mostrar_perfil(perfil) -> None:
+def mostrar_perfil(perfil, opciones=None) -> None:
     """Lo que entendimos del viajero: chips pequeños con ícono."""
     rotulo("Lo que entendimos del viajero")
-    st.html(html_chips(perfil))
+    st.html(html_chips(perfil, opciones))
 
 
 def mostrar_respuesta_nocturna(resultado) -> None:
@@ -559,7 +559,7 @@ def pagina_consulta() -> None:
     # Segunda fila (en el celular, después de la respuesta): lo entendido, advertencias y opciones | ajustar
     opciones, ajuste = st.columns([5, 7], gap="large")
     with opciones:
-        mostrar_perfil(resultado.perfil)
+        mostrar_perfil(resultado.perfil, resultado.opciones)
         mostrar_avisos(resultado)
         mostrar_opciones(resultado)
     with ajuste:
