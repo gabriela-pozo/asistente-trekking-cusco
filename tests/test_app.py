@@ -83,6 +83,18 @@ class PruebasApp(unittest.TestCase):
         self.assertEqual(anterior.type, "caption")
         self.assertTrue(anterior.value.startswith("Respondió: gemini-3.5-flash · Tokens usados"))
 
+    def test_la_respuesta_sigue_ahi_al_volver_de_otra_pagina(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            app.sidebar.radio[0].set_value("Tablero").run()
+            app.sidebar.radio[0].set_value("Consulta").run()
+        self.assertFalse(app.exception)
+        self.assertIn("US$ 600", app.text_area(key="borrador").value)
+
     def test_cronometro_solo_con_respuesta_del_modelo(self):
         from streamlit.testing.v1 import AppTest
 

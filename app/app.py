@@ -366,6 +366,8 @@ def mostrar_borrador(resultado, telefono: str) -> None:
             segundos = f"{resultado.segundos:.1f}".replace(".", ",")
             meta.append(f'<span class="cronometro">Respuesta lista en {segundos} s</span>')
         st.html('<div class="burbuja-meta"><span class="rotulo">2 · Revisar la respuesta</span>' + "".join(meta) + "</div>")
+        if "borrador" not in st.session_state:  # Streamlit borra el widget al cambiar de página: se vuelve a sembrar
+            st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         texto = st.text_area("Respuesta para el viajero (puedes editarla)", key="borrador", height=220,
                              label_visibility="collapsed")
         # Justo encima del botón, para que se vea sin bajar.
