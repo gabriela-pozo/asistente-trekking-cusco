@@ -19,10 +19,13 @@ Correr en local:  uvicorn server.webhook:app --port 8000
 """
 from __future__ import annotations
 
+import hmac
+import json
 import logging
 import os
 import sys
 import threading
+import urllib.request
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
@@ -76,6 +79,61 @@ class EnviadorTwilio:
         return mensaje.sid
 
 
+LIMITE_TELEGRAM = 4096
+
+
+def dividir_mensaje(texto: str, limite: int = LIMITE_TELEGRAM) -> list[str]:
+    """Parte el texto en trozos de hasta `limite` caracteres, cortando por párrafos (y si un párrafo
+    no cabe, por líneas y, en último caso, a la fuerza)."""
+    trozos: list[str] = []
+    actual = ""
+    for parrafo in texto.split("\n\n"):
+        while len(parrafo) > limite:  # párrafo gigante: por línea o por corte duro
+            corte = parrafo.rfind("\n", 0, limite)
+            corte = corte if corte > 0 else limite
+            if actual:
+                trozos.append(actual)
+                actual = ""
+            trozos.append(parrafo[:corte])
+            parrafo = parrafo[corte:].lstrip("\n")
+        candidato = f"{actual}\n\n{parrafo}" if actual else parrafo
+        if len(candidato) <= limite:
+            actual = candidato
+        else:
+            trozos.append(actual)
+            actual = parrafo
+    if actual.strip():
+        trozos.append(actual)
+    return [t for t in trozos if t.strip()]
+
+
+def _post_json(url: str, datos: dict) -> dict:
+    peticion = urllib.request.Request(url, data=json.dumps(datos).encode("utf-8"),
+                                      headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(peticion, timeout=15) as respuesta:  # noqa: S310 - URL fija de Telegram
+        return json.loads(respuesta.read().decode("utf-8"))
+
+
+class EnviadorTelegram:
+    """Envía con sendMessage de la Bot API (biblioteca estándar). `post` se puede reemplazar en pruebas."""
+
+    def __init__(self, bot_token: str | None = None, post: Callable[[str, dict], dict] = _post_json):
+        self.bot_token = bot_token or os.getenv("TELEGRAM_BOT_TOKEN", "")
+        self._post = post
+
+    def enviar(self, para: str, texto: str) -> str:
+        url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+        n = 0
+        for trozo in dividir_mensaje(texto):
+            self._post(url, {"chat_id": para, "text": trozo})
+            n += 1
+        return f"{n} trozo(s)"
+
+
+def telegram_configurado() -> bool:
+    return bool(os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_WEBHOOK_SECRET"))
+
+
 class Recordados:
     """MessageSid ya vistos, para no responder dos veces (Twilio puede repetir un webhook)."""
 
@@ -114,11 +172,12 @@ def modo_forzado() -> bool:
 
 
 def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], datetime] = ahora_en_lima,
-              auth_token: str | None = None, tarifario=None) -> FastAPI:
+              auth_token: str | None = None, tarifario=None,
+              enviador_telegram: Enviador | None = None) -> FastAPI:
     """Las dependencias se pueden reemplazar en las pruebas (modelo, envío, reloj)."""
     app = FastAPI(title="Abra Travel: modo nocturno", docs_url=None, redoc_url=None)
     recordados = Recordados()
-    estado = {"llm": llm, "enviador": enviador, "tarifario": tarifario}
+    estado = {"llm": llm, "enviador": enviador, "tarifario": tarifario, "telegram": enviador_telegram}
 
     def token() -> str:
         return auth_token if auth_token is not None else os.getenv("TWILIO_AUTH_TOKEN", "")
@@ -140,7 +199,12 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             estado["enviador"] = EnviadorTwilio()
         return estado["enviador"].enviar(para, texto)
 
-    def responder(sid: str, texto: str, para: str) -> None:
+    def enviar_telegram(para: str, texto: str) -> str:
+        if estado["telegram"] is None:
+            estado["telegram"] = EnviadorTelegram()
+        return estado["telegram"].enviar(para, texto)
+
+    def responder(sid: str, texto: str, para: str, envio: Callable[[str, str], str] | None = None) -> None:
         """En segundo plano: perfil -> respuesta segura -> envío. Nunca registra el texto ni el teléfono."""
         agencia = os.getenv("AGENCIA_NOMBRE") or AGENCIA_POR_DEFECTO
         try:
@@ -155,7 +219,7 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             mensaje = mensaje_recepcion(PerfilTurista(idioma=""), agencia)
             resumen = f"estado=solo recepción motivo={type(error).__name__}"
         try:
-            enviado = enviar(para, mensaje)
+            enviado = (envio or enviar)(para, mensaje)
             log.info("respondido sid=%s %s envio=%s", sid, resumen, enviado)
         except Exception as error:  # noqa: BLE001
             log.error("no se pudo enviar sid=%s %s error=%s", sid, resumen, type(error).__name__)
@@ -166,6 +230,7 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             "estado": "ok",
             "horario_lima": f"{APERTURA:%H:%M}-{CIERRE:%H:%M}",
             "modo_forzado": modo_forzado(),
+            "telegram_configurado": telegram_configurado(),
             "twilio_configurado": all(os.getenv(v) for v in
                                       ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM")),
         }
@@ -194,6 +259,38 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             return vacio
         tareas.add_task(responder, sid, texto, de)
         return vacio
+
+    @app.post("/telegram")
+    async def telegram(request: Request, tareas: BackgroundTasks) -> Response:
+        if not telegram_configurado():
+            log.error("telegram sin configurar")
+            return Response("Telegram no está configurado: faltan TELEGRAM_BOT_TOKEN o TELEGRAM_WEBHOOK_SECRET",
+                            status_code=503)
+        recibido = request.headers.get("x-telegram-bot-api-secret-token", "")
+        if not hmac.compare_digest(recibido.encode(), os.getenv("TELEGRAM_WEBHOOK_SECRET", "").encode()):
+            log.warning("telegram: secreto inválido")
+            return Response("Secreto inválido", status_code=403)
+        try:
+            update = await request.json()
+            mensaje = update.get("message") or {}
+            uid = update.get("update_id")
+            chat = (mensaje.get("chat") or {}).get("id")
+            texto = mensaje.get("text")
+            texto = texto.strip() if isinstance(texto, str) else ""
+        except (ValueError, AttributeError):
+            return Response(status_code=200)
+        if chat is None or not texto:
+            log.info("telegram ignorado update=%s motivo=sin texto", uid)
+            return Response(status_code=200)
+        clave = f"tg{uid if uid is not None else chat}-{mensaje.get('message_id', '')}"
+        if not recordados.primera_vez(clave):
+            log.info("telegram ignorado %s motivo=repetido", clave)
+            return Response(status_code=200)
+        if not (modo_forzado() or fuera_de_horario(reloj(), APERTURA, CIERRE)):
+            log.info("telegram ignorado %s motivo=dentro del horario", clave)
+            return Response(status_code=200)
+        tareas.add_task(responder, clave, texto, str(chat), enviar_telegram)
+        return Response(status_code=200)
 
     return app
 

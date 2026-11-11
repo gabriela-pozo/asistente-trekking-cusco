@@ -460,3 +460,23 @@ Más el commit de este informe (hash en el mensaje final).
 4. **Perfil de altitud:** eje horizontal con marcas de km y unidad.
 5. **Aviso de demostración** traducido a es/en/pt; la prueba del español usa un PDF en español.
 pytest: 311 pasan, 1 falla (la conocida de `anthropic`).
+
+
+## Webhook de Telegram (`POST /telegram`, rama `mejoras-telegram`)
+
+Misma lógica que `/whatsapp` (mismo modelo, mismo modo día/noche, mismas reglas de respuesta segura); solo cambian la entrada (JSON de Telegram) y la salida (`sendMessage`, en segundo plano, cortando por párrafos a 4096 caracteres).
+
+**Variables de entorno nuevas** (en el panel del servidor, nunca en archivos):
+- `TELEGRAM_BOT_TOKEN`: token que da @BotFather.
+- `TELEGRAM_WEBHOOK_SECRET`: cadena que tú eliges (1-256 caracteres: letras, números, `_` y `-`).
+Si falta cualquiera, `/telegram` responde 503 y `/salud` muestra `telegram_configurado: false`. Sin la cabecera `X-Telegram-Bot-Api-Secret-Token` correcta responde 403.
+
+**Registrar el webhook** (una vez; sustituye los valores):
+```
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -d "url=https://<URL_PUBLICA_DEL_SERVIDOR>/telegram" \
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+Comprobar con `.../getWebhookInfo`. Para quitarlo: `.../deleteWebhook`.
+
+**Notas:** igual que en WhatsApp, de día (8:00-20:00 Lima) no responde salvo con `FORZAR_MODO_NOCTURNO=1`; las repeticiones del mismo `update_id` se ignoran (en memoria); el log solo guarda identificadores, nunca el texto ni el token. Pruebas: `tests/test_webhook_telegram.py` (sin red).
