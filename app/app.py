@@ -892,15 +892,19 @@ def texto_racha(r) -> str:
     return "Hoy todavía no registraste consultas. Cuando respondas una, regístrala y empiezas una racha."
 
 
+META_INICIAL = 3  # meta chica para empezar a registrar (no es un dato: es una sugerencia)
+
+
 def mostrar_mi_semana() -> None:
     """Solo las consultas registradas en la app (nunca las sintéticas). El vendedor contra sí mismo."""
     hoy = hoy_en_lima()
     registradas = leer_registradas(RUTA_REGISTRO)
     with st.container(border=True, key="mi_semana"):
-        rotulo("Mi semana")
-        if registradas.empty:
+        rotulo("Tu semana")
+        if registradas.empty:  # corto y con una meta chica: el primer paso es registrar
+            st.progress(0, text=f"**0 de {META_INICIAL}** consultas registradas esta semana")
             st.markdown("Registra tus consultas y aquí verás cuánto vendes, qué treks te piden y qué cotizaciones "
-                        "esperan seguimiento.")
+                        f"esperan seguimiento. Primera meta: {META_INICIAL} esta semana.")
             st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a_consulta)
             return
 

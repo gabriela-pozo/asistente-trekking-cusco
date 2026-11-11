@@ -151,6 +151,12 @@ class PruebasPagina(unittest.TestCase):
         tablas = [e for e in app.expander if e.label == "Ver los datos en una tabla"]
         self.assertEqual(len(tablas), graficos)
 
+    def test_tu_semana_sin_registros_muestra_cero_y_una_meta_chica(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+        self.assertTrue(any("Tu semana" in str(h.proto) for h in app.get("html")))
+        self.assertTrue(any("0 de 3" in str(b.proto) for b in app.get("progress")))
+
 
 if __name__ == "__main__":
     unittest.main()
