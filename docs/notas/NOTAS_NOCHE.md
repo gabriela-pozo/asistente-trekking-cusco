@@ -460,3 +460,29 @@ Más el commit de este informe (hash en el mensaje final).
 4. **Perfil de altitud:** eje horizontal con marcas de km y unidad.
 5. **Aviso de demostración** traducido a es/en/pt; la prueba del español usa un PDF en español.
 pytest: 311 pasan, 1 falla (la conocida de `anthropic`).
+
+# WhatsApp Cloud API de Meta (`/whatsapp-cloud`, rama `mejoras-cloud`)
+
+Mismo flujo que `/whatsapp` (Twilio): misma generación de respuesta, mismo modo día/noche (solo fuera de 8:00–20:00 Lima o con `FORZAR_MODO_NOCTURNO=1`), mismas reglas. `/whatsapp` no cambió.
+
+## Variables de entorno (Render; nunca en el repositorio)
+- `META_VERIFY_TOKEN`: texto que tú inventas; Meta lo envía al verificar el webhook.
+- `META_APP_SECRET`: "Secreto de la app" (Configuración de la app > Básica). Valida la firma `X-Hub-Signature-256`.
+- `META_ACCESS_TOKEN`: token del sistema (usuario del sistema en Business Manager; el temporal de 24 h solo sirve para probar).
+- `META_PHONE_NUMBER_ID`: identificador del número (WhatsApp > Configuración de la API). No es el número de teléfono.
+
+Si falta alguna, `/whatsapp-cloud` responde 503 indicando cuáles faltan, y `/salud` muestra `meta_configurado: false`.
+
+## Configurar el webhook en el panel de Meta
+1. developers.facebook.com > tu app > WhatsApp > Configuración.
+2. Webhook > Editar: URL de devolución de llamada `https://<tu-servicio>.onrender.com/whatsapp-cloud` y el token de verificación (`META_VERIFY_TOKEN`). Meta hace un GET y espera el `hub.challenge`.
+3. Administrar > suscribirse al campo `messages`.
+4. Probar: escribe al número desde otro WhatsApp; `/salud` debe mostrar `meta_configurado: true`.
+
+## Comportamiento
+- POST: valida HMAC-SHA256 del cuerpo crudo; si falla, 403. Responde 200 de inmediato y envía en segundo plano.
+- Ignora `statuses`, mensajes sin texto y repetidos (por id del mensaje).
+- Envío a `graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages`; textos de más de 4000 caracteres se parten por párrafos. Errores de la API se registran sin romper el servidor.
+- Logs: solo identificadores; sin texto del viajero, tokens ni números.
+- Límite: la ventana de 24 h de WhatsApp permite texto libre solo si el viajero escribió antes (aquí siempre responde a un mensaje entrante).
+- Pruebas: `tests/test_webhook_meta.py` (sin red).

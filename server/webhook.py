@@ -15,14 +15,21 @@ Variables de entorno: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FRO
 LLM_PROVIDER y su clave (GEMINI_API_KEY o ANTHROPIC_API_KEY), y opcionales FORZAR_MODO_NOCTURNO=1,
 URL_PUBLICA (la URL exacta configurada en Twilio, para validar la firma) y AGENCIA_NOMBRE.
 
+WhatsApp Cloud API de Meta: GET/POST /whatsapp-cloud (mismo flujo y mismo modo día/noche que /whatsapp).
+Variables: META_VERIFY_TOKEN, META_APP_SECRET, META_ACCESS_TOKEN, META_PHONE_NUMBER_ID.
+
 Correr en local:  uvicorn server.webhook:app --port 8000
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import logging
 import os
 import sys
 import threading
+import urllib.request
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
@@ -32,6 +39,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
 from fastapi import BackgroundTasks, FastAPI, Request, Response  # noqa: E402
+from fastapi.responses import PlainTextResponse  # noqa: E402
 
 from ai import prompts  # noqa: E402
 from ai.fecha import ZONA, fecha_en_texto  # noqa: E402
@@ -52,6 +60,9 @@ log = logging.getLogger("abra.webhook")
 TWIML_VACIO = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
 MAXIMO_RECORDADOS = 5000  # MessageSid ya atendidos (los más antiguos se olvidan)
 AGENCIA_POR_DEFECTO = "Andes Trek Demo"
+VARIABLES_META = ("META_VERIFY_TOKEN", "META_APP_SECRET", "META_ACCESS_TOKEN", "META_PHONE_NUMBER_ID")
+URL_GRAFO = "https://graph.facebook.com/v21.0/{}/messages"
+LIMITE_META = 4000  # WhatsApp admite 4096 caracteres por mensaje de texto
 
 
 class Enviador(Protocol):
@@ -74,6 +85,49 @@ class EnviadorTwilio:
             self._cliente = Client(self.account_sid, self.auth_token)
         mensaje = self._cliente.messages.create(from_=self.desde, to=para, body=texto)
         return mensaje.sid
+
+
+def trocear(texto: str, limite: int = LIMITE_META) -> list[str]:
+    """Parte el texto por párrafos en trozos de a lo sumo `limite` caracteres (un párrafo largo se corta duro)."""
+    trozos: list[str] = []
+    actual = ""
+    for parrafo in texto.split("\n\n"):
+        while len(parrafo) > limite:
+            if actual:
+                trozos.append(actual)
+                actual = ""
+            trozos.append(parrafo[:limite])
+            parrafo = parrafo[limite:]
+        candidato = f"{actual}\n\n{parrafo}" if actual else parrafo
+        if len(candidato) > limite:
+            trozos.append(actual)
+            actual = parrafo
+        else:
+            actual = candidato
+    if actual:
+        trozos.append(actual)
+    return trozos or [""]
+
+
+class EnviadorMeta:
+    """Envía con la WhatsApp Cloud API de Meta (urllib, sin dependencias). `abrir` se reemplaza en las pruebas."""
+
+    def __init__(self, phone_number_id: str | None = None, access_token: str | None = None, abrir=None):
+        self.phone_number_id = phone_number_id or os.getenv("META_PHONE_NUMBER_ID", "")
+        self.access_token = access_token or os.getenv("META_ACCESS_TOKEN", "")
+        self._abrir = abrir or (lambda pedido: urllib.request.urlopen(pedido, timeout=15))
+
+    def enviar(self, para: str, texto: str) -> str:
+        ultimo = ""
+        for trozo in trocear(texto):
+            cuerpo = {"messaging_product": "whatsapp", "to": para, "type": "text", "text": {"body": trozo}}
+            pedido = urllib.request.Request(
+                URL_GRAFO.format(self.phone_number_id), data=json.dumps(cuerpo).encode("utf-8"), method="POST",
+                headers={"Authorization": f"Bearer {self.access_token}", "Content-Type": "application/json"})
+            with self._abrir(pedido) as respuesta:
+                datos = json.loads(respuesta.read() or b"{}")
+            ultimo = ((datos.get("messages") or [{}])[0]).get("id", "")
+        return ultimo
 
 
 class Recordados:
@@ -114,11 +168,11 @@ def modo_forzado() -> bool:
 
 
 def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], datetime] = ahora_en_lima,
-              auth_token: str | None = None, tarifario=None) -> FastAPI:
+              auth_token: str | None = None, tarifario=None, enviador_meta: Enviador | None = None) -> FastAPI:
     """Las dependencias se pueden reemplazar en las pruebas (modelo, envío, reloj)."""
     app = FastAPI(title="Abra Travel: modo nocturno", docs_url=None, redoc_url=None)
     recordados = Recordados()
-    estado = {"llm": llm, "enviador": enviador, "tarifario": tarifario}
+    estado = {"llm": llm, "enviador": enviador, "tarifario": tarifario, "meta": enviador_meta}
 
     def token() -> str:
         return auth_token if auth_token is not None else os.getenv("TWILIO_AUTH_TOKEN", "")
@@ -140,7 +194,12 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             estado["enviador"] = EnviadorTwilio()
         return estado["enviador"].enviar(para, texto)
 
-    def responder(sid: str, texto: str, para: str) -> None:
+    def enviar_meta(para: str, texto: str) -> str:
+        if estado["meta"] is None:
+            estado["meta"] = EnviadorMeta()
+        return estado["meta"].enviar(para, texto)
+
+    def responder(sid: str, texto: str, para: str, envio: Callable[[str, str], str] | None = None) -> None:
         """En segundo plano: perfil -> respuesta segura -> envío. Nunca registra el texto ni el teléfono."""
         agencia = os.getenv("AGENCIA_NOMBRE") or AGENCIA_POR_DEFECTO
         try:
@@ -155,10 +214,21 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             mensaje = mensaje_recepcion(PerfilTurista(idioma=""), agencia)
             resumen = f"estado=solo recepción motivo={type(error).__name__}"
         try:
-            enviado = enviar(para, mensaje)
+            enviado = (envio or enviar)(para, mensaje)
             log.info("respondido sid=%s %s envio=%s", sid, resumen, enviado)
         except Exception as error:  # noqa: BLE001
             log.error("no se pudo enviar sid=%s %s error=%s", sid, resumen, type(error).__name__)
+
+    def meta_completo() -> bool:
+        return all(os.getenv(v) for v in VARIABLES_META)
+
+    def meta_faltantes() -> Response | None:
+        faltan = [v for v in VARIABLES_META if not os.getenv(v)]
+        if faltan:
+            log.error("WhatsApp Cloud API sin configurar: faltan %s", ", ".join(faltan))
+            return PlainTextResponse(f"WhatsApp Cloud API no configurada: faltan {', '.join(faltan)}",
+                                     status_code=503)
+        return None
 
     @app.get("/salud")
     def salud() -> dict:
@@ -166,6 +236,7 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             "estado": "ok",
             "horario_lima": f"{APERTURA:%H:%M}-{CIERRE:%H:%M}",
             "modo_forzado": modo_forzado(),
+            "meta_configurado": meta_completo(),
             "twilio_configurado": all(os.getenv(v) for v in
                                       ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM")),
         }
@@ -194,6 +265,48 @@ def crear_app(llm=None, enviador: Enviador | None = None, reloj: Callable[[], da
             return vacio
         tareas.add_task(responder, sid, texto, de)
         return vacio
+
+    @app.get("/whatsapp-cloud")
+    def whatsapp_cloud_verificar(request: Request) -> Response:
+        if (error := meta_faltantes()) is not None:
+            return error
+        p = request.query_params
+        esperado = os.getenv("META_VERIFY_TOKEN", "")
+        if p.get("hub.mode") == "subscribe" and hmac.compare_digest(p.get("hub.verify_token", ""), esperado):
+            return PlainTextResponse(p.get("hub.challenge", ""))
+        log.warning("verificación de Meta rechazada")
+        return PlainTextResponse("Verificación rechazada", status_code=403)
+
+    @app.post("/whatsapp-cloud")
+    async def whatsapp_cloud(request: Request, tareas: BackgroundTasks) -> Response:
+        if (error := meta_faltantes()) is not None:
+            return error
+        crudo = await request.body()
+        esperada = "sha256=" + hmac.new(os.getenv("META_APP_SECRET", "").encode(), crudo, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(request.headers.get("x-hub-signature-256", ""), esperada):
+            log.warning("firma de Meta inválida")
+            return PlainTextResponse("Firma inválida", status_code=403)
+        try:
+            cuerpo = json.loads(crudo)
+            entradas = cuerpo.get("entry", []) if isinstance(cuerpo, dict) else []
+        except ValueError:
+            return PlainTextResponse("ok")
+        for entrada in entradas:
+            for cambio in (entrada.get("changes") or []):
+                for m in ((cambio.get("value") or {}).get("messages") or []):  # statuses se ignoran
+                    mid, de = str(m.get("id", "")), str(m.get("from", ""))
+                    texto = str((m.get("text") or {}).get("body", "")).strip()
+                    if m.get("type") != "text" or not de or not texto:
+                        log.info("ignorado id=%s motivo=sin texto", mid or "-")
+                        continue
+                    if not recordados.primera_vez(mid or f"{de}:{hash(texto)}"):
+                        log.info("ignorado id=%s motivo=repetido", mid)
+                        continue
+                    if not (modo_forzado() or fuera_de_horario(reloj(), APERTURA, CIERRE)):
+                        log.info("ignorado id=%s motivo=dentro del horario", mid)
+                        continue
+                    tareas.add_task(responder, mid or "-", texto, de, enviar_meta)
+        return PlainTextResponse("ok")
 
     return app
 
