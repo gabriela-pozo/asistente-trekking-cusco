@@ -82,7 +82,9 @@ Las reglas de la respuesta salen de la prueba de cliente misterioso (`docs/resea
 
 **App:** [https://abra-travel.streamlit.app](https://abra-travel.streamlit.app)
 
-Video de respaldo: pendiente; se graba el 11 de noviembre y irá en Google Drive. Detalle y guion: [docs/video/README.md](docs/video/README.md).
+Video de respaldo: [enlace pendiente]
+
+Detalle y guion del video: [docs/video/README.md](docs/video/README.md).
 
 Modelo: **Gemini** (`gemini-3.5-flash`), con respaldo `gemini-3.5-flash-lite` si se queda sin cuota o está saturado, y un **ejemplo guardado** de una consulta real si los dos fallan. El botón "Usar mensaje de ejemplo" muestra ese resultado sin llamar a la API.
 
@@ -146,10 +148,25 @@ Todas estas cifras son **hipótesis de trabajo**: todavía no se midieron con ag
 
 **Yo decidí** el problema, el cliente (agencias de trekking), el nicho (Cusco, empezando por el Salkantay), los precios del tarifario demo y sus fuentes, e hice la prueba de cliente misterioso con 6 agencias, las conversaciones y la encuesta.
 
+## Investigación
+
+Resumen de la prueba de **cliente misterioso** (detalle y método en [docs/research/cliente_misterioso.md](docs/research/cliente_misterioso.md)). Es una prueba pequeña e ilustrativa: no se puede generalizar.
+
+- **Qué se hizo:** un mismo mensaje en inglés, por WhatsApp, a 6 agencias de Cusco cerca de la medianoche del 9 al 10 de noviembre de 2026.
+- **Respuesta humana:** las 6 respondieron, pero entre **496 y 629 minutos** después (mediana cercana a **9,4 horas**), a la mañana siguiente.
+- **Precio:** **3 de 6** dieron el precio en el chat; las otras 3 lo mandaron solo en un PDF o un enlace.
+- **Límites del método:** solo 6 agencias elegidas por conveniencia, un solo mensaje a medianoche (mide la respuesta fuera de horario), una sola noche en temporada baja, una sola consulta (Salkantay, 2 personas, en inglés), horas aproximadas en 2 agencias y solo la primera respuesta.
+
+Conversaciones: [conversación 1](docs/research/conversacion_1.md) (personal de un hotel en Cusco), [conversación 2](docs/research/conversacion_2.md) (persona que conoce el trekking en el Perú) y **conversación 3: pendiente**.
+
 ## Qué sigue
 
-1. **Piloto gratis de 2 semanas con 3 agencias**, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
-2. **Modo nocturno con WhatsApp real:** el webhook ya funciona con el sandbox de Twilio. La integración directa con Meta se intentó, pero la cuenta quedó bloqueada temporalmente por iniciar sesión desde un dispositivo nuevo.
+1. **Primer paso del piloto: WhatsApp real con un número real.** El servidor de WhatsApp (`server/webhook.py`) está escrito y probado (`tests/test_webhook.py`), pero la **prueba de punta a punta con un número real NO se completó**: solo se probó con el sandbox de Twilio, y la integración directa con Meta se intentó, pero la cuenta quedó bloqueada temporalmente por iniciar sesión desde un dispositivo nuevo. Requisitos de la integración oficial (API de WhatsApp Business de Meta):
+   - **Verificación del negocio** en Meta.
+   - **Un número dedicado** para la API.
+   - **Ventana de 24 horas** para responder: solo se puede contestar libremente dentro de las 24 horas desde el último mensaje del viajero.
+   - **Plantillas aprobadas** para escribir primero, fuera de esa ventana.
+2. **Piloto gratis de 2 semanas con 3 agencias**, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
 3. **Paquetes** (trek + extras + días en Cusco) para subir el ticket de cada venta.
 4. **Mapa de la ruta:** lo pidió la [conversación 2](docs/research/conversacion_2.md). Ya hay un expander "Ver la ruta en el mapa" en "Nueva consulta" para Salkantay, Camino Inca y Lares (este último incompleto), con perfil de altitud y enlace al inicio en Google Maps; los demás treks muestran "Mapa no disponible todavía". Datos en `data/rutas/`: © OpenStreetMap contributors (ODbL). Falta mostrar el mapa dentro de la respuesta al viajero.
 5. **Luego Huaraz, Arequipa y Puno**; después los departamentos con boleto turístico (Ley 32586) y Latinoamérica. Un destino nuevo es solo una carpeta nueva de conocimiento más el tarifario de la agencia: `data/knowledge_huaraz/` (Santa Cruz y Laguna 69) ya tiene el mismo formato que la de Cusco, sin cambiar el código.
