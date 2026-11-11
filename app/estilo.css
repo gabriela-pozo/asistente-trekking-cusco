@@ -443,3 +443,9 @@ button[kind="secondary"] { min-height: 52px; font-size: 16px; border-color: var(
 .st-key-mi_semana button { white-space: nowrap; }
 .revision { display: block; }
 .revision .ico { vertical-align: middle; margin-right: 8px; }
+
+/* Correcciones tras revisar la copia desplegada */
+[data-testid="stApp"], [data-testid="stAppViewContainer"], [data-testid="stMain"] { background: #F7F8F8; }
+[data-testid="stMainBlockContainer"] { padding-bottom: 112px; }  /* espacio para el botón "Manage app" de Streamlit Cloud */
+[class*="st-key-kpi_"] [data-testid="stMetric"] { min-height: 148px; }
+[class*="st-key-kpi_"] [data-testid="stMetricLabel"], [class*="st-key-kpi_"] [data-testid="stMetricLabel"] p { white-space: nowrap !important; }

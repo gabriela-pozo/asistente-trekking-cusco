@@ -399,3 +399,12 @@ Ponerlo junto al botón de WhatsApp, usando el `resultado` que ya está en `st.s
 - Pruebas: aparece con el ejemplo guardado; se oculta si el generador falla. `pytest`: 289 pasan, 1 falla (la conocida de `anthropic`).
 - Pendiente (lo dijo el agente B): nadie ha mirado el PDF renderizado; abrirlo una vez antes de enseñarlo. La vigencia de 7 días es un supuesto.
 - Despliegue: `reportlab==5.1.0` ya está en `requirements.txt`; Streamlit Cloud lo instala al redesplegar.
+
+
+## Correcciones tras revisar la copia en Streamlit Cloud
+1. KPIs con altura mínima común y etiquetas de una línea; "Sin respuesta de la agencia" pasó a **"Sin respuesta"** (tests actualizados; la definición completa sigue en el "i").
+2. "Copiar" con el estilo secundario (borde gris, texto tinta, 52 px) y alineado con "Abrir en WhatsApp"; la página tiene 112 px de margen inferior para el botón "Manage app".
+3. Fondo de página gris muy claro `#F7F8F8` (tema y CSS); el beige (Arena) queda solo en chips y expanders.
+4. Gráficos: título (la conclusión) y la frase explicativa; se quitó la pregunta repetida de encima.
+5. Cuadro del mensaje del viajero de 190 px: se ve completo el mensaje del ejemplo.
+pytest: 289 pasan, 1 falla (la conocida de `anthropic`).

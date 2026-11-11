@@ -103,7 +103,7 @@ class PruebasPagina(unittest.TestCase):
         with tempfile.TemporaryDirectory() as carpeta:
             app = abrir_tablero(carpeta)
         etiquetas = [m.label for m in app.metric]
-        self.assertIn("Sin respuesta de la agencia", etiquetas)
+        self.assertIn("Sin respuesta", etiquetas)
         # 6 meses por defecto: 20 reservadas de 111 respondidas (las mismas cifras de metricas())
         self.assertTrue(any(c.value == "Reservadas ÷ respondidas: 20 ÷ 111" for c in app.caption))
 

@@ -377,13 +377,13 @@ def boton_copiar(texto: str) -> None:
 
 def _copiar_con_componente(componentes, texto_json: str) -> None:
     componentes.html(
-        """<button id="b" style="width:100%;height:44px;border:1px solid #0B6E7F;border-radius:12px;background:#fff;
-        color:#0B6E7F;font:700 16px Inter,sans-serif;cursor:pointer">Copiar</button>
+        """<style>body{margin:0}</style><button id="b" style="width:100%;height:52px;border:1px solid #7F9096;border-radius:14px;background:#fff;
+        color:#12303A;font:600 16px Inter,sans-serif;cursor:pointer">Copiar</button>
         <script>const t=__TEXTO__,b=document.getElementById('b');
         b.onclick=async()=>{try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');
         a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
         b.textContent='Copiado';setTimeout(()=>b.textContent='Copiar',1800)}</script>""".replace("__TEXTO__", texto_json),
-        height=48)
+        height=54)
 
 
 def mostrar_borrador(resultado, telefono: str) -> None:
@@ -487,7 +487,7 @@ def pagina_consulta() -> None:
     izquierda, derecha = st.columns([5, 7], gap="large")
     with izquierda, st.container(border=True, key="tarjeta_entrada"):
         rotulo("Pega el mensaje del viajero")
-        consulta = st.text_area("Mensaje del viajero", key="consulta", height=150 if not resultado else 110,
+        consulta = st.text_area("Mensaje del viajero", key="consulta", height=190,
                                 placeholder=EJEMPLO, label_visibility="collapsed")
         with st.container(horizontal=True, vertical_alignment="center"):
             # Un solo botón primario: con clave, preparar; sin clave, el ejemplo guardado.
@@ -945,8 +945,7 @@ def pregunta(titulo: str, hallazgo: str, corto: str = "") -> None:
     """
     if corto or hallazgo:
         largo = f'<p class="hallazgo">{html.escape(hallazgo)}</p>' if hallazgo and not (corto and hallazgo.startswith(corto[:18])) else ""
-        st.html(f'<p class="rotulo">{html.escape(titulo)}</p><h3 class="pregunta">{html.escape(corto or hallazgo)}</h3>'
-                + largo)
+        st.html(f'<h3 class="pregunta">{html.escape(corto or hallazgo)}</h3>' + largo)
     else:
         st.html(f'<h3 class="pregunta">{html.escape(titulo)}</h3>')
 
@@ -1203,7 +1202,7 @@ def pagina_tablero() -> None:
                   help="Reservadas ÷ consultas respondidas. La variación está en puntos porcentuales (pp).")
         st.caption(f"Reservadas ÷ respondidas: {miles(m['reservadas'])} ÷ {miles(m['respondidas'])}")
     with k3, st.container(key="kpi_sin_respuesta"):
-        st.metric("Sin respuesta de la agencia", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
+        st.metric("Sin respuesta", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
                   delta=None if v is None else con_signo(v["sin_respuesta"]),
                   help=f"{porcentaje(m['pct_sin_respuesta'])} de las consultas no recibieron respuesta de la "
                        "agencia. Que baje es bueno.")

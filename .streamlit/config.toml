@@ -7,7 +7,7 @@ toolbarMode = "minimal"   # sin "Deploy" ni opciones de desarrollador
 # Paleta "Abra: del glaciar al amanecer" (docs/diseno.md). Los colores se repiten en app/estilo.css como variables.
 base = "light"
 primaryColor = "#0B6E7F"              # Laguna: botón principal y enlaces
-backgroundColor = "#F5F1E8"           # Arena: fondo de página
+backgroundColor = "#F7F8F8"           # gris muy claro: fondo de página (Arena queda para detalles)
 secondaryBackgroundColor = "#FFFFFF"  # Nieve: tarjetas y campos
 textColor = "#12303A"                 # Tinta
 borderColor = "#DDD6C8"
