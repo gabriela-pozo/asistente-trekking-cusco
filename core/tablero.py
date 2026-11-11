@@ -303,3 +303,39 @@ def hallazgo_embudo(e: pd.DataFrame) -> str:
     por_cien = round(e["numero"].iloc[-1] / e["numero"].iloc[0] * 100)
     return (f"La mayor caída es de {anterior} a {peor['etapa'].lower()}: pasa el {pct(peor['pct_anterior'])}. "
             f"De cada 100 consultas, {por_cien} terminan en reserva.")
+
+
+# --- Textos del Tablero (no cambian ningún cálculo) -----------------------------------------------------
+
+PREGUNTA_TABLERO = "¿Qué consultas se pierden y cuándo?"
+
+
+def texto_origen(df: pd.DataFrame) -> str:
+    """De dónde salen los datos, con las cantidades reales del archivo (antes de filtrar)."""
+    origen = df["origen"] if "origen" in df else pd.Series(dtype="object")
+    sinteticas, registradas = int((origen == "sintética").sum()), int((origen == "registrada").sum())
+    texto = f"{sinteticas} consultas sintéticas de demostración"
+    if registradas:
+        texto += f" y {registradas} {'registrada' if registradas == 1 else 'registradas'} en esta app"
+    return texto
+
+
+# Franjas alineadas con el horario de atención: madrugada y noche son justo las horas fuera de horario.
+FRANJAS = [("Madrugada", 0, APERTURA_H), ("Mañana", APERTURA_H, 14), ("Tarde", 14, CIERRE_H), ("Noche", CIERRE_H, 24)]
+
+
+def nombre_franja(nombre: str, desde: int, hasta: int) -> str:
+    return f"{nombre} · {desde}–{hasta} h"  # el gráfico parte el rótulo en dos líneas en el " · "
+
+
+def por_dia_y_franja(df: pd.DataFrame) -> pd.DataFrame:
+    """Las 7 × 4 celdas (día × franja), sumando las celdas de por_dia_y_hora: mismos totales, más legible."""
+    horas = por_dia_y_hora(df)
+    filas = []
+    for i, (nombre, desde, hasta) in enumerate(FRANJAS):
+        parte = horas[(horas["hora"] >= desde) & (horas["hora"] < hasta)]
+        suma = parte.groupby(["dia_n", "dia"], sort=True)["consultas"].sum()
+        filas += [{"dia": dia, "dia_n": n, "franja": nombre_franja(nombre, desde, hasta), "franja_n": i,
+                   "fuera_de_horario": desde < APERTURA_H or hasta > CIERRE_H, "consultas": int(c)}
+                  for (n, dia), c in suma.items()]
+    return pd.DataFrame(filas, columns=["dia", "dia_n", "franja", "franja_n", "fuera_de_horario", "consultas"])

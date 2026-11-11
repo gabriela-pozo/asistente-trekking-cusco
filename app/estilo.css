@@ -116,6 +116,58 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-seguimiento { background: var(--aviso-fondo); }
 .st-key-mi_semana [data-testid="stMetricValue"] { font-size: 40px; }
 
+/* Fuentes y verificación: cada fragmento usado, con su fecha y sus enlaces. */
+.st-key-tarjeta_fuentes, .st-key-tarjeta_base { background: var(--superficie); }
+.fuentes { display: flex; flex-direction: column; gap: 8px; }
+.fuente { border: 1px solid var(--borde); border-left: 4px solid var(--primario); border-radius: 10px; padding: 12px 16px; }
+.fuente-verificar { border-left-color: #B7791F; background: var(--aviso-fondo); }
+.fuente-cabecera { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.fuente-titulo { font-weight: 700; font-size: 15px; color: var(--tinta); }
+.fuente-fecha, .tabla-estado, .sin-fuente { font-size: 13px; color: var(--secundario); }
+.fuente code, .tabla-base code { font-size: 13px; color: var(--secundario); background: var(--suave);
+  border-radius: 6px; padding: 1px 6px; }
+.etiqueta-verificar { background: var(--aviso-fondo); color: var(--aviso-texto); border: 1px solid #B7791F; margin-left: 0; }
+.etiqueta-oficial { background: var(--suave); color: var(--primario); border: 1px solid var(--primario); font-size: 12px; }
+.enlaces { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.enlaces a { color: var(--primario); font-weight: 600; overflow-wrap: anywhere; }
+
+/* Base de conocimiento: tabla que se desliza sola en el celular, sin mover la página. */
+.tabla-desliza { overflow-x: auto; }
+.tabla-base { width: 100%; border-collapse: collapse; font-size: 15px; color: var(--tinta); }
+.tabla-base th { text-align: left; font-size: 13px; font-weight: 700; color: var(--secundario); text-transform: uppercase;
+  letter-spacing: .06em; padding: 8px 12px 8px 0; border-bottom: 2px solid var(--borde); }
+.tabla-base td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.tabla-base .enlaces { margin: 0; flex-direction: column; }
+.tabla-fecha { white-space: nowrap; }
+.tabla-num { text-align: right; }
+@media (max-width: 640px) {
+  .tabla-base thead { display: none; }
+  .tabla-base tr { display: block; border-bottom: 1px solid var(--borde); padding: 8px 0; }
+  .tabla-base td { display: block; border: 0; padding: 4px 0; }
+  .tabla-num { text-align: left; }
+  .tabla-num::after { content: " fragmentos"; color: var(--secundario); font-size: 13px; }
+}
+
+/* Estado del sistema: cifras más chicas que en el Tablero, porque algunas son nombres de modelo. */
+.st-key-estado_sistema [data-testid="stMetricValue"] { font-size: 24px; white-space: normal; overflow-wrap: anywhere; }
+.st-key-estado_sistema [data-testid="stMetric"] { background: var(--superficie); }
+
+/* Acerca del piloto: alcance y límites en dos listas legibles. */
+.st-key-tarjeta_alcance, .st-key-tarjeta_limites { background: var(--superficie); }
+.st-key-tarjeta_revision { background: var(--suave); border-left: 4px solid var(--primario); }
+.revision { font-size: 18px; line-height: 1.5; color: var(--tinta); margin: 0; max-width: 70ch; }
+.puntos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px;
+  font-size: 15px; line-height: 1.6; color: var(--tinta); }
+.puntos li { padding-left: 16px; border-left: 3px solid var(--borde); }
+.puntos-limites li { border-left-color: #B7791F; }
+
+/* Navegación lateral: cada página con una línea que dice para qué sirve. */
+.st-key-pagina label p { font-weight: 600; }
+/* Sin la sangría que Streamlit le pone a las listas dentro de st.html. */
+.enlaces, .puntos { padding-inline-start: 0 !important; margin-inline-start: 0 !important; }
+.enlaces li, .puntos li { margin: 0 !important; }
+.enlaces li { padding: 0; }
+
 /* Tablero por preguntas */
 .pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: #15302B; margin: 0; }
 .hallazgo { font-size: 15px; color: #5B6F6A; margin: 2px 0 0; line-height: 1.45; }
@@ -125,3 +177,9 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-etiqueta_sinteticos + * { margin-top: 0; }
 [data-testid="stMainBlockContainer"]:has(.st-key-etiqueta_sinteticos) { padding-bottom: 72px; }
 .st-key-etiqueta_sinteticos .sinteticos { box-shadow: 0 2px 8px rgba(21, 48, 43, .12); }
+
+/* Tablero: banda superior con la pregunta que responde y el origen de los datos. */
+.banda { background: var(--superficie); border: 1px solid var(--borde); border-left: 4px solid var(--primario);
+  border-radius: 10px; padding: 16px 20px; margin: -8px 0 8px; }
+.banda-pregunta { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 700; color: var(--tinta); margin: 0; }
+.banda-origen { font-size: 15px; font-weight: 600; color: var(--aviso-texto); margin: 4px 0 0; }

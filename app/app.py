@@ -33,6 +33,10 @@ from ai.fecha import ZONA, hoy_en_lima  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA, aplicar_paquete  # noqa: E402
+from ai.trazabilidad import (  # noqa: E402
+    DIAS_PARA_VERIFICAR, ETIQUETA_VERIFICAR, buscar_en_base, consultas_restantes, contar_pruebas, dominio,
+    es_oficial, fuentes_usadas, modelos_configurados, referencia_cuota, tabla_base, version_base,
+)
 from core.cotizacion import NOMBRE_NIVEL, NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
 from core.mi_semana import (  # noqa: E402
     META_POR_DEFECTO, cambiar_estado, inicio_semana, leer_registradas, pendientes, progreso_meta, racha, semana,
@@ -48,6 +52,7 @@ from core.tablero import (  # noqa: E402
     ORDEN_ESTADOS, PERIODOS, cargar_consultas, cierre_por_trek, contar_registradas, embudo, filtrar, hallazgo_embudo,
     hallazgo_horario, hallazgo_meses, hallazgo_paises, hallazgo_treks, metricas, paises_con_otros, pct, periodo,
     por_dia_y_hora, por_mes_y_estado, registrar, registro_desde_resultado, variaciones,
+    APERTURA_H, CIERRE_H, PREGUNTA_TABLERO, por_dia_y_franja, texto_origen,
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
@@ -144,7 +149,16 @@ if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lim
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia", "Tablero"], key="pagina")
+# Navegación: el trabajo diario arriba, el respaldo (de dónde sale cada dato, qué funciona, límites) abajo.
+PAGINAS = {
+    "Nueva consulta": "Pega el mensaje y responde",
+    "Tablero": "Tu semana y las consultas",
+    "Fuentes y verificación": "De dónde sale cada dato",
+    "Mi agencia": "Tarifario, extras y horario",
+    "Estado del sistema": "Modelo, cuota y base",
+    "Acerca del piloto": "Alcance y límites",
+}
+pagina = st.sidebar.radio("Ir a", list(PAGINAS), captions=list(PAGINAS.values()), key="pagina")
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -329,6 +343,8 @@ def mostrar_opciones(resultado) -> None:
     with st.expander("Información consultada (con fecha)"):
         for f in resultado.fragmentos:
             st.markdown(f"**{f.titulo}** · `{f.archivo}` · actualizado {f.actualizado}")
+        st.button("Ver fuentes y verificación", type="tertiary", icon=":material/fact_check:",
+                  on_click=ir_a, args=("Fuentes y verificación",))
 
 
 def mostrar_perfil(perfil) -> None:
@@ -403,6 +419,8 @@ def pagina_consulta() -> None:
         st.session_state.resultado = resultado
         st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         st.session_state.origen = "sin_cuota" if es_ejemplo else "modelo"
+        if not es_ejemplo:  # para "Estado del sistema": cuántas consultas al modelo en esta sesión
+            st.session_state.consultas_modelo = st.session_state.get("consultas_modelo", 0) + 1
         st.session_state.registrada = None
         iniciar_paquete()
 
@@ -436,6 +454,230 @@ def pagina_consulta() -> None:
         mostrar_paquete(resultado)
         mostrar_opciones(resultado)
     mostrar_perfil(resultado.perfil)
+
+
+# ---------------------------------------------------------------- Fuentes y verificación
+CARPETA_BASE = RAIZ / "data" / "knowledge"
+
+
+def ir_a(destino: str) -> None:
+    st.session_state.pagina = destino
+
+
+def html_enlaces(urls: list[str]) -> str:
+    """Cada fuente como enlace con su dominio; las del Estado peruano, marcadas como oficiales."""
+    if not urls:
+        return '<span class="sin-fuente">Sin fuente indicada</span>'
+    enlaces = []
+    for url in urls:
+        oficial = '<span class="etiqueta etiqueta-oficial">Oficial</span>' if es_oficial(url) else ""
+        enlaces.append(f'<a href="{html.escape(url)}" target="_blank" rel="noopener">{html.escape(dominio(url))}</a>'
+                       f"{oficial}")
+    return '<ul class="enlaces">' + "".join(f"<li>{e}</li>" for e in enlaces) + "</ul>"
+
+
+def html_etiqueta_fecha(actualizado: str, dias: int | None, verificar: bool) -> str:
+    if verificar:
+        detalle = "sin fecha" if dias is None else f"hace {dias} días"
+        return f'<span class="etiqueta etiqueta-verificar">{ETIQUETA_VERIFICAR} · {detalle}</span>'
+    cuando = "hoy" if dias == 0 else ("ayer" if dias == 1 else f"hace {dias} días")
+    return f'<span class="fuente-fecha">Actualizado el {html.escape(actualizado)} ({cuando})</span>'
+
+
+def mostrar_fuentes_usadas(resultado, hoy) -> None:
+    usadas = fuentes_usadas(resultado.fragmentos, hoy)
+    a_verificar = sum(u.verificar for u in usadas)
+    with st.container(border=True, key="tarjeta_fuentes"):
+        rotulo("Lo que se usó en la última consulta")
+        consulta = st.session_state.get("consulta", "")
+        if consulta:
+            st.caption(f"Consulta: «{consulta[:140]}{'…' if len(consulta) > 140 else ''}»")
+        if a_verificar:
+            st.warning(f"**{a_verificar} de {len(usadas)} fragmentos tienen más de {DIAS_PARA_VERIFICAR} días.** "
+                       "Confirma esos datos en la fuente antes de enviar la respuesta.", icon=":material/history:")
+        else:
+            st.success(f"Los {len(usadas)} fragmentos se actualizaron en los últimos {DIAS_PARA_VERIFICAR} días.",
+                       icon=":material/verified:")
+        filas = []
+        for u in usadas:
+            filas.append(
+                f'<div class="fuente{" fuente-verificar" if u.verificar else ""}">'
+                f'<div class="fuente-cabecera"><span class="fuente-titulo">{html.escape(u.titulo)}</span>'
+                f'<code>{html.escape(u.archivo)}.md</code></div>'
+                f'{html_etiqueta_fecha(u.actualizado, u.dias, u.verificar)}'
+                f'{html_enlaces(u.fuentes)}</div>')
+        st.html('<div class="fuentes">' + "".join(filas) + "</div>")
+
+
+def html_tabla_base(tabla: pd.DataFrame) -> str:
+    filas = []
+    for fila in tabla.itertuples():
+        fecha = html.escape(fila.actualizado or "—")
+        if fila.verificar:
+            fecha += f'<br><span class="etiqueta etiqueta-verificar">{ETIQUETA_VERIFICAR}</span>'
+        filas.append(f'<tr><td><strong>{html.escape(fila.tema)}</strong><br><code>{html.escape(fila.archivo)}.md</code>'
+                     f'<div class="tabla-estado">{html.escape(fila.estado)}</div></td>'
+                     f'<td class="tabla-fecha">{fecha}</td><td class="tabla-num">{fila.fragmentos}</td>'
+                     f"<td>{html_enlaces(fila.fuentes)}</td></tr>")
+    return ('<div class="tabla-desliza"><table class="tabla-base"><thead><tr><th>Archivo</th><th>Actualizado</th>'
+            '<th>Fragmentos</th><th>Fuentes</th></tr></thead><tbody>' + "".join(filas) + "</tbody></table></div>")
+
+
+def pagina_fuentes() -> None:
+    st.header("Fuentes y verificación")
+    st.html('<p class="subtitulo">De dónde sale cada dato de la respuesta. Lo que tiene más de '
+            f'{DIAS_PARA_VERIFICAR} días se marca para verificar antes de enviarlo.</p>')
+    hoy = hoy_en_lima()
+    resultado = st.session_state.get("resultado")
+    if resultado is None:
+        st.html('<div class="vacio"><strong>Todavía no hay una consulta.</strong> Cuando prepares una respuesta, '
+                'aquí verás qué fragmentos de la base de conocimiento se usaron, su fecha y su fuente.</div>')
+        st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a,
+                  args=("Nueva consulta",), key="fuentes_ir_consulta")
+    else:
+        if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
+            st.info("Es el ejemplo guardado: estos son los fragmentos que se usaron en esa consulta.",
+                    icon=":material/bookmark:")
+        mostrar_fuentes_usadas(resultado, hoy)
+
+    tabla = tabla_base(CARPETA_BASE, hoy)
+    with st.container(border=True, key="tarjeta_base"):
+        rotulo("Base de conocimiento completa")
+        texto = st.text_input("Buscar por tema, archivo o fuente", placeholder="Por ejemplo: permisos, elperuano, lares",
+                              key="buscar_base")
+        encontrados = buscar_en_base(tabla, texto)
+        st.caption(f"{len(encontrados)} de {len(tabla)} archivos · {int(tabla['fragmentos'].sum())} fragmentos · "
+                   f"{int(tabla['oficiales'].sum())} enlaces a fuentes oficiales")
+        if encontrados.empty:
+            st.info("Ningún archivo coincide con la búsqueda.", icon=":material/search_off:")
+        else:
+            st.html(html_tabla_base(encontrados))
+
+
+# ---------------------------------------------------------------- Estado del sistema
+ORIGENES = {
+    "modelo": "No: respondió el modelo",
+    "ejemplo": "Sí: botón «Usar mensaje de ejemplo»",
+    "sin_cuota": "Sí: el modelo no tenía cuota",
+}
+
+
+def mayuscula(texto: str) -> str:
+    return texto[:1].upper() + texto[1:]
+
+
+@st.cache_data
+def pruebas_automaticas() -> tuple[int, int]:
+    return contar_pruebas(RAIZ / "tests")
+
+
+def modelos_sin_cuota() -> set[str]:
+    """Solo si ya se creó el modelo en esta sesión (no crea el cliente ni llama a la API)."""
+    if not st.session_state.get("consultas_modelo") or falta_clave():
+        return set()
+    return set(getattr(modelo(proveedor()), "_agotados", set()))
+
+
+def pagina_estado() -> None:
+    st.header("Estado del sistema")
+    st.html('<p class="subtitulo">Qué está funcionando ahora y con qué datos. Para la demo y para saber '
+            'cuánto confiar en la respuesta.</p>')
+    estado = st.session_state
+    resultado, origen = estado.get("resultado"), estado.get("origen")
+    nombre = proveedor()
+    configurados = modelos_configurados(nombre)
+    with st.container(key="estado_sistema"):  # la clave es para el CSS de las cifras (ver estilo.css)
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            respondio = resultado.uso.modelos_que_respondieron() if resultado else "Sin consulta todavía"
+            st.metric("Modelo que respondió", respondio, border=True,
+                      help="En la última consulta. Si fue el ejemplo guardado, es el modelo de esa consulta.")
+            st.caption(f"Configurado: {' → '.join(configurados)} ({nombre})"
+                       + (f" · falta {falta_clave()}" if falta_clave() else ""))
+        with c2:
+            quedan = consultas_restantes(nombre, modelos_sin_cuota())
+            st.metric("Consultas que quedan hoy", "No se conoce" if quedan is None else quedan, border=True,
+                      help="La API no informa la cuota restante.")
+            st.caption(f"{referencia_cuota(nombre)} En esta sesión: {estado.get('consultas_modelo', 0)}.")
+        with c3:
+            st.metric("¿Se usó el ejemplo guardado?", ORIGENES.get(origen, "Sin consulta todavía").split(":")[0],
+                      border=True)
+            st.caption(mayuscula(ORIGENES[origen].split(": ", 1)[1]) + "."
+                       if origen in ORIGENES else "Todavía no se preparó ninguna respuesta.")
+
+        base = version_base(CARPETA_BASE)
+        ahora = datetime.now(ZONA)
+        fuera = fuera_de_horario(ahora, estado.apertura, estado.cierre)
+        c4, c5, c6 = st.columns(3)
+        with c4:
+            st.metric("Base de conocimiento", f"v. {base.version}", border=True,
+                      help="Huella del contenido: cambia si se edita cualquier archivo de data/knowledge.")
+            st.caption(f"Actualizada el {base.actualizada} · {base.archivos} archivos · {base.fragmentos} fragmentos.")
+        with c5:
+            st.metric("Hora en Lima", f"{ahora:%H:%M}", border=True)
+            if not estado.modo_nocturno:
+                nocturno = "Modo nocturno apagado."
+            elif fuera:
+                nocturno = "Modo nocturno activo: ahora es fuera de horario (simulado, no envía nada)."
+            else:
+                nocturno = "Modo nocturno encendido; se activa al cerrar."
+            st.caption(f"{nocturno} Horario: {estado.apertura:%H:%M} a {estado.cierre:%H:%M}.")
+        with c6:
+            pruebas, archivos = pruebas_automaticas()
+            st.metric("Pruebas automáticas", pruebas, border=True,
+                      help="Contadas en tests/, sin ejecutarlas. Para correrlas: python -m unittest discover tests")
+            st.caption(f"En {archivos} archivos de tests/. Se cuentan, no se ejecutan desde la app.")
+
+
+# ---------------------------------------------------------------- Acerca del piloto
+ALCANCE = [
+    ("Es una demo con datos sintéticos",
+     "Las consultas del Tablero son inventadas para mostrar cómo se vería: no son de ninguna agencia real. "
+     "El ejemplo guardado sí es una consulta real al modelo, sin nombres ni teléfonos."),
+    ("La agencia es ficticia; sus precios son de mercado",
+     f"«{AGENCIA}» no existe. Su tarifario (7 treks en 3 niveles) se calculó con precios reales de mercado: "
+     "el del Salkantay de 5 días, con 17 (12 publicados en webs de agencias y 5 cotizaciones recibidas por "
+     "WhatsApp). El detalle está en docs/fuentes_precios.md."),
+    ("Los precios los pone el código, no el modelo",
+     "El modelo entiende el mensaje y redacta. Los montos salen de tu tarifario, y un control revisa que el "
+     "borrador no tenga precios que no estén en la cotización."),
+]
+NO_HACE = [
+    ("No envía mensajes solo",
+     "«Abrir en WhatsApp» abre el mensaje en tu WhatsApp; lo envías tú. Nada sale de la app sin que lo hagas."),
+    ("El modo nocturno es una simulación",
+     "En esta app solo muestra la respuesta que se enviaría fuera de horario. Enviarla de verdad requiere la API "
+     "de WhatsApp Business (hay un prototipo aparte con el sandbox de Twilio, no conectado a esta app)."),
+    ("No reserva ni cobra",
+     "No consulta cupos ni vende entradas a Machu Picchu o permisos del Camino Inca: eso se confirma en los "
+     "sistemas oficiales."),
+    ("No reemplaza información al día",
+     f"La base de conocimiento tiene fecha y fuentes. Lo que tiene más de {DIAS_PARA_VERIFICAR} días se marca en "
+     "«Fuentes y verificación» para revisarlo."),
+]
+
+
+def html_puntos(puntos: list[tuple[str, str]], clase: str) -> str:
+    return (f'<ul class="puntos {clase}">' + "".join(
+        f"<li><strong>{html.escape(t)}.</strong> {html.escape(d)}</li>" for t, d in puntos) + "</ul>")
+
+
+def pagina_acerca() -> None:
+    st.header("Acerca del piloto")
+    st.html('<p class="subtitulo">Qué es Abra Travel hoy, qué no hace y quién decide.</p>')
+    with st.container(border=True, key="tarjeta_revision"):
+        st.html('<p class="revision"><strong>El vendedor siempre revisa.</strong> Abra Travel prepara un borrador; '
+                'tú lo lees, lo corriges si hace falta y decides si lo envías.</p>')
+    izquierda, derecha = st.columns(2, gap="large")
+    with izquierda, st.container(border=True, key="tarjeta_alcance"):
+        rotulo("Alcance")
+        st.html(html_puntos(ALCANCE, "puntos-alcance"))
+    with derecha, st.container(border=True, key="tarjeta_limites"):
+        rotulo("Lo que no hace")
+        st.html(html_puntos(NO_HACE, "puntos-limites"))
+    st.caption("Las páginas «Fuentes y verificación» y «Estado del sistema» muestran de dónde sale cada dato y "
+               "qué está funcionando en este momento.")
 
 
 # ---------------------------------------------------------------- Mi agencia
@@ -545,7 +787,11 @@ def pagina_agencia() -> None:
 PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#1E6B52", "#5E9C84", "#C9741D", "#15302B", "#5B6F6A", "#E8F0EC"
 
 
-COLOR_ESTADO = {"reservada": "#0E7C58", "cotizada": "#3A78C2", "sin respuesta": "#A3ADA9", "perdida": "#B5654A"}
+# Paleta validada (#0E7C58, #3A78C2, #C8660A) + el gris secundario del sistema. Un color fijo por estado en
+# todos los gráficos: "sin respuesta" va en ocre porque es la pérdida que el Tablero quiere mostrar.
+COLOR_ESTADO = {"reservada": "#0E7C58", "cotizada": "#3A78C2", "sin respuesta": "#C8660A", "perdida": "#5B6F6A"}
+TEXTO_GRAFICO = 14  # px: legible en un proyector
+MINIMO_RESPONDIDAS = 10  # como hallazgo_treks(): con menos, la tasa de cierre dice poco
 CUADRICULA = "#EDF2EF"
 
 
@@ -553,17 +799,24 @@ def dibujar(grafico: alt.Chart, alto: int) -> None:
     """Estilo común: textos en tinta y gris verdoso, cuadrícula discreta, sin borde."""
     st.altair_chart(
         grafico.properties(height=alto, background="#FFFFFF")
-        .configure_axis(labelFont="Nunito", labelFontSize=12, labelColor=SECUNDARIO, titleFont="Nunito",
-                        titleFontSize=12, titleColor=SECUNDARIO, titleFontWeight="normal", gridColor=CUADRICULA,
-                        domainColor="#D6E0DD", tickColor="#D6E0DD")
-        .configure_legend(labelFont="Nunito", titleFont="Nunito", labelColor=TINTA, titleColor=SECUNDARIO)
+        .configure_axis(labelFont="Nunito", labelFontSize=TEXTO_GRAFICO, labelColor=SECUNDARIO, titleFont="Nunito",
+                        titleFontSize=TEXTO_GRAFICO, titleColor=SECUNDARIO, titleFontWeight="normal",
+                        gridColor=CUADRICULA, domainColor="#D6E0DD", tickColor="#D6E0DD")
+        .configure_legend(labelFont="Nunito", titleFont="Nunito", labelColor=TINTA, titleColor=SECUNDARIO,
+                          labelFontSize=TEXTO_GRAFICO, titleFontSize=TEXTO_GRAFICO)
         .configure_view(stroke=None),
         theme=None, width="stretch")
 
 
 def pregunta(titulo: str, hallazgo: str) -> None:
-    """Título = la pregunta del dueño; debajo, el hallazgo calculado con los datos filtrados."""
-    st.html(f'<h3 class="pregunta">{html.escape(titulo)}</h3><p class="hallazgo">{html.escape(hallazgo)}</p>')
+    """La pregunta del dueño como rótulo; el título es la conclusión (la frase de core/tablero.py).
+
+    Si no hay conclusión (p. ej., sin datos para ese gráfico), el título es la pregunta.
+    """
+    if hallazgo:
+        st.html(f'<p class="rotulo">{html.escape(titulo)}</p><h3 class="pregunta">{html.escape(hallazgo)}</h3>')
+    else:
+        st.html(f'<h3 class="pregunta">{html.escape(titulo)}</h3>')
 
 
 def tarjeta(nombre: str):
@@ -571,7 +824,8 @@ def tarjeta(nombre: str):
 
 
 def ver_tabla(tabla, nombre: str) -> None:
-    with st.expander("Ver tabla"):
+    """Los mismos datos del gráfico en una tabla: se lee con lector de pantalla y sin depender del color."""
+    with st.expander("Ver los datos en una tabla"):
         st.dataframe(tabla, hide_index=True, width="stretch")
         st.download_button("Descargar CSV", tabla.to_csv(index=False).encode("utf-8"), mime="text/csv",
                            file_name=f"tablero_{nombre}.csv", icon=":material/download:", key=f"descargar_{nombre}")
@@ -596,7 +850,7 @@ def porcentaje(valor: float) -> str:
 
 # ---------------------------------------------------------------- Mi semana
 def ir_a_consulta() -> None:
-    st.session_state.pagina = "Nueva consulta"
+    ir_a("Nueva consulta")
 
 
 def celebrar(registradas, hoy) -> None:
@@ -638,15 +892,19 @@ def texto_racha(r) -> str:
     return "Hoy todavía no registraste consultas. Cuando respondas una, regístrala y empiezas una racha."
 
 
+META_INICIAL = 3  # meta chica para empezar a registrar (no es un dato: es una sugerencia)
+
+
 def mostrar_mi_semana() -> None:
     """Solo las consultas registradas en la app (nunca las sintéticas). El vendedor contra sí mismo."""
     hoy = hoy_en_lima()
     registradas = leer_registradas(RUTA_REGISTRO)
     with st.container(border=True, key="mi_semana"):
-        rotulo("Mi semana")
-        if registradas.empty:
+        rotulo("Tu semana")
+        if registradas.empty:  # corto y con una meta chica: el primer paso es registrar
+            st.progress(0, text=f"**0 de {META_INICIAL}** consultas registradas esta semana")
             st.markdown("Registra tus consultas y aquí verás cuánto vendes, qué treks te piden y qué cotizaciones "
-                        "esperan seguimiento.")
+                        f"esperan seguimiento. Primera meta: {META_INICIAL} esta semana.")
             st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a_consulta)
             return
 
@@ -693,26 +951,93 @@ def mostrar_mi_semana() -> None:
     celebrar(registradas, hoy)
 
 
+def mapa_por_franjas(datos: pd.DataFrame) -> None:
+    """7 días × 4 franjas con el número en cada celda. Madrugada y noche son las franjas fuera de horario."""
+    f = por_dia_y_franja(datos)
+    f["dia_corto"] = f["dia"].str[:3].str.capitalize()
+    f["horario"] = f["fuera_de_horario"].map({True: "Fuera de horario", False: "En horario"})
+    orden_dias, orden_franjas = list(dict.fromkeys(f["dia_corto"])), list(dict.fromkeys(f["franja"]))
+    tope = max(int(f["consultas"].max()), 1)
+    base = alt.Chart(f).encode(
+        x=alt.X("franja:N", sort=orden_franjas, title=None,
+                axis=alt.Axis(orient="bottom", labelAngle=0, ticks=False, domain=False, labelLimit=200,
+                              labelExpr="split(datum.label, ' · ')")),  # dos líneas hacia abajo: entra a 390 px
+        y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)))
+    celdas = base.mark_rect(cornerRadius=4, stroke="#FFFFFF", strokeWidth=2).encode(
+        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"], domain=[0, tope]),
+                        legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=160, tickMinStep=1,
+                                          format="d")),
+        tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Franja"),
+                 alt.Tooltip("horario:N", title="Horario"), alt.Tooltip("consultas:Q", title="Consultas")])
+    numeros = base.mark_text(font="Nunito", fontSize=TEXTO_GRAFICO + 2, fontWeight="bold").encode(
+        text="consultas:Q",
+        color=alt.condition(alt.datum.consultas > tope * 0.55, alt.value("#FFFFFF"), alt.value(TINTA)))
+    dibujar(celdas + numeros, alto=330)
+    st.caption(f"Madrugada (antes de las {APERTURA_H}:00) y noche (desde las {CIERRE_H}:00) son las franjas "
+               "fuera de tu horario de atención.")
+    tabla = f.pivot(index=["dia_n", "dia"], columns="franja", values="consultas")[orden_franjas]
+    ver_tabla(tabla.reset_index().drop(columns="dia_n").rename(columns={"dia": "Día"}), "cuando_franjas")
+
+
+def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
+    """La vista detallada: 7 × 24 celdas, con el horario de atención recuadrado."""
+    celdas = celdas.assign(dia_corto=celdas["dia"].str[:3].str.capitalize())
+    orden_dias = list(dict.fromkeys(celdas["dia_corto"]))
+    mapa = alt.Chart(celdas).mark_rect(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1.5).encode(
+        x=alt.X("hora:Q", scale=alt.Scale(domain=[0, 24], nice=False), title="Hora de llegada (Lima)",
+                axis=alt.Axis(values=list(range(0, 25, 6)), labelExpr="datum.value + ':00'", grid=False)),
+        x2="hora_fin:Q",
+        y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)),
+        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"]),
+                        legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=140,
+                                          tickMinStep=1, format="d")),
+        tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Hora"),
+                 alt.Tooltip("consultas:Q", title="Consultas")])
+    horario = alt.Chart(pd.DataFrame({"x": [APERTURA_H], "x2": [CIERRE_H]})).mark_rect(
+        fillOpacity=0, stroke=TINTA, strokeWidth=1.5, strokeDash=[5, 3]).encode(x="x:Q", x2="x2:Q")
+    rotulo_horario = alt.Chart(pd.DataFrame({"x": [(APERTURA_H + CIERRE_H) / 2],
+                                             "t": [f"Horario {APERTURA_H}:00–{CIERRE_H}:00"]})).mark_text(
+        baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito", fontWeight="bold").encode(
+        x="x:Q", y=alt.value(0), text="t:N")
+    dibujar(alt.layer(mapa, horario, rotulo_horario), alto=300)
+    ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
+                                                                     "consultas": "Consultas"}), "cuando_escriben")
+
+
+PERIODO_INICIAL = list(PERIODOS)[1]  # "Últimos 6 meses", como al abrir el Tablero
+
+
+def quitar_filtros() -> None:
+    st.session_state.filtro_treks, st.session_state.filtro_idiomas = [], []
+    st.session_state.filtro_periodo = PERIODO_INICIAL
+
+
 def pagina_tablero() -> None:
     st.header("Tablero")
+    consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
+    st.html(f'<div class="banda"><p class="banda-pregunta">{html.escape(PREGUNTA_TABLERO)}</p>'
+            f'<p class="banda-origen">Datos: {html.escape(texto_origen(consultas))}.</p></div>')
     mostrar_mi_semana()  # solo las consultas registradas por el vendedor; no la tocan los filtros de abajo
 
     with st.container(key="etiqueta_sinteticos"):  # pegada arriba al bajar (estilo.css)
         st.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
     st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
 
-    consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
     c1, c2, c3 = st.columns([1, 1.4, 1.4])
-    nombre_periodo = c1.selectbox("Período", list(PERIODOS), index=1)
+    st.session_state.setdefault("filtro_periodo", PERIODO_INICIAL)  # sin index=: lo pone «Quitar filtros»
+    nombre_periodo = c1.selectbox("Período", list(PERIODOS), key="filtro_periodo")
     treks = c2.multiselect("Trek", sorted(consultas["trek"].dropna().unique()), placeholder="Todos los treks",
-                           format_func=lambda t: NOMBRE_RUTA.get(t, t))
+                           format_func=lambda t: NOMBRE_RUTA.get(t, t), key="filtro_treks")
     idiomas = c3.multiselect("Idioma", sorted(consultas["idioma"].dropna().unique()),
-                             placeholder="Todos los idiomas", format_func=idioma)
+                             placeholder="Todos los idiomas", format_func=idioma, key="filtro_idiomas")
     meses = PERIODOS[nombre_periodo]
     filtradas = filtrar(consultas, treks, idiomas)
     datos, anteriores, comparable, (desde, hasta) = periodo(filtradas, meses)
     if datos.empty:
-        st.info("No hay consultas con esos filtros.", icon=":material/filter_alt_off:")
+        elegidos = [NOMBRE_RUTA.get(t, t) for t in treks] + [idioma(i) for i in idiomas]
+        st.info(f"**Ninguna consulta cumple a la vez: {' + '.join(elegidos)}.** Elige otro trek u otro idioma, "
+                "o quita los filtros para ver todas.", icon=":material/filter_alt_off:")
+        st.button("Quitar filtros", icon=":material/filter_alt_off:", on_click=quitar_filtros, key="quitar_filtros")
         return
     registradas = int((datos["origen"] == "registrada").sum())
     st.caption(f"Del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}: {miles(len(datos))} consultas"
@@ -720,7 +1045,7 @@ def pagina_tablero() -> None:
                + f". Cada indicador se compara con los {meses} meses anteriores.")
 
     # 1. ¿Cómo voy?
-    pregunta("¿Cómo voy?", "Los 4 indicadores del período, frente al período anterior de igual largo.")
+    pregunta("¿Cómo voy?", "")
     m = metricas(datos)
     v = variaciones(datos, anteriores) if comparable else None
     k1, k2, k3, k4 = st.columns(4)
@@ -730,71 +1055,23 @@ def pagina_tablero() -> None:
     k2.metric("Tasa de cierre", porcentaje(m["tasa_cierre"]), border=True,
               delta=None if v is None else f"{con_signo(round(v['tasa_cierre_pp'], 1), decimal=True)} pp",
               help="Reservadas ÷ consultas respondidas. La variación está en puntos porcentuales (pp).")
-    k3.metric("Sin respuesta", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
+    k2.caption(f"Reservadas ÷ respondidas: {miles(m['reservadas'])} ÷ {miles(m['respondidas'])}")
+    k3.metric("Sin respuesta de la agencia", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
               delta=None if v is None else con_signo(v["sin_respuesta"]),
               help=f"{porcentaje(m['pct_sin_respuesta'])} de las consultas no recibieron respuesta. "
                    "Que baje es bueno.")
+    k3.caption(f"{porcentaje(m['pct_sin_respuesta'])} de las consultas: la agencia no contestó")
     k4.metric("Monto reservado", usd(m["monto_reservado"]), border=True,
               delta=None if v is None else usd_con_signo(v["monto_reservado"]),
               help="Suma del total de las consultas reservadas, en dólares.")
     if v is None:
         st.caption(f"Sin variación: los datos no cubren los {meses} meses anteriores completos.")
 
-    # 2. ¿Cuándo escriben?
-    with tarjeta("cuando"):
-        pregunta("¿Cuándo escriben?", hallazgo_horario(datos))
-        celdas = por_dia_y_hora(datos)
-        celdas["dia_corto"] = celdas["dia"].str[:3].str.capitalize()
-        orden_dias = list(dict.fromkeys(celdas["dia_corto"]))
-        mapa = alt.Chart(celdas).mark_rect(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1.5).encode(
-            x=alt.X("hora:Q", scale=alt.Scale(domain=[0, 24], nice=False), title="Hora de llegada (Lima)",
-                    axis=alt.Axis(values=list(range(0, 25, 6)), labelExpr="datum.value + ':00'", grid=False)),
-            x2="hora_fin:Q",
-            y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)),
-            color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"]),
-                            legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=140,
-                                              tickMinStep=1, format="d")),
-            tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Hora"),
-                     alt.Tooltip("consultas:Q", title="Consultas")])
-        horario = alt.Chart(pd.DataFrame({"x": [8], "x2": [20]})).mark_rect(
-            fillOpacity=0, stroke=TINTA, strokeWidth=1.5, strokeDash=[5, 3]).encode(x="x:Q", x2="x2:Q")
-        rotulo_horario = alt.Chart(pd.DataFrame({"x": [14], "t": ["Horario 8:00–20:00"]})).mark_text(
-            baseline="bottom", dy=-4, color=TINTA, fontSize=12, font="Nunito", fontWeight="bold").encode(
-            x="x:Q", y=alt.value(0), text="t:N")
-        dibujar(alt.layer(mapa, horario, rotulo_horario), alto=300)
-        sin_hora = len(datos) - int(celdas["consultas"].sum())
-        if sin_hora:
-            st.caption(f"{sin_hora} consultas registradas desde la app no tienen hora de llegada: "
-                       "no están en este gráfico.")
-        ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
-                                                                         "consultas": "Consultas"}), "cuando_escriben")
-
     izquierda, derecha = st.columns(2, gap="medium")
-    # 3. ¿Qué piden y qué se cierra?
-    with izquierda, tarjeta("treks"):
-        t = cierre_por_trek(datos)
-        pregunta("¿Qué piden y qué se cierra?", hallazgo_treks(t))
-        t["etiqueta"] = [f"{pct(x)} cierre" for x in t["tasa_cierre"]]
-        t["tasa"] = t["tasa_cierre"].map(pct)
-        barras = alt.Chart(t).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
-            y=alt.Y("nombre:N", sort=list(t["nombre"]), title=None,
-                    scale=alt.Scale(paddingInner=.45), axis=alt.Axis(ticks=False, domain=False, labelLimit=150)),
-            x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 1.45]),
-                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
-            tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
-                     alt.Tooltip("respondidas:Q", title="Respondidas"),
-                     alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
-            text="etiqueta:N")
-        dibujar(barras + etiquetas, alto=40 * len(t) + 40)
-        ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
-            "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas", "reservadas": "Reservadas",
-            "tasa": "Tasa de cierre"}), "treks")
-
-    # 6. Embudo
-    with derecha, tarjeta("embudo"):
+    # 2. Embudo: dónde se cae el proceso
+    with izquierda, tarjeta("embudo"):
         e = embudo(datos)
-        pregunta("¿Dónde se pierden las ventas?", hallazgo_embudo(e))
+        pregunta("¿En qué paso se pierden las ventas?", hallazgo_embudo(e))
         e["porcentaje"] = [None if p is None or pd.isna(p) else pct(p) for p in e["pct_anterior"]]
         e["etiqueta"] = [miles(n) if pd.isna(p) else f"{miles(n)} · {p}"
                          for n, p in zip(e["numero"], e["porcentaje"])]
@@ -805,14 +1082,69 @@ def pagina_tablero() -> None:
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             tooltip=[alt.Tooltip("etapa:N", title="Etapa"), alt.Tooltip("numero:Q", title="Consultas"),
                      alt.Tooltip("porcentaje:N", title="% de la etapa anterior")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=200)
         st.caption("Cada % compara la etapa con la anterior. Cotizadas: respondidas con un precio.")
         ver_tabla(e[["etapa", "numero", "porcentaje"]].rename(columns={
             "etapa": "Etapa", "numero": "Consultas", "porcentaje": "% de la etapa anterior"}), "embudo")
 
-    # 4. ¿Para qué meses?
+    # 3. Dónde se pierde: por trek
+    with derecha, tarjeta("treks"):
+        t = cierre_por_trek(datos)
+        pregunta("¿En qué trek se pierden?", hallazgo_treks(t))
+        t["tasa"] = t["tasa_cierre"].map(pct)
+        t["poca_base"] = t["respondidas"] < MINIMO_RESPONDIDAS
+        t["etiqueta"] = [f"{pct(x)} cierre · n={n}" for x, n in zip(t["tasa_cierre"], t["respondidas"])]
+        # Barras apiladas por estado (mismos colores que en todo el Tablero); la suma de cada barra = consultas.
+        apilado = (datos.assign(nombre=datos["trek"].map(lambda x: NOMBRE_RUTA.get(x, x)))
+                   .groupby(["nombre", "estado"]).size().rename("n").reset_index())
+        apilado = apilado.merge(t[["nombre", "poca_base"]], on="nombre")
+        apilado["orden"] = apilado["estado"].map(ORDEN_ESTADOS.index)
+        estados = [x for x in ORDEN_ESTADOS if x in set(apilado["estado"])]
+        eje_y = alt.Y("nombre:N", sort=list(t["nombre"]), title=None, scale=alt.Scale(paddingInner=.4),
+                      axis=alt.Axis(ticks=False, domain=False, labelLimit=170))
+        barras = alt.Chart(apilado).mark_bar(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1).encode(
+            y=eje_y,
+            # Sin agregar (una fila por trek y estado ya viene contada): así la opacidad ve el campo poca_base.
+            x=alt.X("n:Q", stack="zero", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 2.1]),
+                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
+            color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
+                            legend=alt.Legend(title=None, orient="top", direction="horizontal", symbolType="square",
+                                              columns=2)),  # en 2 columnas no se corta en el celular
+            order=alt.Order("orden:Q", sort="ascending"),
+            opacity=alt.condition(alt.datum.poca_base, alt.value(.35), alt.value(1)),
+            tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("estado:N", title="Estado"),
+                     alt.Tooltip("n:Q", title="Consultas")])
+        etiquetas = alt.Chart(t).mark_text(align="left", dx=6, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
+            y=eje_y, x="consultas:Q", text="etiqueta:N",
+            color=alt.condition(alt.datum.poca_base, alt.value(SECUNDARIO), alt.value(TINTA)),
+            tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
+                     alt.Tooltip("respondidas:Q", title="Respondidas"),
+                     alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
+        dibujar(barras + etiquetas, alto=44 * len(t) + 60)
+        st.caption(f"n = consultas respondidas. Atenuados: menos de {MINIMO_RESPONDIDAS} respondidas, "
+                   "su tasa de cierre todavía dice poco.")
+        ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
+            "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas (n)", "reservadas": "Reservadas",
+            "tasa": "Tasa de cierre"}), "treks")
+
+    # 4. Cuándo llega: por franjas (más legible) o hora por hora
+    with tarjeta("cuando"):
+        pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos))
+        vista = st.radio("Vista", ["Por franjas", "Hora por hora"], horizontal=True, key="vista_horario",
+                         label_visibility="collapsed")
+        celdas = por_dia_y_hora(datos)
+        if vista == "Por franjas":
+            mapa_por_franjas(datos)
+        else:
+            mapa_hora_por_hora(celdas)
+        sin_hora = len(datos) - int(celdas["consultas"].sum())
+        if sin_hora:
+            st.caption(f"{sin_hora} consultas registradas desde la app no tienen hora de llegada: "
+                       "no están en este gráfico.")
+
+    # 5. ¿Para qué meses?
     with tarjeta("meses"):
         mes_estado = por_mes_y_estado(datos)
         pregunta("¿Para qué meses?", hallazgo_meses(mes_estado))
@@ -822,37 +1154,45 @@ def pagina_tablero() -> None:
                     scale=alt.Scale(paddingInner=.35), axis=alt.Axis(labelAngle=0, ticks=False)),
             y=alt.Y("consultas:Q", title="Consultas", axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
-                            legend=alt.Legend(title=None, orient="top", direction="horizontal", labelFontSize=13,
+                            legend=alt.Legend(title=None, orient="top", direction="horizontal", labelFontSize=TEXTO_GRAFICO,
                                               labelColor=TINTA, symbolType="square")),
             order=alt.Order("orden:Q", sort="ascending"),
             tooltip=[alt.Tooltip("mes_nombre:N", title="Mes"), alt.Tooltip("estado:N", title="Estado"),
                      alt.Tooltip("consultas:Q", title="Consultas")])
         dibujar(columnas, alto=280)
+        sin_mes = len(datos) - int(mes_estado["consultas"].sum())
+        if sin_mes:  # p. ej., registradas sin mes de viaje: así el total no parece no cuadrar con los KPIs
+            st.caption(f"{sin_mes} {'consulta no dice' if sin_mes == 1 else 'consultas no dicen'} el mes del viaje: "
+                       "no están en este gráfico.")
         tabla_meses = mes_estado.pivot(index=["mes", "mes_nombre"], columns="estado", values="consultas")
         ver_tabla(tabla_meses.reset_index().drop(columns="mes").rename(columns={"mes_nombre": "Mes"}), "meses")
 
-    # 5. ¿De dónde escriben?
+    # 6. ¿De dónde escriben?
     with tarjeta("paises"):
         p = paises_con_otros(datos)
         pregunta("¿De dónde escriben?", hallazgo_paises(p))
         p["etiqueta"] = [f"{miles(n)} · {pct(x)}" for n, x in zip(p["consultas"], p["porcentaje"])]
         p["pct"] = p["porcentaje"].map(pct)
-        barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
+        barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4).encode(
+            color=alt.condition(alt.datum.pais == "Otros", alt.value("#A3ADA9"), alt.value(PRIMARIO)),
             y=alt.Y("pais:N", sort=list(p["pais"]), title=None, scale=alt.Scale(paddingInner=.45),
                     axis=alt.Axis(ticks=False, domain=False)),
             x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(p["consultas"]) * 1.35]),
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             tooltip=[alt.Tooltip("pais:N", title="País"), alt.Tooltip("consultas:Q", title="Consultas"),
                      alt.Tooltip("pct:N", title="Del total")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=34 * len(p) + 40)
-        if registradas:
-            st.caption("Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\".")
+        st.caption("Los 7 países con más consultas, de mayor a menor; el resto, sumado en «Otros» (en gris)."
+                   + (" Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\"."
+                      if registradas else ""))
         ver_tabla(p[["pais", "consultas", "pct"]].rename(columns={"pais": "País", "consultas": "Consultas",
                                                                    "pct": "Del total"}), "paises")
 
     st.caption("Se guarda solo el perfil de cada consulta, nunca el mensaje ni el teléfono.")
 
 
-{"Nueva consulta": pagina_consulta, "Mi agencia": pagina_agencia, "Tablero": pagina_tablero}[pagina]()
+{"Nueva consulta": pagina_consulta, "Tablero": pagina_tablero, "Fuentes y verificación": pagina_fuentes,
+ "Mi agencia": pagina_agencia, "Estado del sistema": pagina_estado,
+ "Acerca del piloto": pagina_acerca}[pagina]()

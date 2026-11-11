@@ -54,6 +54,25 @@ Los avisos se separan por gravedad:
 
 En la laptop, el borrador y las opciones van lado a lado (7:5). En el celular todo va en una columna, con el borrador primero. A 1440 × 900, el botón de WhatsApp queda en la primera pantalla.
 
+## Navegación y páginas de respaldo
+
+La barra lateral lista las páginas en este orden, cada una con una línea que dice para qué sirve: **Nueva consulta**, **Tablero**, **Fuentes y verificación**, **Mi agencia**, **Estado del sistema** y **Acerca del piloto**. Arriba va el trabajo diario; abajo, lo que da confianza para enviar.
+
+- **Fuentes y verificación:** los fragmentos de la base de conocimiento que se usaron en la última consulta (título, archivo, fecha y enlaces a la fuente; las del Estado peruano llevan la etiqueta "Oficial"). Lo que tiene más de 90 días, o no tiene fecha, lleva la etiqueta ámbar "Verificar antes de enviar". Debajo, la base completa en una tabla con buscador; en el celular cada fila se apila.
+- **Estado del sistema:** seis cifras en dos filas de tres: modelo que respondió, consultas que quedan (solo se afirma el 0; si no se sabe, dice "No se conoce"), si se usó el ejemplo guardado, versión (huella del contenido) y fecha de la base, hora en Lima con el modo nocturno, y el número de pruebas (contadas, no ejecutadas). Las cifras van a 24 px, porque algunas son nombres de modelo.
+- **Acerca del piloto:** arriba, "El vendedor siempre revisa" en una franja verde suave; debajo, "Alcance" y "Lo que no hace" lado a lado (en el celular, una debajo de otra). Los límites llevan borde ámbar.
+
+La lógica de estas páginas está en `ai/trazabilidad.py`: solo lee archivos locales, nunca llama a la API.
+
+## Tablero
+
+- **Arriba, una banda** con la pregunta que responde ("¿Qué consultas se pierden y cuándo?") y el origen de los datos, contado del archivo: "300 consultas sintéticas de demostración" y, si las hay, cuántas registradas en la app.
+- **Orden de lectura:** Tu semana → filtros → KPIs → embudo y por trek (lado a lado) → cuándo llegan → meses → países. Cada gráfico lleva la pregunta como rótulo y **la conclusión como título** (las frases de `core/tablero.py`).
+- **Un color fijo por estado** en todos los gráficos, con la paleta validada: reservada `#0E7C58`, cotizada `#3A78C2`, sin respuesta `#C8660A` (la pérdida que el Tablero quiere mostrar), perdida `#5B6F6A`. Leyenda siempre visible, rejilla `#EDF2EF` y texto de 14 px para el proyector.
+- **Por trek:** barras apiladas por estado, con "x % cierre · n=respondidas". Con menos de 10 respondidas, la barra va al 35 % de opacidad y el texto en gris.
+- **Cuándo llegan:** por defecto 7 días × 4 franjas alineadas con el horario (madrugada 0–8 y noche 20–24 son fuera de horario), con el número en cada celda. "Hora por hora" muestra el 7 × 24.
+- **Bajo cada gráfico,** "Ver los datos en una tabla" (accesible, sin depender del color). Si un filtro no deja consultas, un aviso dice qué combinación no existe y un botón "Quitar filtros".
+
 ## Estados
 
 - **Sin clave:** aviso con qué falta y dónde ponerla; "Preparar respuesta" queda deshabilitado.

@@ -158,3 +158,83 @@ En USD por persona, sin la fila premium:
 3. Confirmar en https://visitaareasnaturales.sernanp.gob.pe la tarifa vigente del Parque Nacional Huascarán.
 4. Si quieres mostrar el mapa con el sendero real, hay que bajar el trazo de OpenStreetMap (es otro paso).
 5. Activar el entorno: `conda activate trekking`.
+
+---
+
+# Tablero para la presentación (2026-11-11, rama `mejoras-diseno`)
+
+Trabajé solo en `mejoras-diseno`: sin merge ni push a `main`. No toqué `ai/` ni `server/`. En `core/tablero.py` solo agregué funciones y textos nuevos; ninguna métrica existente cambió su cálculo. No leí ni imprimí `.env`.
+
+## Antes de empezar: traje `main` a la rama
+
+El Tablero con embudo, mapa de calor y frases (`360228d`) estaba en `main`, no en `mejoras-diseno`. Además, `main` había movido este archivo a `docs/notas/`. Para trabajar sobre ese Tablero hice un merge **de `main` hacia `mejoras-diseno`** (`27b48f9`). Hubo un solo conflicto, en `app/estilo.css` (los dos lados agregaban estilos al final), y quedaron los dos. Con esto, el merge final a `main` debería ser más simple.
+
+## Pruebas
+
+- **`pytest` no estaba instalado** en el Python del sistema (3.14). Lo instalé solo en la carpeta temporal de la sesión y lo corrí con `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` (un plugin de `platformdirs` lo rompía). Nada se instaló en el entorno del proyecto.
+- **Antes (en la rama, sin el merge):** 228 pasan, 1 falla, 1 se salta.
+- **Después del merge:** 245 pasan, 1 falla, 1 se salta.
+- **Al final:** 258 pasan, 1 falla, 1 se salta, más 231 subpruebas.
+- **La que falla** es `test_proveedor_claude_pide_su_clave`, porque el paquete `anthropic` no está instalado en este Python. Ya fallaba antes y no tiene que ver con el Tablero. En el entorno `trekking` debería pasar.
+- **`python -c "import app.app"`:** termina bien (código 0) después de cada commit.
+- **Pruebas nuevas:** `tests/test_tablero_demo.py`, con 13 pruebas. Además, cambié una etiqueta esperada en `tests/test_tablero.py` ("Sin respuesta" pasó a "Sin respuesta de la agencia").
+
+## Commits (uno por cambio)
+
+| Tarea | Commit | Qué cambió |
+| --- | --- | --- |
+| — | `27b48f9` | Merge de `main` hacia la rama |
+| 1 | `bd64a5e` | Banda arriba: "¿Qué consultas se pierden y cuándo?" y "Datos: 300 consultas sintéticas de demostración" (si hay registradas, dice cuántas). La cuenta sale del archivo con `texto_origen()`, que es nuevo |
+| 2 | `b71b632` | Bajo "Tasa de cierre": "Reservadas ÷ respondidas: 20 ÷ 111". El KPI ahora se llama "Sin respuesta de la agencia" y abajo dice "15,3 % de las consultas: la agencia no contestó" |
+| 3 | `2db0972` | Orden: KPIs → embudo y por trek (lado a lado; en el celular, uno debajo del otro) → cuándo llegan → meses → países. El título de cada gráfico es la frase de `core/tablero.py`, con la pregunta encima como rótulo |
+| Regla 5 | `e435c33` | Un color fijo por estado: reservada `#0E7C58`, cotizada `#3A78C2`, sin respuesta `#C8660A`, perdida `#5B6F6A`. Texto de los gráficos a 14 px y leyendas a 14 px |
+| 4 | `775d559` | Prueba de cuadre con todos los filtros, y un aviso cuando hay consultas sin mes de viaje (solo texto) |
+| 5 | `c920a9a` | "Cuándo llegan": 7 días × 4 franjas con el número en cada celda. Las franjas siguen el horario: madrugada (0–8) y noche (20–24) son justo las horas fuera de horario. El título conserva el % fuera de horario. "Hora por hora" muestra el 7 × 24 de antes |
+| 6 | `579ee61` | Por trek: barras apiladas por estado y "21 % cierre · n=42" (n = respondidas). Con menos de 10 respondidas se atenúan; es el mismo umbral que ya usaba `hallazgo_treks()` |
+| 7 | `920e112` | Países: ya venían en barras horizontales ordenadas, top 7 + "Otros", desde `main`. Solo puse "Otros" en gris y agregué una nota de cómo se ordenan |
+| 8 | `9b503a2` | "Ver los datos en una tabla" bajo cada gráfico (una tabla por gráfico, con CSV). Si un filtro no deja consultas: "Ninguna consulta cumple a la vez: Choquequirao + Francés…" y un botón "Quitar filtros" |
+| 9 | `5b61bf9` | "Tu semana": sin registros muestra "0 de 3 consultas registradas esta semana" y "Primera meta: 3". El 3 es una sugerencia, no un dato. Con registros sigue el bloque de antes (meta editable en Mi agencia) |
+| Arreglo | `d5879e3` | "Quitar filtros" generaba una advertencia de Streamlit en el log (selector con `index=` y valor por `session_state`). Ahora el período inicial va por `session_state` |
+| Arreglo | `dd37973` | El atenuado de la tarea 6 no se veía: el eje usaba `sum(n)` y esa agregación descartaba el campo `poca_base`. Además, en el celular los rótulos de franja se encimaban; ahora van en dos líneas debajo |
+| Docs | `baf187f` | Capturas en `docs/capturas_diseno/` (`tablero_1440.png`, `tablero_390.png`, `tablero_vacio_1440.png`) y una sección "Tablero" en `docs/diseno.md` |
+
+## Inconsistencias numéricas (no cambié ningún cálculo)
+
+**Solo con las 300 sintéticas, todo cuadra.** Probé los 3 períodos × 7 opciones de trek × 6 de idioma. En cada combinación coinciden:
+- consultas, respondidas y reservadas de los KPIs con las del embudo;
+- el total y las "sin respuesta" del gráfico por mes y estado;
+- el total y las reservadas del gráfico por trek.
+
+Quedó como prueba automática (`PruebasCuadre`). Por defecto (6 meses): 131 consultas, 111 respondidas, 20 sin respuesta y 20 reservadas en los cuatro lugares.
+
+**Lo que no cuadra o se presta a confusión:**
+
+1. **"Cotizadas" significa dos cosas distintas.** En el embudo, "Cotizadas" = respondidas con precio, e incluye las reservadas: 111. En el gráfico por mes, "cotizada" es el estado sin reservar: 91. Con los mismos filtros, la misma palabra muestra 111 y 91. No es un error de cálculo, pero alguien del público puede preguntarlo.
+2. **El paso Respondidas → Cotizadas siempre da 100 %** con las sintéticas, porque todas las respondidas tienen monto. Ese paso no aporta información en el demo.
+3. **Una sola consulta registrada hoy corre el período de las sintéticas.** `periodo()` toma como fin la consulta más reciente. Ejemplo: sin registradas, "6 meses" va del 01/05 al 31/10/2026 y tiene 131 sintéticas. Con una registrada el 11/11/2026 va del 12/05 al 11/11 y quedan 122 sintéticas, porque salen 9. **Si registras una consulta durante la presentación, todos los KPIs del Tablero cambian, y no solo en 1.**
+4. **Las registradas sin mes de viaje no entran al gráfico por mes.** Ejemplo con 2 registradas de prueba: KPI 124 y gráfico por mes 123. Ahora aparece un aviso con cuántas faltan, pero el cálculo es el mismo.
+5. **Una registrada como "cotizada" sin opción del tarifario tiene monto 0.** Cuenta como respondida pero no como cotizada en el embudo. Ejemplo: respondidas 107 y cotizadas 106.
+6. **Las "perdidas" de "Mi semana" cuentan como respondidas** en la tasa de cierre y en el embudo. Es coherente con la definición (reservadas ÷ respondidas), pero conviene saberlo.
+
+## Comprobación final con `streamlit run`
+
+Levanté la app en el puerto 8577 y la recorrí con Chrome headless (Playwright).
+- **Filtros por defecto:** el Tablero abre con 5 gráficos.
+- **Filtro sin resultados (Choquequirao + Francés):** aparece el aviso; con "Quitar filtros" vuelven los 5 gráficos.
+- **Errores:** 0 excepciones en pantalla y 0 errores de JavaScript.
+- **Log del servidor:** solo dos cosas que no son de la app: `"theme.paddingTop" is not a valid config option` (ya estaba) y un `ConnectionResetError` de Windows cuando se cierra el navegador automatizado.
+- **Ancho a 390 px:** 390, sin desplazamiento horizontal.
+
+## Lo que quedó sin hacer
+
+- **Tarea 7:** casi todo ya estaba en `main`; solo agregué el gris de "Otros".
+- **Tarea 9:** el bloque con registros sigue siendo el "Mi semana" anterior, ahora con el rótulo "Tu semana". Lo único corto y nuevo es el estado sin registros.
+- **El embudo no usa los colores de estado.** Sus etapas son acumulativas (una reservada también es respondida), así que pintarlas por estado confundiría. Van en el verde primario.
+- **No probé la app publicada en Streamlit Cloud,** solo en local.
+
+## Riesgos para la presentación
+
+- **No registres consultas en vivo justo antes de mostrar el Tablero** (ver el punto 3): las cifras cambian de forma visible. Si lo haces, explica que el período termina en la consulta más reciente.
+- **En el celular, la etiqueta del Salkantay** ("21 % cierre · n=42") queda un poco cortada en el borde a 390 px. En la laptop y en el proyector se ve completa.
+- **La rama ya trae `main` adentro.** Si en `main` hay commits después de `fd55093`, el merge final puede tener conflictos en `app/app.py`.
+- **Archivos que cambié desde el merge:** `app/app.py`, `app/estilo.css`, `core/tablero.py` (solo agregados), `tests/test_tablero.py`, `tests/test_tablero_demo.py`, `docs/diseno.md`, `docs/capturas_diseno/` y este archivo.
