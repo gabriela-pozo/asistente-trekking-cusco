@@ -82,7 +82,7 @@ Las reglas de la respuesta salen de la prueba de cliente misterioso (`docs/resea
 
 **App:** [https://abra-travel.streamlit.app](https://abra-travel.streamlit.app)
 
-Video de respaldo: pendiente, en Google Drive (acceso: cualquier persona con el enlace, rol lector); ver [docs/video/README.md](docs/video/README.md)
+Video de respaldo: pendiente; se graba el 11 de noviembre y irá en Google Drive. Detalle y guion: [docs/video/README.md](docs/video/README.md).
 
 Modelo: **Gemini** (`gemini-3.5-flash`), con respaldo `gemini-3.5-flash-lite` si se queda sin cuota o está saturado, y un **ejemplo guardado** de una consulta real si los dos fallan. El botón "Usar mensaje de ejemplo" muestra ese resultado sin llamar a la API.
 
@@ -91,7 +91,7 @@ Qué se ve en la app:
 - **Nueva consulta:** el borrador listo para WhatsApp, con un **cronómetro** ("Respuesta lista en X s"), el perfil del viajero, las opciones del tarifario, los avisos del control y **Armar paquete** (trek + extras + días en Cusco + recargo por forma de pago).
 - **Modo nocturno:** si la consulta llega fuera de horario, muestra la respuesta segura que se enviaría sola. En la app es una **simulación**; el webhook de WhatsApp con Twilio (`server/webhook.py`) está escrito y probado, pero aún no conectado en vivo.
 - **Mi agencia:** tarifario editable, extras, recargos, horario de atención y meta semanal.
-- **Tablero:** arriba, **Mi semana** (solo las consultas registradas por el vendedor: meta semanal, monto reservado frente a la semana anterior, racha y cotizaciones que esperan seguimiento). Debajo, consultas, tasa de cierre, sin respuesta y monto reservado por mes del viaje, trek y país, con **datos sintéticos** del demo (`data/consultas_sinteticas.csv`).
+- **Tablero:** arriba, **Mi semana** (solo las consultas registradas por el vendedor: meta semanal, monto reservado frente a la semana anterior, racha y cotizaciones que esperan seguimiento). Debajo, un tablero por preguntas (¿cómo voy?, ¿cuándo escriben?, ¿qué piden y qué se cierra?, ¿dónde se pierden las ventas?, ¿para qué meses?, ¿de dónde escriben?), cada una con un hallazgo calculado, filtros de período, trek e idioma, variación frente al período anterior y descarga de cada tabla, con **datos sintéticos** del demo (`data/consultas_sinteticas.csv`).
 
 ![Nueva consulta: la respuesta lista para WhatsApp](docs/captura_1_consulta.png)
 
@@ -99,11 +99,13 @@ Qué se ve en la app:
 
 ![La respuesta abierta en WhatsApp](docs/captura_3_respuesta_whatsapp.png)
 
+![Tablero por preguntas, con datos sintéticos del demo](docs/captura_4_tablero.png)
+
 ## 7. Modelo de negocio
 
 - **Costo por consulta (medido):** cada consulta hace 2 llamadas al modelo (extraer el perfil y redactar el borrador) y usa unos 2 100 tokens de entrada y 450 de salida en total (en el ejemplo guardado: 2 097 y 452).
 - **El demo usa el nivel gratuito de Gemini** (20 solicitudes por día y por modelo; cada consulta usa 2). No incluimos el precio del nivel de pago porque no lo verificamos en la página oficial.
-- **Para la agencia:** primero un piloto gratis de 2 semanas con 3 agencias, midiendo cuántas ventas se recuperan respondiendo antes.
+- **Para la agencia:** primero un piloto gratis de 2 semanas con 3 agencias, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
 
 **Precios: hipótesis a validar en el piloto (todavía no validada con agencias).** Suscripción mensual, con el primer mes gratis:
 
@@ -114,7 +116,7 @@ Qué se ve en la app:
 | Agencia+ | S/ 599 | Hasta 3 000 consultas y varios vendedores |
 
 - **Argumento:** una sola venta de Salkantay recuperada al mes (US$ 600–680 por persona, precio estándar de 4 y 5 días en el tarifario demo) cubre cualquiera de los planes. Una plataforma de reservas, en cambio, se queda con 20 a 30 % de cada venta (fuente en la sección 3. Problema).
-- **Meta del piloto:** 10 agencias.
+- **Meta tras el piloto:** 10 agencias pagando.
 
 ## 8. Herramientas del curso
 
@@ -131,7 +133,7 @@ Qué se ve en la app:
 
 ## Qué sigue
 
-1. **Piloto gratis de 2 semanas con 3 agencias**, midiendo las ventas recuperadas.
+1. **Piloto gratis de 2 semanas con 3 agencias**, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
 2. **Modo nocturno con WhatsApp real:** el webhook ya funciona con el sandbox de Twilio. La integración directa con Meta se intentó, pero la cuenta quedó bloqueada temporalmente por iniciar sesión desde un dispositivo nuevo.
 3. **Paquetes** (trek + extras + días en Cusco) para subir el ticket de cada venta.
 4. **Mapa de la ruta en la respuesta al viajero:** lo pidió la [conversación 2](docs/research/conversacion_2.md); los trazados de 3 rutas ya están en `data/rutas/`.

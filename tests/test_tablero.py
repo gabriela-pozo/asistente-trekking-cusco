@@ -20,7 +20,7 @@ import generar_consultas_sinteticas as gen  # noqa: E402
 from ai.ejemplo import cargar_ejemplo  # noqa: E402
 from core.cotizacion import cargar_tarifario  # noqa: E402
 from core.tablero import (  # noqa: E402
-    COLUMNAS, COLUMNAS_REGISTRO, cargar_consultas, filtrar, metricas, por_mes_viaje, por_pais, por_trek, registrar,
+    COLUMNAS_REGISTRO, COLUMNAS_SINTETICAS, cargar_consultas, filtrar, metricas, por_mes_viaje, por_pais, por_trek, registrar,
     registro_desde_resultado,
 )
 
@@ -79,7 +79,7 @@ class PruebasSinteticas(unittest.TestCase):
     def test_rango_y_tamano(self):
         df = pd.read_csv(SINTETICAS)
         self.assertEqual(len(df), 300)
-        self.assertEqual(list(df.columns), COLUMNAS)
+        self.assertEqual(list(df.columns), COLUMNAS_SINTETICAS)
         self.assertGreaterEqual(df["fecha_consulta"].min(), "2025-09-01")
         self.assertLessEqual(df["fecha_consulta"].max(), "2026-10-31")
         self.assertTrue(set(df["estado"]) <= {"cotizada", "reservada", "sin respuesta"})
@@ -138,10 +138,11 @@ class PruebasPaginaTablero(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.header[0].value, "Tablero")
         self.assertEqual([m.label for m in app.metric], ["Consultas", "Tasa de cierre", "Sin respuesta", "Monto reservado"])
-        self.assertEqual(app.metric[0].value, "300")
+        self.assertEqual(app.metric[0].value, "131")  # por defecto, los últimos 6 meses (may-oct 2026)
+        self.assertIsNotNone(app.metric[0].delta)       # comparados con nov 2025-abr 2026
         self.assertTrue(any("Datos sintéticos del demo: no son de ninguna agencia real" in str(h.proto)
                             for h in app.get("html")))
-        self.assertEqual(len([e for e in app.main if e.type == "vega_lite_chart"]), 3)
+        self.assertEqual(len([e for e in app.main if e.type == "vega_lite_chart"]), 5)
 
     def test_boton_registrar_guarda_solo_el_perfil(self):
         from streamlit.testing.v1 import AppTest
