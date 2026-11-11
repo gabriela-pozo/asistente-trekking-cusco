@@ -1003,9 +1003,12 @@ def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
                                                                      "consultas": "Consultas"}), "cuando_escriben")
 
 
+PERIODO_INICIAL = list(PERIODOS)[1]  # "Últimos 6 meses", como al abrir el Tablero
+
+
 def quitar_filtros() -> None:
     st.session_state.filtro_treks, st.session_state.filtro_idiomas = [], []
-    st.session_state.filtro_periodo = list(PERIODOS)[1]  # el mismo período que al abrir el Tablero
+    st.session_state.filtro_periodo = PERIODO_INICIAL
 
 
 def pagina_tablero() -> None:
@@ -1020,7 +1023,8 @@ def pagina_tablero() -> None:
     st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
 
     c1, c2, c3 = st.columns([1, 1.4, 1.4])
-    nombre_periodo = c1.selectbox("Período", list(PERIODOS), index=1, key="filtro_periodo")
+    st.session_state.setdefault("filtro_periodo", PERIODO_INICIAL)  # sin index=: lo pone «Quitar filtros»
+    nombre_periodo = c1.selectbox("Período", list(PERIODOS), key="filtro_periodo")
     treks = c2.multiselect("Trek", sorted(consultas["trek"].dropna().unique()), placeholder="Todos los treks",
                            format_func=lambda t: NOMBRE_RUTA.get(t, t), key="filtro_treks")
     idiomas = c3.multiselect("Idioma", sorted(consultas["idioma"].dropna().unique()),
