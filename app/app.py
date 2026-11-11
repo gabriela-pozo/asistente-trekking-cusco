@@ -601,29 +601,26 @@ def html_tabla_base(tabla: pd.DataFrame) -> str:
 
 def pagina_fuentes() -> None:
     st.header("Fuentes y verificación")
-    st.html('<p class="subtitulo">De dónde sale cada dato de la respuesta. Lo que tiene más de '
-            f'{DIAS_PARA_VERIFICAR} días se marca para verificar antes de enviarlo.</p>')
     hoy = hoy_en_lima()
+    tabla = tabla_base(CARPETA_BASE, hoy)
+    texto = st.text_input("Buscar por tema, archivo o fuente", placeholder="Buscar: permisos, elperuano, lares…",
+                          key="buscar_base", icon=":material/search:", label_visibility="collapsed")
     resultado = st.session_state.get("resultado")
     if resultado is None:
         st.html('<div class="vacio"><strong>Todavía no hay una consulta.</strong> Cuando prepares una respuesta, '
-                'aquí verás qué fragmentos de la base de conocimiento se usaron, su fecha y su fuente.</div>')
+                'aquí verás qué se usó, su fecha y su fuente.</div>')
         st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a,
                   args=("Consulta",), key="fuentes_ir_consulta")
     else:
         if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
-            st.info("Es el ejemplo guardado: estos son los fragmentos que se usaron en esa consulta.",
-                    icon=":material/bookmark:")
+            st.caption(":material/bookmark: Es el ejemplo guardado: estos son los fragmentos que se usaron en esa consulta.")
         mostrar_fuentes_usadas(resultado, hoy)
 
-    tabla = tabla_base(CARPETA_BASE, hoy)
-    with st.container(border=True, key="tarjeta_base"):
-        rotulo("Base de conocimiento completa")
-        texto = st.text_input("Buscar por tema, archivo o fuente", placeholder="Por ejemplo: permisos, elperuano, lares",
-                              key="buscar_base")
-        encontrados = buscar_en_base(tabla, texto)
+    encontrados = buscar_en_base(tabla, texto)
+    with st.expander("Base de conocimiento completa", icon=":material/library_books:", expanded=bool(texto)):
         st.caption(f"{len(encontrados)} de {len(tabla)} archivos · {int(tabla['fragmentos'].sum())} fragmentos · "
-                   f"{int(tabla['oficiales'].sum())} enlaces a fuentes oficiales")
+                   f"{int(tabla['oficiales'].sum())} enlaces a fuentes oficiales. Lo que tiene más de "
+                   f"{DIAS_PARA_VERIFICAR} días se marca para verificar.")
         if encontrados.empty:
             st.info("Ningún archivo coincide con la búsqueda.", icon=":material/search_off:")
         else:
@@ -656,54 +653,47 @@ def modelos_sin_cuota() -> set[str]:
 
 def pagina_estado() -> None:
     st.header("Estado del sistema")
-    st.html('<p class="subtitulo">Qué está funcionando ahora y con qué datos. Para la demo y para saber '
-            'cuánto confiar en la respuesta.</p>')
     estado = st.session_state
     resultado, origen = estado.get("resultado"), estado.get("origen")
     nombre = proveedor()
     configurados = modelos_configurados(nombre)
     with st.container(key="estado_sistema"):  # la clave es para el CSS de las cifras (ver estilo.css)
+        configurado = f"Configurado: {' → '.join(configurados)} ({nombre})" + (f" · falta {falta_clave()}" if falta_clave() else "")
+        if resultado is None:  # una sola línea: sin consulta todavía no se conoce ni el modelo ni la cuota
+            st.html(f'<div class="estado-linea">{icono("hourglass_empty")}<span><strong>Todavía no hay consulta.</strong> '
+                    'Aún no se conoce el modelo que responde ni la cuota que queda.</span></div>')
+            st.caption(configurado)
+        else:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("Modelo que respondió", resultado.uso.modelos_que_respondieron(), border=True,
+                          help="En la última consulta. Si fue el ejemplo guardado, es el modelo de esa consulta.")
+                st.caption(configurado)
+            with c2:
+                quedan = consultas_restantes(nombre, modelos_sin_cuota())
+                st.metric("Consultas que quedan hoy", "No se conoce" if quedan is None else quedan, border=True,
+                          help="La API no informa la cuota restante.")
+                st.caption(f"{referencia_cuota(nombre)} En esta sesión: {estado.get('consultas_modelo', 0)}.")
+            with c3:
+                st.metric("¿Se usó el ejemplo guardado?", ORIGENES.get(origen, "No").split(":")[0], border=True)
+                st.caption(mayuscula(ORIGENES[origen].split(": ", 1)[1]) + "." if origen in ORIGENES else "")
 
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            respondio = resultado.uso.modelos_que_respondieron() if resultado else "Sin consulta todavía"
-            st.metric("Modelo que respondió", respondio, border=True,
-                      help="En la última consulta. Si fue el ejemplo guardado, es el modelo de esa consulta.")
-            st.caption(f"Configurado: {' → '.join(configurados)} ({nombre})"
-                       + (f" · falta {falta_clave()}" if falta_clave() else ""))
-        with c2:
-            quedan = consultas_restantes(nombre, modelos_sin_cuota())
-            st.metric("Consultas que quedan hoy", "No se conoce" if quedan is None else quedan, border=True,
-                      help="La API no informa la cuota restante.")
-            st.caption(f"{referencia_cuota(nombre)} En esta sesión: {estado.get('consultas_modelo', 0)}.")
-        with c3:
-            st.metric("¿Se usó el ejemplo guardado?", ORIGENES.get(origen, "Sin consulta todavía").split(":")[0],
-                      border=True)
-            st.caption(mayuscula(ORIGENES[origen].split(": ", 1)[1]) + "."
-                       if origen in ORIGENES else "Todavía no se preparó ninguna respuesta.")
-
-        base = version_base(CARPETA_BASE)
         ahora = datetime.now(ZONA)
         fuera = fuera_de_horario(ahora, estado.apertura, estado.cierre)
-        c4, c5, c6 = st.columns(3)
-        with c4:
-            st.metric("Base de conocimiento", f"v. {base.version}", border=True,
-                      help="Huella del contenido: cambia si se edita cualquier archivo de data/knowledge.")
-            st.caption(f"Actualizada el {base.actualizada} · {base.archivos} archivos · {base.fragmentos} fragmentos.")
-        with c5:
-            st.metric("Hora en Lima", f"{ahora:%H:%M}", border=True)
-            if not estado.modo_nocturno:
-                nocturno = "Modo nocturno apagado."
-            elif fuera:
-                nocturno = "Modo nocturno activo: ahora es fuera de horario (simulado, no envía nada)."
-            else:
-                nocturno = "Modo nocturno encendido; se activa al cerrar."
-            st.caption(f"{nocturno} Horario: {estado.apertura:%H:%M} a {estado.cierre:%H:%M}.")
-        with c6:
-            pruebas, archivos = pruebas_automaticas()
-            st.metric("Pruebas automáticas", pruebas, border=True,
-                      help="Contadas en tests/, sin ejecutarlas. Para correrlas: python -m unittest discover tests")
-            st.caption(f"En {archivos} archivos de tests/. Se cuentan, no se ejecutan desde la app.")
+        if not estado.modo_nocturno:
+            nocturno = "Modo nocturno apagado."
+        elif fuera:
+            nocturno = "Modo nocturno activo: ahora es fuera de horario (simulado, no envía nada)."
+        else:
+            nocturno = "Modo nocturno encendido; se activa al cerrar."
+        st.html(f'<div class="estado-linea">{icono("schedule")}<span><strong>Hora en Lima: {ahora:%H:%M}.</strong> '
+                f'{html.escape(nocturno)} Horario: {estado.apertura:%H:%M} a {estado.cierre:%H:%M}.</span></div>')
+
+        base = version_base(CARPETA_BASE)
+        pruebas, archivos = pruebas_automaticas()
+        st.caption(f"Base de conocimiento v. {base.version} · actualizada el {base.actualizada} · {base.archivos} archivos · "
+                   f"{base.fragmentos} fragmentos. Pruebas automáticas: {pruebas} en {archivos} archivos de tests/ "
+                   "(se cuentan, no se ejecutan desde la app).")
 
 
 # ---------------------------------------------------------------- Acerca del piloto
@@ -739,21 +729,40 @@ def html_puntos(puntos: list[tuple[str, str]], clase: str) -> str:
         f"<li><strong>{html.escape(t)}.</strong> {html.escape(d)}</li>" for t, d in puntos) + "</ul>")
 
 
+# Resumen: 3 viñetas con ícono por bloque. El texto completo de arriba (ALCANCE y NO_HACE) queda en «Más detalle».
+RESUMEN_ALCANCE = [
+    ("science", "Es una demo con datos sintéticos: no son de ninguna agencia real."),
+    ("storefront", "La agencia es ficticia; su tarifario usa precios de mercado (17 para el Salkantay de 5 días)."),
+    ("calculate", "Los precios los pone el código, no el modelo."),
+]
+RESUMEN_LIMITES = [
+    ("send", "No envía mensajes solo: tú lo envías desde tu WhatsApp."),
+    ("bedtime", "El modo nocturno es una simulación: enviar de verdad requiere la API de WhatsApp Business."),
+    ("event_busy", f"No reserva ni cobra; lo que tiene más de {DIAS_PARA_VERIFICAR} días se marca en Fuentes."),
+]
+
+
+def html_resumen(puntos: list[tuple[str, str]]) -> str:
+    return '<ul class="resumen-iconos">' + "".join(
+        f"<li>{icono(i)}<span>{html.escape(t)}</span></li>" for i, t in puntos) + "</ul>"
+
+
 def pagina_acerca() -> None:
     st.header("Acerca del piloto")
-    st.html('<p class="subtitulo">Qué es Abra Travel hoy, qué no hace y quién decide.</p>')
     with st.container(border=True, key="tarjeta_revision"):
-        st.html('<p class="revision"><strong>El vendedor siempre revisa.</strong> Abra Travel prepara un borrador; '
-                'tú lo lees, lo corriges si hace falta y decides si lo envías.</p>')
+        st.html(f'<p class="revision">{icono("verified_user")}<strong>El vendedor siempre revisa.</strong> '
+                'Abra Travel prepara un borrador; tú decides si lo envías.</p>')
     izquierda, derecha = st.columns(2, gap="large")
     with izquierda, st.container(border=True, key="tarjeta_alcance"):
         rotulo("Alcance")
-        st.html(html_puntos(ALCANCE, "puntos-alcance"))
+        st.html(html_resumen(RESUMEN_ALCANCE))
     with derecha, st.container(border=True, key="tarjeta_limites"):
         rotulo("Lo que no hace")
+        st.html(html_resumen(RESUMEN_LIMITES))
+    with st.expander("Más detalle", icon=":material/info:"):
+        st.html(html_puntos(ALCANCE, "puntos-alcance"))
         st.html(html_puntos(NO_HACE, "puntos-limites"))
-    st.caption("Las páginas «Fuentes y verificación» y «Estado del sistema» muestran de dónde sale cada dato y "
-               "qué está funcionando en este momento.")
+    st.caption("Fuentes y Sistema muestran de dónde sale cada dato y qué está funcionando en este momento.")
 
 
 # ---------------------------------------------------------------- Mi agencia
@@ -778,8 +787,6 @@ COLUMNAS_LEGIBLES = {
 
 def pagina_agencia() -> None:
     st.header("Mi agencia")
-    st.html('<p class="subtitulo">Tu tarifario. Abra Travel solo cotiza con estos precios: '
-            'el modelo nunca los inventa.</p>')
     st.session_state.agencia = st.text_input("Nombre de la agencia", st.session_state.agencia)
 
     with st.container(border=True, key="tarjeta_horario"):
@@ -791,9 +798,7 @@ def pagina_agencia() -> None:
                 "Modo nocturno", st.session_state.modo_nocturno,
                 help="Fuera de horario, muestra la primera respuesta segura que se enviaría sola. "
                      "Hoy es una simulación: no se envía nada.")
-        st.caption("Con el modo nocturno, una consulta que llega fuera de horario recibe una respuesta armada por "
-                   "código (precio desde tu tarifario, qué incluye y lo que falta preguntar) solo si el control "
-                   "no encontró problemas. Si no, queda en espera del vendedor.")
+        st.caption("Fuera de horario, el modo nocturno arma una respuesta segura (simulada: no se envía nada).")
 
     with st.container(border=True, key="tarjeta_meta"):
         rotulo("Meta semanal")
@@ -819,12 +824,21 @@ def pagina_agencia() -> None:
                 else:
                     st.session_state.tarifario_base = nuevo
                     st.session_state.tarifario = nuevo
-                    st.session_state.pop("editor_tarifario", None)  # el editor empieza de cero con el CSV nuevo
+                    st.session_state.pop("editor_tarifario", None)  # los editores empiezan de cero con el CSV nuevo
+                    st.session_state.pop("editor_tarifario_otros", None)
                     st.success(f"Tarifario cargado: {len(nuevo)} filas.")
 
-        st.session_state.tarifario = st.data_editor(st.session_state.tarifario_base, num_rows="dynamic",
-                                                    width="stretch", key="editor_tarifario",
-                                                    column_config=COLUMNAS_LEGIBLES, hide_index=True)
+        # Solo el nivel estándar a la vista; los demás niveles, en el expander. Los dos editores parten de la
+        # base y se juntan en st.session_state.tarifario (el que usa la cotización).
+        base_t = st.session_state.tarifario_base
+        es_estandar = base_t["nivel"] == "estandar"
+        st.caption("Nivel estándar. Abra Travel solo cotiza con estos precios: el modelo nunca los inventa.")
+        estandar = st.data_editor(base_t[es_estandar], num_rows="dynamic", width="stretch", key="editor_tarifario",
+                                  column_config=COLUMNAS_LEGIBLES, hide_index=True)
+        with st.expander("Editar todos los niveles", icon=":material/table_edit:"):
+            otros = st.data_editor(base_t[~es_estandar], num_rows="dynamic", width="stretch",
+                                   key="editor_tarifario_otros", column_config=COLUMNAS_LEGIBLES, hide_index=True)
+        st.session_state.tarifario = pd.concat([estandar, otros]).sort_index(kind="stable")
         with st.container(horizontal=True, vertical_alignment="center"):
             st.download_button("Descargar tarifario", st.session_state.tarifario.to_csv(index=False).encode("utf-8"),
                                file_name="tarifario.csv", mime="text/csv", icon=":material/download:")

@@ -81,10 +81,9 @@ class PruebasImports(unittest.TestCase):
             app = AppTest.from_file(str(APP), default_timeout=60)
             app.run()
             app.sidebar.radio[0].set_value("Sistema").run()
-            valores = {m.label: m.value for m in app.metric}
-            self.assertEqual(valores["Modelo que respondió"], "Sin consulta todavía")
-            self.assertEqual(valores["Consultas que quedan hoy"], "No se conoce")
-            self.assertGreater(int(valores["Pruebas automáticas"]), 100)
+            self.assertTrue(any("Todavía no hay consulta" in str(h.proto) for h in app.get("html")))  # una sola línea
+            self.assertTrue(any("Pruebas automáticas:" in c.value for c in app.caption))  # al pie
+            self.assertEqual(len(app.metric), 0)
             app.sidebar.radio[0].set_value("Consulta").run()
             next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
             app.sidebar.radio[0].set_value("Sistema").run()
@@ -92,7 +91,8 @@ class PruebasImports(unittest.TestCase):
             valores = {m.label: m.value for m in app.metric}
             self.assertEqual(valores["¿Se usó el ejemplo guardado?"], "Sí")
             self.assertIn("gemini", valores["Modelo que respondió"])
-            self.assertTrue(valores["Base de conocimiento"].startswith("v. "))
+            self.assertEqual(valores["Consultas que quedan hoy"], "No se conoce")
+            self.assertTrue(any(c.value.startswith("Base de conocimiento v. ") for c in app.caption))
 
     def test_acerca_del_piloto_declara_los_limites(self):
         from streamlit.testing.v1 import AppTest
