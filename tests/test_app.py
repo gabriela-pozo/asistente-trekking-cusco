@@ -108,6 +108,20 @@ class PruebasApp(unittest.TestCase):
         self.assertEqual(anterior.type, "caption")
         self.assertTrue(anterior.value.startswith("Respondió: gemini-3.5-flash · Tokens usados"))
 
+    def test_aviso_de_numero_invalido_solo_con_texto_invalido(self):
+        from streamlit.testing.v1 import AppTest
+
+        aviso = "Revisa el número: escríbelo con código de país"
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            self.assertFalse(any(aviso in w.value for w in app.warning))          # campo vacío: nada
+            for malo, esperado in (("abc", True), ("123", True), ("+51 987 654 321", False), ("", False)):
+                app.text_input(key="telefono_viajero").set_value(malo).run()
+                self.assertFalse(app.exception)
+                self.assertEqual(any(aviso in w.value for w in app.warning), esperado, malo)
+
     def test_la_respuesta_sigue_ahi_al_volver_de_otra_pagina(self):
         from streamlit.testing.v1 import AppTest
 
