@@ -791,6 +791,7 @@ PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#1E6B52", "#5E9C84", "#C
 # todos los gráficos: "sin respuesta" va en ocre porque es la pérdida que el Tablero quiere mostrar.
 COLOR_ESTADO = {"reservada": "#0E7C58", "cotizada": "#3A78C2", "sin respuesta": "#C8660A", "perdida": "#5B6F6A"}
 TEXTO_GRAFICO = 14  # px: legible en un proyector
+MINIMO_RESPONDIDAS = 10  # como hallazgo_treks(): con menos, la tasa de cierre dice poco
 CUADRICULA = "#EDF2EF"
 
 
@@ -1074,21 +1075,38 @@ def pagina_tablero() -> None:
     with derecha, tarjeta("treks"):
         t = cierre_por_trek(datos)
         pregunta("¿En qué trek se pierden?", hallazgo_treks(t))
-        t["etiqueta"] = [f"{pct(x)} cierre" for x in t["tasa_cierre"]]
         t["tasa"] = t["tasa_cierre"].map(pct)
-        barras = alt.Chart(t).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
-            y=alt.Y("nombre:N", sort=list(t["nombre"]), title=None,
-                    scale=alt.Scale(paddingInner=.45), axis=alt.Axis(ticks=False, domain=False, labelLimit=150)),
-            x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 1.45]),
+        t["poca_base"] = t["respondidas"] < MINIMO_RESPONDIDAS
+        t["etiqueta"] = [f"{pct(x)} cierre · n={n}" for x, n in zip(t["tasa_cierre"], t["respondidas"])]
+        # Barras apiladas por estado (mismos colores que en todo el Tablero); la suma de cada barra = consultas.
+        apilado = (datos.assign(nombre=datos["trek"].map(lambda x: NOMBRE_RUTA.get(x, x)))
+                   .groupby(["nombre", "estado"]).size().rename("n").reset_index())
+        apilado = apilado.merge(t[["nombre", "poca_base"]], on="nombre")
+        apilado["orden"] = apilado["estado"].map(ORDEN_ESTADOS.index)
+        estados = [x for x in ORDEN_ESTADOS if x in set(apilado["estado"])]
+        eje_y = alt.Y("nombre:N", sort=list(t["nombre"]), title=None, scale=alt.Scale(paddingInner=.4),
+                      axis=alt.Axis(ticks=False, domain=False, labelLimit=170))
+        barras = alt.Chart(apilado).mark_bar(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1).encode(
+            y=eje_y,
+            x=alt.X("sum(n):Q", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 1.8]),
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
+            color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
+                            legend=alt.Legend(title=None, orient="top", direction="horizontal", symbolType="square")),
+            order=alt.Order("orden:Q", sort="ascending"),
+            opacity=alt.condition(alt.datum.poca_base, alt.value(.35), alt.value(1)),
+            tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("estado:N", title="Estado"),
+                     alt.Tooltip("n:Q", title="Consultas")])
+        etiquetas = alt.Chart(t).mark_text(align="left", dx=6, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
+            y=eje_y, x="consultas:Q", text="etiqueta:N",
+            color=alt.condition(alt.datum.poca_base, alt.value(SECUNDARIO), alt.value(TINTA)),
             tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
                      alt.Tooltip("respondidas:Q", title="Respondidas"),
                      alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
-            text="etiqueta:N")
-        dibujar(barras + etiquetas, alto=40 * len(t) + 40)
+        dibujar(barras + etiquetas, alto=44 * len(t) + 60)
+        st.caption(f"n = consultas respondidas. Atenuados: menos de {MINIMO_RESPONDIDAS} respondidas, "
+                   "su tasa de cierre todavía dice poco.")
         ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
-            "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas", "reservadas": "Reservadas",
+            "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas (n)", "reservadas": "Reservadas",
             "tasa": "Tasa de cierre"}), "treks")
 
     # 4. Cuándo llega: por franjas (más legible) o hora por hora

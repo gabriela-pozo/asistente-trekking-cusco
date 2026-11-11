@@ -124,6 +124,13 @@ class PruebasPagina(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(len([e for e in app.main if e.type == "vega_lite_chart"]), graficos)
 
+    def test_por_trek_muestra_n_y_explica_los_atenuados(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+        self.assertTrue(any("menos de 10 respondidas" in c.value for c in app.caption))
+        especificaciones = " ".join(str(e.proto) for e in app.main if e.type == "vega_lite_chart")
+        self.assertRegex(especificaciones, r"cierre .{1,12}n=\d+")
+
 
 if __name__ == "__main__":
     unittest.main()
