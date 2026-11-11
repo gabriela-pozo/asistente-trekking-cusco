@@ -146,6 +146,14 @@ Qué se ve en la app:
 - **Límites de la capa gratuita de Gemini**: 20 solicitudes por día y por modelo. Cada consulta usa 2. Por eso hay un modelo de respaldo y un ejemplo guardado.
 - **Marca:** Abra ya se usa en otros rubros de software (criptomonedas, gestión empresarial); antes de lanzar habría que registrar la marca en Indecopi.
 
+### Límites conocidos (evaluación del 11 de nov. de 2026)
+
+Evaluamos 5 consultas con el modelo real (no es una evaluación estadística; una sola corrida, lectura manual hecha por la autora). Resultado: 3 correctas, 1 parcial y 1 con fallas. Cero precios inventados, idioma correcto y respuestas de menos de 150 palabras en los 5 casos.
+
+Lo que falla: (1) con un mensaje muy vago, cotiza antes de pedir los datos y puede dar por hecho un tamaño de grupo; (2) cuando el viajero llega en una semana, no le dice que casi seguro no hay permisos para el Camino Inca; (3) a veces omite avisos de temporada alta o de cierre mensual, que sí aparecen en las advertencias internas para la agencia; (4) el control de depósito y saldo da falsos positivos cuando el mensaje menciona un monto no reembolsable.
+
+Por eso la agencia revisa y aprueba cada mensaje antes de enviarlo. Detalle en [docs/evaluacion.md](docs/evaluacion.md).
+
 ## Datos y privacidad
 
 - Al registrar una consulta se guarda solo su perfil (trek, idioma, mes del viaje, personas, nivel, estado y monto), nunca el mensaje ni el teléfono del viajero. Ese archivo no se sube al repositorio.
