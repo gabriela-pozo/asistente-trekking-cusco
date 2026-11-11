@@ -23,6 +23,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import KeepInFrame, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from core.cotizacion import NOMBRE_NIVEL, OpcionCotizada
+from core.paquete import Paquete, _nombre_y_beneficio, monto
 
 AGENCIA_POR_DEFECTO = "Abra Travel"
 VIGENCIA_DIAS_POR_DEFECTO = 7  # SUPUESTO: la agencia no fija una vigencia; se marca como tal en el PDF.
@@ -62,6 +63,12 @@ TEXTOS = {
         "permiso": "Requiere permiso del Camino Inca: verificar disponibilidad antes de confirmar.",
         "emision": "Emitida el", "vigencia": "Vigencia", "supuesto": "supuesto",
         "hasta": "hasta el", "alt": "Alternativa", "moneda": "Precios en dólares (US$).",
+        "dias": "días", "dia": "día", "paquete": "Tu paquete", "concepto": "Concepto", "calculo": "Cálculo",
+        "monto": "Monto", "total_grupo": "Total del grupo", "por_persona": "Por persona", "recargo": "Recargo por pago con",
+        "del_total": "del total", "total_pagar": "Total a pagar", "deposito": "Depósito (50 %)", "saldo": "Saldo",
+        "noche": "noche", "noches": "noches", "por_grupo": "por grupo", "otras": "Otras opciones",
+        "pie": "Preparado con Abra Travel", "contacto": "Contacto",
+        "tarjeta": "tarjeta", "paypal": "PayPal",
     },
     "en": {
         "saludo": "Thank you for your enquiry. Here is the quote we prepared for you.",
@@ -74,6 +81,12 @@ TEXTOS = {
         "permiso": "Inca Trail permit required: availability must be checked before confirming.",
         "emision": "Issued on", "vigencia": "Valid", "supuesto": "assumption",
         "hasta": "until", "alt": "Alternative", "moneda": "Prices in US dollars (US$).",
+        "dias": "days", "dia": "day", "paquete": "Your package", "concepto": "Item", "calculo": "Calculation",
+        "monto": "Amount", "total_grupo": "Group total", "por_persona": "Per person", "recargo": "Surcharge for paying by",
+        "del_total": "of the total", "total_pagar": "Total to pay", "deposito": "Deposit (50 %)", "saldo": "Balance",
+        "noche": "night", "noches": "nights", "por_grupo": "per group", "otras": "Other options",
+        "pie": "Prepared with Abra Travel", "contacto": "Contact",
+        "tarjeta": "card", "paypal": "PayPal",
     },
     "pt": {
         "saludo": "Obrigado pela sua consulta. Esta é a cotação que preparamos para você.",
@@ -86,8 +99,54 @@ TEXTOS = {
         "permiso": "Exige permissão da Trilha Inca: verificar disponibilidade antes de confirmar.",
         "emision": "Emitida em", "vigencia": "Validade", "supuesto": "suposição",
         "hasta": "até", "alt": "Alternativa", "moneda": "Preços em dólares (US$).",
+        "dias": "dias", "dia": "dia", "paquete": "Seu pacote", "concepto": "Item", "calculo": "Cálculo",
+        "monto": "Valor", "total_grupo": "Total do grupo", "por_persona": "Por pessoa", "recargo": "Acréscimo por pagamento com",
+        "del_total": "do total", "total_pagar": "Total a pagar", "deposito": "Entrada (50 %)", "saldo": "Saldo",
+        "noche": "noite", "noches": "noites", "por_grupo": "por grupo", "otras": "Outras opções",
+        "pie": "Preparado com Abra Travel", "contacto": "Contato",
+        "tarjeta": "cartão", "paypal": "PayPal",
     },
 }
+# Conceptos de "incluye / no incluye" del tarifario (data/tarifario_demo.csv). Clave en minúsculas; si un concepto
+# no está aquí se deja el original (en español).
+CONCEPTOS = {
+    "guía bilingüe": {"en": "bilingual guide", "pt": "guia bilíngue"},
+    "transporte de ida": {"en": "one-way transport", "pt": "transporte de ida"},
+    "transporte ida y vuelta desde cusco": {"en": "round-trip transport from Cusco", "pt": "transporte de ida e volta desde Cusco"},
+    "comidas durante el trek": {"en": "meals during the trek", "pt": "refeições durante a trilha"},
+    "entrada a machu picchu": {"en": "Machu Picchu entrance", "pt": "entrada em Machu Picchu"},
+    "tren de regreso a ollantaytambo": {"en": "return train to Ollantaytambo", "pt": "trem de volta a Ollantaytambo"},
+    "campamentos básicos": {"en": "basic camps", "pt": "acampamentos básicos"},
+    "carpa doble y colchoneta": {"en": "double tent and sleeping mat", "pt": "barraca dupla e isolante"},
+    "domos o carpas premium": {"en": "domes or premium tents", "pt": "domos ou barracas premium"},
+    "bolsa de dormir": {"en": "sleeping bag", "pt": "saco de dormir"},
+    "tren vistadome de regreso": {"en": "Vistadome return train", "pt": "trem Vistadome de volta"},
+    "permiso del camino inca": {"en": "Inca Trail permit", "pt": "permissão da Trilha Inca"},
+    "porteadores": {"en": "porters", "pt": "carregadores"},
+    "entrada al sitio arqueológico de choquequirao": {"en": "Choquequirao archaeological site entrance",
+                                                       "pt": "entrada no sítio arqueológico de Choquequirao"},
+    "bolsa de dormir (alquiler aparte)": {"en": "sleeping bag (rental extra)", "pt": "saco de dormir (aluguel à parte)"},
+    "seguro de viaje": {"en": "travel insurance", "pt": "seguro de viagem"},
+    "propinas": {"en": "tips", "pt": "gorjetas"},
+    "huayna picchu": {"en": "Huayna Picchu", "pt": "Huayna Picchu"},
+    "1 noche en aguas calientes": {"en": "1 night in Aguas Calientes", "pt": "1 noite em Aguas Calientes"},
+    "almuerzo del día de caminata": {"en": "lunch on the hiking day", "pt": "almoço no dia da caminhada"},
+    "bicicleta y casco para la bajada": {"en": "bike and helmet for the descent", "pt": "bicicleta e capacete para a descida"},
+    "hostal sencillo": {"en": "simple hostel", "pt": "hostel simples"},
+    "hotel 3 estrellas": {"en": "3-star hotel", "pt": "hotel 3 estrelas"},
+    "hotel turista en habitación doble": {"en": "tourist hotel, double room", "pt": "hotel turista em quarto duplo"},
+    "tren al km 104": {"en": "train to KM 104", "pt": "trem até o KM 104"},
+}
+
+
+def traducir_concepto(texto: str, idioma: str) -> str:
+    """El concepto en el idioma del viajero; si no hay traducción, el original."""
+    t = CONCEPTOS.get(texto.strip().lower(), {}).get(idioma)
+    if not t:
+        return texto
+    return t[:1].upper() + t[1:] if texto[:1].isupper() else t
+
+
 NOMBRE_IDIOMA = {"es": "Español", "en": "English", "pt": "Português"}
 NIVEL_TXT = {
     "es": NOMBRE_NIVEL,
@@ -157,13 +216,100 @@ def _p(texto: str, estilo: ParagraphStyle) -> Paragraph:
     return Paragraph(escape(str(texto)), estilo)
 
 
+def _tabla_opciones(opciones, t, nivel_txt, th, thr, base, peq, tdr, tdrb, h2):
+    filas = [[_p(c, thr if i >= 3 else th) for i, c in enumerate(t["cols"])]]
+    for o in opciones:
+        nombre = o.trek + (f" ({t['alt']})" if o.es_alternativa else "")
+        filas.append([_p(nombre, base), _p(str(o.dias), base), _p(nivel_txt.get(o.nivel, o.nivel), base),
+                      _p(_usd(o.precio_pp), tdr), _p(_usd(o.total), tdrb), _p(_usd(o.deposito), tdr),
+                      _p(_usd(o.saldo), tdr)])
+    tab = Table(filas, colWidths=[48 * mm, 12 * mm, 20 * mm, 26 * mm, 26 * mm, 24 * mm, 24 * mm], repeatRows=1)
+    tab.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), LAGUNA),
+                             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F1E8")]),
+                             ("BOX", (0, 0), (-1, -1), 0.6, BORDE), ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDE),
+                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                             ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+    return [_p(t["opciones"], h2), tab, Spacer(1, 3), _p(f"{t['moneda']} {t['nota_saldo']}", peq)]
+
+
+def _tabla_paquete(paquete: Paquete, idioma: str, t, th, thr, base, peq, tdr, tdrb, h2, opciones):
+    """Una fila por línea del paquete y los totales, depósito y saldo de Paquete (sin recalcular)."""
+    m = idioma if idioma in TEXTOS else "en"
+
+    def usd(c: int) -> str:
+        return f"US$ {monto(c, m)}"
+
+    filas = [[_p(t["concepto"], th), _p(t["calculo"], th), _p(t["monto"], thr)]]
+    for concepto, calculo, c in _linea_paquete(paquete, m, t):
+        filas.append([_p(concepto, base), _p(calculo, peq), _p(usd(c), tdr)])
+    negrita = []
+    filas.append([_p(t["total_grupo"], base), _p("", peq), _p(usd(paquete.subtotal_c), tdrb)])
+    negrita.append(len(filas) - 1)
+    if paquete.recargo_c:
+        metodo = t.get(paquete.metodo_pago, paquete.metodo_pago)
+        filas.append([_p(f"{t['recargo']} {metodo}", base), _p(f"{paquete.porcentaje_recargo:g} % {t['del_total']}", peq),
+                      _p(usd(paquete.recargo_c), tdr)])
+        filas.append([_p(t["total_pagar"], base), _p("", peq), _p(usd(paquete.total_c), tdrb)])
+        negrita.append(len(filas) - 1)
+    filas.append([_p(t["por_persona"], base), _p("", peq), _p(usd(paquete.por_persona_c), tdr)])
+    filas.append([_p(t["deposito"], base), _p("", peq), _p(usd(paquete.deposito_c), tdr)])
+    filas.append([_p(t["saldo"], base), _p(t["nota_saldo"], peq), _p(usd(paquete.saldo_c), tdr)])
+    tab = Table(filas, colWidths=[78 * mm, 66 * mm, 36 * mm], repeatRows=1)
+    estilo = [("BACKGROUND", (0, 0), (-1, 0), LAGUNA), ("BOX", (0, 0), (-1, -1), 0.6, BORDE),
+              ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+              ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]
+    estilo += [("BACKGROUND", (0, i), (-1, i), colors.HexColor("#F5F1E8")) for i in negrita]
+    tab.setStyle(TableStyle(estilo))
+    salida = [_p(t["paquete"], h2), tab, Spacer(1, 3), _p(t["moneda"], peq)]
+    otras = [o for o in opciones if o is not paquete.opcion and (o.trek_id, o.nivel) != (paquete.opcion.trek_id, paquete.opcion.nivel)]
+    if otras:
+        texto = "; ".join(f"{o.trek}, {o.dias} {t['dias']}: US$ {monto(o.precio_pp * 100, m)} {t['por_persona'].lower()}"
+                          for o in otras)
+        salida += [_p(f"{t['otras']}: {texto}.", peq)]
+    return salida
+
+
+def _linea_paquete(paquete: Paquete, idioma: str, t: dict) -> list[tuple[str, str, int]]:
+    """(concepto, cálculo, monto en centavos) de cada línea del paquete, con los números de Paquete: el mismo
+    código que arma el mensaje y el panel "Ajustar el paquete". Aquí no se recalcula nada."""
+    o, p = paquete.opcion, paquete
+    nivel_txt = NIVEL_TXT.get(idioma, NIVEL_TXT["en"]).get(o.nivel, o.nivel)
+    dias = t["dia"] if o.dias == 1 else t["dias"]
+    grupo = f"{p.personas}"
+    filas = [(f"{o.trek}, {o.dias} {dias}, {nivel_txt}" + (f" ({t['alt']})" if o.es_alternativa else ""),
+              f"US$ {monto(o.precio_pp * 100, idioma)} × {grupo}", p.base_c)]
+    for c in p.componentes:
+        nombre, _ = _nombre_y_beneficio(c, idioma, {})
+        precio = f"US$ {monto(c.precio_c, idioma)}"
+        if c.unidad == "por grupo":
+            calculo = f"{precio} ({t['por_grupo']})"
+        elif c.unidad == "por noche":
+            noches = t["noche"] if c.noches == 1 else t["noches"]
+            calculo = f"{precio} × {c.noches} {noches} × {grupo}"
+        else:
+            calculo = f"{precio} × {grupo}"
+        if c.id in ("hotel_cusco_3", "hotel_cusco_4"):
+            nombre = f"{c.noches} {t['noche'] if c.noches == 1 else t['noches']} {nombre}"
+        filas.append((nombre[:1].upper() + nombre[1:], calculo, c.total_c))
+    return filas
+
+
 def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
                            vigencia_dias: int = VIGENCIA_DIAS_POR_DEFECTO,
-                           ahora: datetime | None = None) -> bytes:
-    """Devuelve los bytes de un PDF A4 de una página. `ahora` fija el reloj en las pruebas."""
+                           ahora: datetime | None = None, paquete: Paquete | None = None,
+                           contacto: str | None = None) -> bytes:
+    """Devuelve los bytes de un PDF A4. `ahora` fija el reloj en las pruebas.
+
+    `paquete`: el paquete ajustado (core.paquete.Paquete) que se ve en pantalla y en el mensaje. Si no se pasa,
+    se usa el de `resultado.paquete`; si tampoco hay, la tabla muestra solo el precio del trek.
+    """
     perfil = _campo(resultado, "perfil", "")
     idioma = str(_campo(perfil, "idioma", "perfil.")).lower()[:2]
     opciones = _opciones(resultado)
+    paquete = paquete or _campo(resultado, "paquete", "", obligatorio=False)
+    if not isinstance(paquete, Paquete):
+        paquete = None
+    idioma_monto = idioma if idioma in TEXTOS else "en"
     t = TEXTOS.get(idioma, TEXTOS["en"])
     nivel_txt = NIVEL_TXT.get(idioma, NIVEL_TXT["en"])
 
@@ -208,20 +354,10 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
                             ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
     hist += [_p(t["tus_datos"], h2), tb]
 
-    # Tabla de opciones (montos tal como los da OpcionCotizada)
-    filas = [[_p(c, thr if i >= 3 else th) for i, c in enumerate(t["cols"])]]
-    for o in opciones:
-        nombre = o.trek + (f" ({t['alt']})" if o.es_alternativa else "")
-        filas.append([_p(nombre, base), _p(str(o.dias), base), _p(nivel_txt.get(o.nivel, o.nivel), base),
-                      _p(_usd(o.precio_pp), tdr), _p(_usd(o.total), tdrb), _p(_usd(o.deposito), tdr),
-                      _p(_usd(o.saldo), tdr)])
-    tab = Table(filas, colWidths=[48 * mm, 12 * mm, 20 * mm, 26 * mm, 26 * mm, 24 * mm, 24 * mm], repeatRows=1)
-    tab.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), LAGUNA),
-                             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F1E8")]),
-                             ("BOX", (0, 0), (-1, -1), 0.6, BORDE), ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDE),
-                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                             ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
-    hist += [_p(t["opciones"], h2), tab, Spacer(1, 3), _p(f"{t['moneda']} {t['nota_saldo']}", peq)]
+    if paquete is not None:
+        hist += _tabla_paquete(paquete, idioma, t, th, thr, base, peq, tdr, tdrb, h2, opciones)
+    else:
+        hist += _tabla_opciones(opciones, t, nivel_txt, th, thr, base, peq, tdr, tdrb, h2)
     if any(o.requiere_permiso for o in opciones):
         hist += [_p(t["permiso"], peq)]
 
@@ -229,14 +365,15 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
     ref = opciones[0]
     incl = Table([[_p(t["incluye"], ParagraphStyle("hi", parent=base, fontName="Helvetica-Bold", textColor=LAGUNA)),
                    _p(t["no_incluye"], ParagraphStyle("hn", parent=base, fontName="Helvetica-Bold", textColor=TIERRA))],
-                  [_p("; ".join(ref.incluye), base), _p("; ".join(ref.no_incluye), base)]],
+                  [_p("; ".join(traducir_concepto(x, idioma) for x in ref.incluye), base),
+                   _p("; ".join(traducir_concepto(x, idioma) for x in ref.no_incluye), base)]],
                  colWidths=[90 * mm, 90 * mm])
     incl.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
     hist += [Spacer(1, 6), incl]
 
     # Vigencia (supuesto)
     hist += [Spacer(1, 6),
-             _p(f"{t['vigencia']}: {vigencia_dias} d ({t['hasta']} {_fecha_texto(vence, idioma)}) — {t['supuesto']}.", peq)]
+             _p(f"{t['vigencia']}: {vigencia_dias} {t['dia'] if int(vigencia_dias) == 1 else t['dias']} ({t['hasta']} {_fecha_texto(vence, idioma)}) — {t['supuesto']}.", peq)]
 
     # Aviso de demostración, visible
     aviso = ParagraphStyle("aviso", parent=base, fontName="Helvetica-Bold", textColor=AVISO_TEXTO)
@@ -245,6 +382,8 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
                             ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                             ("LEFTPADDING", (0, 0), (-1, -1), 8)]))
     hist += [Spacer(1, 10), av]
+    pie = f"{t['pie']}" + (f" · {t['contacto']}: {contacto}" if contacto else "")
+    hist += [Spacer(1, 6), _p(pie, peq)]
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=15 * mm, rightMargin=15 * mm, topMargin=15 * mm,

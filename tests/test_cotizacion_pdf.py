@@ -92,3 +92,64 @@ def test_falla_con_mensaje_claro_si_falta_un_campo(ejemplo, quitar, mensaje):
 def test_sin_datos_personales(ejemplo):
     texto = texto_pdf(generar_cotizacion_pdf(ejemplo))
     assert not re.search(r"\+?\d[\d ]{8,}", texto) and "@" not in texto
+
+
+# ---- El PDF usa el mismo paquete que la respuesta y el panel "Ajustar el paquete" ----------------------------
+
+def _paquete_de_la_app():
+    """El paquete que arma la app para el ejemplo guardado (misma selección sugerida que app.py)."""
+    from ai.ejemplo import cargar_ejemplo
+    from core.cotizacion import cargar_extras, cargar_tarifario
+    from core.paquete import Seleccion, armar_paquete, fila_del_trek, noches_sugeridas, sugeridos_validos
+
+    r, _ = cargar_ejemplo()
+    tar, ext = cargar_tarifario("data/tarifario_demo.csv"), cargar_extras("data/extras_demo.csv")
+    sug = sugeridos_validos(r.perfil.extras_sugeridos, ext, fila_del_trek(r.opciones[0], tar))
+    sel = Seleccion(extras=[s.extra_id for s in sug], noches_cusco=noches_sugeridas(r.perfil))
+    return r, armar_paquete(r.opciones, tar, ext, sel)
+
+
+def test_pdf_ejemplo_coincide_con_la_pantalla_y_el_mensaje():
+    from ai.pipeline import aplicar_paquete
+
+    r, paquete = _paquete_de_la_app()
+    r = aplicar_paquete(r, paquete)
+    t = texto_pdf(generar_cotizacion_pdf(r, paquete=paquete))
+    mensaje = r.borrador.mensaje_para_cliente
+    for monto in ("US$ 1305", "US$ 652.50"):  # total del grupo, por persona y depósito (inglés: punto decimal)
+        assert monto in t
+        assert monto in mensaje  # mismos montos que la respuesta
+    assert paquete.total_c == 130500 and paquete.por_persona_c == 65250 and paquete.deposito_c == 65250
+    assert "US$ 600" in t and "US$ 1200" in t           # la línea del trek
+    assert "US$ 80" in t and "US$ 25" in t              # hotel (2 × US$ 40) y traslado
+    assert "Hotel" not in t or "hotel" in t.lower()
+
+
+def test_pdf_toma_el_paquete_del_resultado_si_no_se_pasa():
+    from ai.pipeline import aplicar_paquete
+
+    r, paquete = _paquete_de_la_app()
+    r = aplicar_paquete(r, paquete)
+    assert "US$ 1305" in texto_pdf(generar_cotizacion_pdf(r))
+
+
+def test_incluye_en_el_idioma_del_viajero_y_dias_completos():
+    r, paquete = _paquete_de_la_app()
+    t = texto_pdf(generar_cotizacion_pdf(r, paquete=paquete, vigencia_dias=7))
+    assert "Bilingual guide" in t and "travel insurance" in t   # inglés (el ejemplo es en inglés)
+    assert "Guía bilingüe" not in t
+    assert "7 days" in t and "7 d)" not in t
+    assert "Prepared with Abra Travel" in t
+
+
+def test_concepto_sin_traduccion_queda_en_el_original():
+    from core.cotizacion_pdf import traducir_concepto
+
+    assert traducir_concepto("algo nuevo del tarifario", "en") == "algo nuevo del tarifario"
+    assert traducir_concepto("propinas", "pt") == "gorjetas"
+    assert traducir_concepto("propinas", "es") == "propinas"
+
+
+def test_contacto_en_el_pie_si_existe():
+    r, paquete = _paquete_de_la_app()
+    assert "Contact: +51 900 000 000" in texto_pdf(generar_cotizacion_pdf(r, paquete=paquete, contacto="+51 900 000 000"))

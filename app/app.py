@@ -356,7 +356,7 @@ def boton_pdf(resultado) -> None:
     try:
         from core.cotizacion_pdf import generar_cotizacion_pdf
 
-        datos = generar_cotizacion_pdf(resultado, agencia=st.session_state.agencia)
+        datos = generar_cotizacion_pdf(resultado, agencia=st.session_state.agencia, paquete=resultado.paquete)
     except Exception:  # noqa: BLE001 - el PDF es un extra: nunca debe romper la pantalla
         return
     st.download_button("Descargar cotización (PDF)", data=datos, file_name="cotizacion-abra-travel.pdf",
