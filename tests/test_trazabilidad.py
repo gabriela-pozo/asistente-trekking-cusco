@@ -2,19 +2,21 @@
 
 Correr:  python -m unittest discover tests -v
 """
+import os
 import sys
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
 from ai.knowledge import Fragmento, cargar_fragmentos  # noqa: E402
 from ai.trazabilidad import (  # noqa: E402
-    antiguedad, buscar_en_base, contar_pruebas, es_oficial, fuentes_usadas, hay_que_verificar, tabla_base,
-    version_base,
+    antiguedad, buscar_en_base, consultas_restantes, contar_pruebas, es_oficial, fuentes_usadas, hay_que_verificar,
+    modelos_configurados, referencia_cuota, tabla_base, version_base,
 )
 
 CARPETA = RAIZ / "data" / "knowledge"
@@ -86,6 +88,24 @@ class PruebasEstado(unittest.TestCase):
         pruebas, archivos = contar_pruebas(RAIZ / "tests")
         self.assertGreater(pruebas, 100)
         self.assertGreaterEqual(archivos, 12)
+
+
+class PruebasModelos(unittest.TestCase):
+    def test_modelos_configurados_leen_el_entorno(self):
+        with mock.patch.dict(os.environ, {"GEMINI_MODEL": "m1", "GEMINI_MODEL_RESPALDO": "m2"}):
+            self.assertEqual(modelos_configurados("gemini"), ["m1", "m2"])
+        with mock.patch.dict(os.environ, {"GEMINI_MODEL": "m1", "GEMINI_MODEL_RESPALDO": ""}):
+            self.assertEqual(modelos_configurados("gemini"), ["m1"])
+        with mock.patch.dict(os.environ, {"ANTHROPIC_MODEL": "c1"}):
+            self.assertEqual(modelos_configurados("claude"), ["c1"])
+
+    def test_la_cuota_restante_solo_se_afirma_cuando_se_sabe(self):
+        with mock.patch.dict(os.environ, {"GEMINI_MODEL": "m1"}):
+            self.assertIsNone(consultas_restantes("gemini"))
+            self.assertIsNone(consultas_restantes("gemini", {"otro"}))
+            self.assertEqual(consultas_restantes("gemini", {"m1"}), 0)
+        self.assertIn("10 consultas", referencia_cuota("gemini"))
+        self.assertIn("pago", referencia_cuota("claude"))
 
 
 if __name__ == "__main__":

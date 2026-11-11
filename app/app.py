@@ -34,7 +34,8 @@ from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA, aplicar_paquete  # noqa: E402
 from ai.trazabilidad import (  # noqa: E402
-    DIAS_PARA_VERIFICAR, ETIQUETA_VERIFICAR, buscar_en_base, dominio, es_oficial, fuentes_usadas, tabla_base,
+    DIAS_PARA_VERIFICAR, ETIQUETA_VERIFICAR, buscar_en_base, consultas_restantes, contar_pruebas, dominio,
+    es_oficial, fuentes_usadas, modelos_configurados, referencia_cuota, tabla_base, version_base,
 )
 from core.cotizacion import NOMBRE_NIVEL, NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
 from core.mi_semana import (  # noqa: E402
@@ -146,8 +147,8 @@ if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lim
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia"],
-                          key="pagina")
+pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia",
+                                  "Estado del sistema"], key="pagina")
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -408,6 +409,8 @@ def pagina_consulta() -> None:
         st.session_state.resultado = resultado
         st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         st.session_state.origen = "sin_cuota" if es_ejemplo else "modelo"
+        if not es_ejemplo:  # para "Estado del sistema": cuántas consultas al modelo en esta sesión
+            st.session_state.consultas_modelo = st.session_state.get("consultas_modelo", 0) + 1
         st.session_state.registrada = None
         iniciar_paquete()
 
@@ -539,6 +542,78 @@ def pagina_fuentes() -> None:
             st.info("Ningún archivo coincide con la búsqueda.", icon=":material/search_off:")
         else:
             st.html(html_tabla_base(encontrados))
+
+
+# ---------------------------------------------------------------- Estado del sistema
+ORIGENES = {
+    "modelo": "No: respondió el modelo",
+    "ejemplo": "Sí: botón «Usar mensaje de ejemplo»",
+    "sin_cuota": "Sí: el modelo no tenía cuota",
+}
+
+
+@st.cache_data
+def pruebas_automaticas() -> tuple[int, int]:
+    return contar_pruebas(RAIZ / "tests")
+
+
+def modelos_sin_cuota() -> set[str]:
+    """Solo si ya se creó el modelo en esta sesión (no crea el cliente ni llama a la API)."""
+    if not st.session_state.get("consultas_modelo") or falta_clave():
+        return set()
+    return set(getattr(modelo(proveedor()), "_agotados", set()))
+
+
+def pagina_estado() -> None:
+    st.header("Estado del sistema")
+    st.html('<p class="subtitulo">Qué está funcionando ahora y con qué datos. Para la demo y para saber '
+            'cuánto confiar en la respuesta.</p>')
+    estado = st.session_state
+    resultado, origen = estado.get("resultado"), estado.get("origen")
+    nombre = proveedor()
+    configurados = modelos_configurados(nombre)
+    with st.container(key="estado_sistema"):  # la clave es para el CSS de las cifras (ver estilo.css)
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            respondio = resultado.uso.modelos_que_respondieron() if resultado else "Sin consulta todavía"
+            st.metric("Modelo que respondió", respondio, border=True,
+                      help="En la última consulta. Si fue el ejemplo guardado, es el modelo de esa consulta.")
+            st.caption(f"Configurado: {' → '.join(configurados)} ({nombre})"
+                       + (f" · falta {falta_clave()}" if falta_clave() else ""))
+        with c2:
+            quedan = consultas_restantes(nombre, modelos_sin_cuota())
+            st.metric("Consultas que quedan hoy", "No se conoce" if quedan is None else quedan, border=True,
+                      help="La API no informa la cuota restante.")
+            st.caption(f"{referencia_cuota(nombre)} En esta sesión: {estado.get('consultas_modelo', 0)}.")
+        with c3:
+            st.metric("¿Se usó el ejemplo guardado?", ORIGENES.get(origen, "Sin consulta todavía").split(":")[0],
+                      border=True)
+            st.caption(ORIGENES[origen].split(": ", 1)[1].capitalize() + "."
+                       if origen in ORIGENES else "Todavía no se preparó ninguna respuesta.")
+
+        base = version_base(CARPETA_BASE)
+        ahora = datetime.now(ZONA)
+        fuera = fuera_de_horario(ahora, estado.apertura, estado.cierre)
+        c4, c5, c6 = st.columns(3)
+        with c4:
+            st.metric("Base de conocimiento", f"v. {base.version}", border=True,
+                      help="Huella del contenido: cambia si se edita cualquier archivo de data/knowledge.")
+            st.caption(f"Actualizada el {base.actualizada} · {base.archivos} archivos · {base.fragmentos} fragmentos.")
+        with c5:
+            st.metric("Hora en Lima", f"{ahora:%H:%M}", border=True)
+            if not estado.modo_nocturno:
+                nocturno = "Modo nocturno apagado."
+            elif fuera:
+                nocturno = "Modo nocturno activo: ahora es fuera de horario (simulado, no envía nada)."
+            else:
+                nocturno = "Modo nocturno encendido; se activa al cerrar."
+            st.caption(f"{nocturno} Horario: {estado.apertura:%H:%M} a {estado.cierre:%H:%M}.")
+        with c6:
+            pruebas, archivos = pruebas_automaticas()
+            st.metric("Pruebas automáticas", pruebas, border=True,
+                      help="Contadas en tests/, sin ejecutarlas. Para correrlas: python -m unittest discover tests")
+            st.caption(f"En {archivos} archivos de tests/. Se cuentan, no se ejecutan desde la app.")
 
 
 # ---------------------------------------------------------------- Mi agencia
@@ -823,4 +898,4 @@ def pagina_tablero() -> None:
 
 
 {"Nueva consulta": pagina_consulta, "Tablero": pagina_tablero, "Fuentes y verificación": pagina_fuentes,
- "Mi agencia": pagina_agencia}[pagina]()
+ "Mi agencia": pagina_agencia, "Estado del sistema": pagina_estado}[pagina]()

@@ -71,6 +71,26 @@ class PruebasImports(unittest.TestCase):
             app.text_input(key="buscar_base").input("elperuano").run()
             self.assertTrue(any("de 10 archivos" in c.value for c in app.caption))
 
+    def test_estado_del_sistema_dice_si_se_uso_el_ejemplo(self):
+        from streamlit.testing.v1 import AppTest
+
+        with tempfile.TemporaryDirectory() as carpeta,                 mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "ABRA_REGISTRO": str(Path(carpeta) / "r.csv")}):
+            app = AppTest.from_file(str(APP), default_timeout=60)
+            app.run()
+            app.sidebar.radio[0].set_value("Estado del sistema").run()
+            valores = {m.label: m.value for m in app.metric}
+            self.assertEqual(valores["Modelo que respondió"], "Sin consulta todavía")
+            self.assertEqual(valores["Consultas que quedan hoy"], "No se conoce")
+            self.assertGreater(int(valores["Pruebas automáticas"]), 100)
+            app.sidebar.radio[0].set_value("Nueva consulta").run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            app.sidebar.radio[0].set_value("Estado del sistema").run()
+            self.assertFalse(app.exception)
+            valores = {m.label: m.value for m in app.metric}
+            self.assertEqual(valores["¿Se usó el ejemplo guardado?"], "Sí")
+            self.assertIn("gemini", valores["Modelo que respondió"])
+            self.assertTrue(valores["Base de conocimiento"].startswith("v. "))
+
 
 class PruebasRecarga(unittest.TestCase):
     """La caída del demo: app.py nuevo con un ai.pipeline viejo en memoria."""

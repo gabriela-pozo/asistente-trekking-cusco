@@ -147,3 +147,7 @@ body { font-variant-numeric: tabular-nums; }
   .tabla-num { text-align: left; }
   .tabla-num::after { content: " fragmentos"; color: var(--secundario); font-size: 13px; }
 }
+
+/* Estado del sistema: cifras más chicas que en el Tablero, porque algunas son nombres de modelo. */
+.st-key-estado_sistema [data-testid="stMetricValue"] { font-size: 24px; white-space: normal; overflow-wrap: anywhere; }
+.st-key-estado_sistema [data-testid="stMetric"] { background: var(--superficie); }

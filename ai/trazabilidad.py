@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import os
 import re
 from dataclasses import dataclass
 from datetime import date
@@ -140,3 +141,38 @@ def contar_pruebas(carpeta: str | Path) -> tuple[int, int]:
         pruebas += sum(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith("test")
                        for n in ast.walk(arbol))
     return pruebas, archivos
+
+
+# Capa gratuita de Gemini: unas 20 solicitudes por día y modelo (ver ai/llm.py). Cada consulta hace 2 llamadas.
+SOLICITUDES_DIARIAS_GEMINI = 20
+LLAMADAS_POR_CONSULTA = 2
+
+
+def modelos_configurados(proveedor: str) -> list[str]:
+    """Los modelos que se usarían, leídos del entorno como en ai/llm.py, sin crear el cliente."""
+    from ai.llm import MODELO_CLAUDE, MODELO_GEMINI, MODELO_GEMINI_RESPALDO
+
+    if proveedor == "claude":
+        return [os.getenv("ANTHROPIC_MODEL") or MODELO_CLAUDE]
+    principal = os.getenv("GEMINI_MODEL") or MODELO_GEMINI
+    respaldo = os.getenv("GEMINI_MODEL_RESPALDO", MODELO_GEMINI_RESPALDO)
+    return [m for m in dict.fromkeys([principal, respaldo]) if m]
+
+
+def consultas_restantes(proveedor: str, agotados: set[str] | None = None) -> int | None:
+    """Consultas que le quedan hoy al modelo principal, solo cuando se sabe; None si no se sabe.
+
+    La API no informa la cuota restante. Lo único seguro es el 0: el modelo ya respondió que no tiene
+    cuota diaria. Con Gemini la cuota además es compartida por todos los que usan la misma clave.
+    """
+    principal = modelos_configurados(proveedor)[0]
+    return 0 if agotados and principal in agotados else None
+
+
+def referencia_cuota(proveedor: str) -> str:
+    if proveedor == "claude":
+        return "Claude es de pago: no hay un tope diario fijo, depende del saldo de la cuenta."
+    return (f"Referencia: la capa gratuita de Gemini da unas {SOLICITUDES_DIARIAS_GEMINI} solicitudes por día y "
+            f"modelo; cada consulta usa {LLAMADAS_POR_CONSULTA}, así que alcanza para unas "
+            f"{SOLICITUDES_DIARIAS_GEMINI // LLAMADAS_POR_CONSULTA} consultas con cada modelo, compartidas entre "
+            "todos los que usan la misma clave.")
