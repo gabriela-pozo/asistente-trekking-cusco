@@ -128,6 +128,29 @@ class PruebasApp(unittest.TestCase):
         self.assertTrue(any("GEMINI_API_KEY" in w.value for w in app.warning))  # aviso claro de la clave
         self.assertIn("US$ 600", app.text_area(key="borrador").value)
 
+    def test_boton_de_pdf_aparece_con_el_ejemplo_guardado(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            self.assertFalse(any(b.proto.label == "Descargar cotización (PDF)" for b in app.get("download_button")))
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+        self.assertFalse(app.exception)
+        botones = [b for b in app.get("download_button") if b.proto.label == "Descargar cotización (PDF)"]
+        self.assertEqual(len(botones), 1)
+
+    def test_si_falla_el_pdf_el_boton_se_oculta_y_la_app_sigue(self):
+        from streamlit.testing.v1 import AppTest
+
+        with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}),                 mock.patch("core.cotizacion_pdf.generar_cotizacion_pdf", side_effect=RuntimeError("falla")):
+            app = AppTest.from_file(APP, default_timeout=30)
+            app.run()
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+        self.assertFalse(app.exception)
+        self.assertFalse(any(b.proto.label == "Descargar cotización (PDF)" for b in app.get("download_button")))
+        self.assertIn("US$ 600", app.text_area(key="borrador").value)
+
     def test_cronometro_solo_con_respuesta_del_modelo(self):
         from streamlit.testing.v1 import AppTest
 

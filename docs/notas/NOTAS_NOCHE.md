@@ -366,3 +366,36 @@ Ver "Actualización de la tarde" en `docs/diseno.md`. Resumen: cabecera y barra 
 - **Hilo del tope de tiempo:** si el modelo se cuelga, el hilo sigue vivo en segundo plano hasta su propio límite (90 s por llamada); no bloquea la pantalla.
 - **Servidor sin reiniciar:** si Cloud no reinicia tras el despliegue, `presentacion.py` puede quedar viejo; reiniciar la app.
 - **Mucho CSS sobre selectores de Streamlit** (`data-testid`, `data-baseweb`): una versión nueva de Streamlit podría cambiarlos; la app seguiría funcionando pero con otro aspecto.
+
+---
+
+## Cotización en PDF (`core/cotizacion_pdf.py`)
+**Qué hace:** `generar_cotizacion_pdf(resultado, *, agencia="Abra Travel", vigencia_dias=7, ahora=None) -> bytes`. Acepta el `Resultado` del pipeline o el dict de `data/ejemplo_guardado.json`. Genera un A4 de una página (si algo no cabe, `KeepInFrame` lo reduce) con: encabezado (agencia y fecha de emisión en hora de Lima), datos entendidos (grupo, fechas, trek, idioma), tabla de opciones (por persona, total, depósito y saldo), qué incluye / no incluye, vigencia, y el aviso "Datos de demostración. Confirmar disponibilidad y permisos antes de reservar.". Textos en es/en/pt (otro idioma cae en inglés). Sin teléfono ni datos personales. Paleta de `docs/diseno.md` sobre fondo blanco. `reportlab==5.1.0` fijado en `requirements.txt`.
+**Montos:** no se recalculan; salen de `OpcionCotizada` (`precio_pp`, `total`, `deposito`, `saldo`), igual que el mensaje de WhatsApp. Si falta un campo, lanza `CotizacionPDFError` con el nombre del campo (p. ej. `opciones[0].precio_pp`).
+**Pruebas:** `tests/test_cotizacion_pdf.py`, 14 pasan (con `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`).
+
+**Lo que no hace / límites**
+- **Son las opciones que haya (1 a 3), no siempre económico/estándar/premium.** El ejemplo guardado trae 2 opciones, ambas estándar (4 y 5 días); la tabla muestra las que vienen.
+- **La vigencia (7 días) es un supuesto** inventado por mí: el tarifario no la define; el PDF la marca como "supuesto". Hay que confirmarla con la agencia.
+- Las listas "incluye / no incluye" salen del tarifario en español y no se traducen; se toman de la primera opción.
+- **No lo vi renderizado:** no hay visor de PDF instalado y no arranqué Streamlit. Probé texto, una sola página y bytes, no el aspecto. Mirar el PDF una vez antes de enseñarlo.
+- Fuente Helvetica de reportlab (cubre tildes y ñ); no se incrustó una fuente de la marca.
+- El PDF se genera sin comprimir (`pageCompression=0`) para poder leer el texto en las pruebas; pesa poco.
+- No toqué `app/`, `ai/`, `server/` ni `core/cotizacion.py`.
+
+**Cómo conectarlo desde `app/app.py`** (no lo hice):
+```python
+from core.cotizacion_pdf import generar_cotizacion_pdf
+st.download_button("Descargar cotización (PDF)", data=generar_cotizacion_pdf(resultado),
+                   file_name="cotizacion.pdf", mime="application/pdf")
+```
+Ponerlo junto al botón de WhatsApp, usando el `resultado` que ya está en `st.session_state`; `agencia=` puede venir de `AGENCIA_NOMBRE`.
+
+
+## Tarea 2: botón "Descargar cotización (PDF)" conectado
+- Se hizo `git merge mejoras-pdf` (único conflicto: este archivo de notas; se conservaron ambas partes).
+- El botón va bajo "Abrir en WhatsApp" y "Copiar", con `generar_cotizacion_pdf(resultado, agencia=…)`. Solo descarga, no envía nada. El archivo se llama `cotizacion-abra-travel.pdf` (sin datos personales).
+- Importación y generación dentro de `try/except`: si algo falla, el botón se oculta y la app sigue.
+- Pruebas: aparece con el ejemplo guardado; se oculta si el generador falla. `pytest`: 289 pasan, 1 falla (la conocida de `anthropic`).
+- Pendiente (lo dijo el agente B): nadie ha mirado el PDF renderizado; abrirlo una vez antes de enseñarlo. La vigencia de 7 días es un supuesto.
+- Despliegue: `reportlab==5.1.0` ya está en `requirements.txt`; Streamlit Cloud lo instala al redesplegar.

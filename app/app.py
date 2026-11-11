@@ -351,6 +351,18 @@ def responder_con_limite(consulta, llm, base, tarifario, extras, agencia):
         pool.shutdown(wait=False)
 
 
+def boton_pdf(resultado) -> None:
+    """"Descargar cotización (PDF)": solo descarga, no envía nada. Si falla la importación o la generación, se oculta."""
+    try:
+        from core.cotizacion_pdf import generar_cotizacion_pdf
+
+        datos = generar_cotizacion_pdf(resultado, agencia=st.session_state.agencia)
+    except Exception:  # noqa: BLE001 - el PDF es un extra: nunca debe romper la pantalla
+        return
+    st.download_button("Descargar cotización (PDF)", data=datos, file_name="cotizacion-abra-travel.pdf",
+                       mime="application/pdf", icon=":material/picture_as_pdf:", width="stretch", key="descargar_pdf")
+
+
 def boton_copiar(texto: str) -> None:
     """Botón "Copiar": Streamlit no tiene portapapeles propio, así que va en un componente mínimo (sin red)."""
     import json
@@ -398,6 +410,7 @@ def mostrar_borrador(resultado, telefono: str) -> None:
                            icon=":material/send:", disabled=not texto.strip(), width="stretch")
         with copiar:
             boton_copiar(texto)
+        boton_pdf(resultado)
         registrada = st.session_state.get("registrada")
         with st.container(horizontal=True, vertical_alignment="center", key="registro"):
             for estado in ("cotizada", "reservada"):
