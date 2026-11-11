@@ -165,7 +165,7 @@ class PruebasPagina(ConArchivo):
         self.assertTrue(any("Registra tus consultas y aquí verás" in m.value for m in app.markdown))
         with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "ABRA_REGISTRO": str(self.ruta)}):
             next(b for b in app.button if b.label == "Ir a Nueva consulta").click().run()
-        self.assertEqual(app.sidebar.radio[0].value, "Nueva consulta")
+        self.assertEqual(app.sidebar.radio[0].value, "Consulta")
         self.assertEqual(app.header[0].value, "Nueva consulta")
 
     def test_con_registros_muestra_semana_meta_y_seguimiento(self):

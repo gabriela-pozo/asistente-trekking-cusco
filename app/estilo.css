@@ -198,3 +198,39 @@ body { font-variant-numeric: tabular-nums; }
   border-radius: 10px; padding: 16px 20px; margin: -8px 0 8px; }
 .banda-pregunta { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 700; color: var(--tinta); margin: 0; }
 .banda-origen { font-size: 15px; font-weight: 600; color: var(--aviso-texto); margin: 4px 0 0; }
+
+/* ---------- Cabecera y navegación ---------- */
+:root { --icono: "Material Symbols Rounded", "Material Symbols Outlined"; }
+[data-testid="stHeader"] { background: transparent; }
+[data-testid="stMainBlockContainer"] { padding-top: 56px; }
+
+/* Barra superior de contexto: bloque Cumbre, pegada arriba al bajar. */
+.st-key-barra { position: sticky; top: 8px; z-index: 60; background: var(--cumbre); color: var(--cumbre-texto);
+  border-radius: 14px; padding: 8px 16px; min-height: 52px; box-shadow: 0 2px 10px rgba(11, 46, 58, .18); }
+.barra-contenido { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.barra-agencia { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 16px; color: var(--cumbre-texto); }
+.insignia { display: inline-flex; align-items: center; font-size: 14px; font-weight: 700; border-radius: 999px;
+  padding: 3px 12px; line-height: 1.4; }
+.insignia-demo { background: var(--aviso-fondo); color: var(--aviso-texto); }
+.insignia-estado { background: transparent; color: var(--cumbre-texto); border: 1px solid rgba(230, 241, 243, .55); }
+
+/* Menú lateral: ítems con ícono; el activo, en Amanecer sobre Cumbre. */
+.st-key-pagina [role="radiogroup"] { gap: 4px; }
+.st-key-pagina label { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 12px; cursor: pointer;
+  transition: background .15s ease; align-items: center; }
+.st-key-pagina label:hover { background: rgba(230, 241, 243, .10); }
+.st-key-pagina label > span:first-child, .st-key-pagina label > div:first-child:not(:only-child) > span:first-child { display: none !important; }
+.st-key-pagina label > div:last-child > div:first-child { display: none !important; }  /* sin el círculo del radio */
+.st-key-pagina label p { font-size: 16px; font-weight: 600; color: var(--cumbre-texto); display: flex; align-items: center; gap: 12px; margin: 0; }
+.st-key-pagina label p::before { font-family: var(--icono); font-weight: 400; font-size: 22px; line-height: 1;
+  font-feature-settings: "liga"; color: var(--cumbre-texto); }
+.st-key-pagina label:has(input:checked) { background: rgba(245, 158, 46, .16); box-shadow: inset 3px 0 0 var(--amanecer); }
+.st-key-pagina label:has(input:checked) p, .st-key-pagina label:has(input:checked) p::before { color: var(--amanecer); }
+.st-key-pagina [role="radiogroup"] > div:nth-child(1) label p::before { content: "edit_note"; }
+.st-key-pagina [role="radiogroup"] > div:nth-child(2) label p::before { content: "monitoring"; }
+.st-key-pagina [role="radiogroup"] > div:nth-child(3) label p::before { content: "fact_check"; }
+.st-key-pagina [role="radiogroup"] > div:nth-child(4) label p::before { content: "storefront"; }
+.st-key-pagina [role="radiogroup"] > div:nth-child(5) label p::before { content: "monitor_heart"; }
+.st-key-pagina [role="radiogroup"] > div:nth-child(6) label p::before { content: "info"; }
+.pie-lateral { font-size: 14px; color: #A9C3CA; display: flex; gap: 8px; align-items: flex-start; margin: 24px 0 0; line-height: 1.4; }
+.pie-lateral span { font-family: var(--icono); font-size: 18px; flex: none; color: #A9C3CA; }

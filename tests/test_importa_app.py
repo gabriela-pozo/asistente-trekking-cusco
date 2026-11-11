@@ -44,15 +44,15 @@ class PruebasImports(unittest.TestCase):
             app.run()
             self.assertFalse(app.exception)
             self.assertEqual(app.sidebar.radio[0].options, [
-                "Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia", "Estado del sistema",
-                "Acerca del piloto"])
+                "Consulta", "Tablero", "Fuentes", "Mi agencia", "Sistema",
+                "Piloto"])
             for pagina in app.sidebar.radio[0].options:  # antes de la primera consulta (estado vacío)
                 app.sidebar.radio[0].set_value(pagina).run()
                 self.assertFalse(app.exception, pagina)
-            app.sidebar.radio[0].set_value("Nueva consulta").run()
+            app.sidebar.radio[0].set_value("Consulta").run()
             next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
             self.assertFalse(app.exception)
-            for pagina in [*app.sidebar.radio[0].options, "Nueva consulta"]:
+            for pagina in [*app.sidebar.radio[0].options, "Consulta"]:
                 app.sidebar.radio[0].set_value(pagina).run()
                 self.assertFalse(app.exception, pagina)
 
@@ -66,7 +66,7 @@ class PruebasImports(unittest.TestCase):
             app = AppTest.from_file(str(APP), default_timeout=60)
             app.run()
             next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
-            app.sidebar.radio[0].set_value("Fuentes y verificación").run()
+            app.sidebar.radio[0].set_value("Fuentes").run()
             self.assertFalse(app.exception)
             pagina = " ".join(str(h.proto) for h in app.get("html"))
             for fragmento in datos["fragmentos"]:
@@ -80,14 +80,14 @@ class PruebasImports(unittest.TestCase):
         with tempfile.TemporaryDirectory() as carpeta,                 mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "ABRA_REGISTRO": str(Path(carpeta) / "r.csv")}):
             app = AppTest.from_file(str(APP), default_timeout=60)
             app.run()
-            app.sidebar.radio[0].set_value("Estado del sistema").run()
+            app.sidebar.radio[0].set_value("Sistema").run()
             valores = {m.label: m.value for m in app.metric}
             self.assertEqual(valores["Modelo que respondió"], "Sin consulta todavía")
             self.assertEqual(valores["Consultas que quedan hoy"], "No se conoce")
             self.assertGreater(int(valores["Pruebas automáticas"]), 100)
-            app.sidebar.radio[0].set_value("Nueva consulta").run()
+            app.sidebar.radio[0].set_value("Consulta").run()
             next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
-            app.sidebar.radio[0].set_value("Estado del sistema").run()
+            app.sidebar.radio[0].set_value("Sistema").run()
             self.assertFalse(app.exception)
             valores = {m.label: m.value for m in app.metric}
             self.assertEqual(valores["¿Se usó el ejemplo guardado?"], "Sí")
@@ -100,7 +100,7 @@ class PruebasImports(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
             app = AppTest.from_file(str(APP), default_timeout=60)
             app.run()
-            app.sidebar.radio[0].set_value("Acerca del piloto").run()
+            app.sidebar.radio[0].set_value("Piloto").run()
         self.assertFalse(app.exception)
         pagina = " ".join(str(h.proto) for h in app.get("html"))
         for frase in ("datos sintéticos", "ficticia", "17", "No envía mensajes solo", "simulación",

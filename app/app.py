@@ -84,19 +84,20 @@ ICONO = str(RAIZ / "assets" / "icono.svg")
 CONSULTAS_SINTETICAS = RAIZ / "data" / "consultas_sinteticas.csv"
 # Consultas registradas desde la app (solo el perfil agregado). No se sube al repositorio (.gitignore).
 RUTA_REGISTRO = Path(os.getenv("ABRA_REGISTRO") or RAIZ / "data" / "consultas_registradas.csv")
-ETIQUETA_SINTETICOS = "Datos sintéticos del demo: no son de ninguna agencia real"
+ETIQUETA_SINTETICOS = "Datos de demostración"
 ETIQUETA_SIMULACION = "Simulación: el envío automático requiere la API de WhatsApp Business (siguiente paso)"
 
 st.set_page_config(page_title="Abra Travel", page_icon=ICONO, layout="wide")
 
 
 @st.cache_data
-def estilo() -> str:
+def estilo(version: float) -> str:  # la fecha del archivo invalida la caché al editar el CSS
     return (RAIZ / "app" / "estilo.css").read_text(encoding="utf-8")
 
 
 # Se lee una vez (caché) y se aplica en cada recarga. st.html quita las etiquetas <style>; st.markdown no.
-st.markdown(f"<style>{estilo()}</style>", unsafe_allow_html=True)
+_CSS = RAIZ / "app" / "estilo.css"
+st.markdown(f"<style>{estilo(_CSS.stat().st_mtime)}</style>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------- Configuración
@@ -149,19 +150,32 @@ if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lim
     st.session_state.hora_llegada = datetime.now(ZONA).time().replace(second=0, microsecond=0)
 
 st.logo(LOGO, icon_image=ICONO, size="large")
-st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-# Navegación: el trabajo diario arriba, el respaldo (de dónde sale cada dato, qué funciona, límites) abajo.
-PAGINAS = {
-    "Nueva consulta": "Pega el mensaje y responde",
-    "Tablero": "Tu semana y las consultas",
-    "Fuentes y verificación": "De dónde sale cada dato",
-    "Mi agencia": "Tarifario, extras y horario",
-    "Estado del sistema": "Modelo, cuota y base",
-    "Acerca del piloto": "Alcance y límites",
-}
-pagina = st.sidebar.radio("Ir a", list(PAGINAS), captions=list(PAGINAS.values()), key="pagina")
-st.sidebar.divider()
-st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
+# Navegación: nombres cortos; los íconos los pone estilo.css (el radio conserva el nombre como valor).
+PAGINAS = ["Consulta", "Tablero", "Fuentes", "Mi agencia", "Sistema", "Piloto"]
+pagina = st.sidebar.radio("Ir a", PAGINAS, key="pagina", label_visibility="collapsed")
+st.sidebar.html('<p class="pie-lateral"><span class="material-symbols-rounded">verified_user</span>'
+                'Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.</p>')
+
+
+def estado_sistema_corto() -> str:
+    """Insignia de la cabecera: qué modelo responde, o si lo que se ve es el ejemplo guardado."""
+    if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
+        return "Ejemplo guardado"
+    if falta_clave():
+        return "Sin clave: solo ejemplo"
+    return f"Modelo: {modelos_configurados(proveedor())[0]}"
+
+
+def cabecera() -> None:
+    """Barra superior de contexto, siempre visible: marca, agencia, UNA insignia de demo y el estado."""
+    with st.container(horizontal=True, vertical_alignment="center", key="barra"):
+        st.html(
+            '<div class="barra-contenido">'
+            f'<span class="barra-agencia">{html.escape(st.session_state.agencia)}</span>'
+            f'<span class="insignia insignia-demo" title="Datos sintéticos: no son de ninguna agencia real">'
+            f'{ETIQUETA_SINTETICOS}</span>'
+            f'<span class="insignia insignia-estado">{html.escape(estado_sistema_corto())}</span>'
+            '</div>')
 
 
 def rotulo(texto: str) -> None:
@@ -345,7 +359,7 @@ def mostrar_opciones(resultado) -> None:
         for f in resultado.fragmentos:
             st.markdown(f"**{f.titulo}** · `{f.archivo}` · actualizado {f.actualizado}")
         st.button("Ver fuentes y verificación", type="tertiary", icon=":material/fact_check:",
-                  on_click=ir_a, args=("Fuentes y verificación",))
+                  on_click=ir_a, args=("Fuentes",))
 
 
 def mostrar_perfil(perfil) -> None:
@@ -535,7 +549,7 @@ def pagina_fuentes() -> None:
         st.html('<div class="vacio"><strong>Todavía no hay una consulta.</strong> Cuando prepares una respuesta, '
                 'aquí verás qué fragmentos de la base de conocimiento se usaron, su fecha y su fuente.</div>')
         st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a,
-                  args=("Nueva consulta",), key="fuentes_ir_consulta")
+                  args=("Consulta",), key="fuentes_ir_consulta")
     else:
         if st.session_state.get("origen") in ("ejemplo", "sin_cuota"):
             st.info("Es el ejemplo guardado: estos son los fragmentos que se usaron en esa consulta.",
@@ -852,7 +866,7 @@ def porcentaje(valor: float) -> str:
 
 # ---------------------------------------------------------------- Mi semana
 def ir_a_consulta() -> None:
-    ir_a("Nueva consulta")
+    ir_a("Consulta")
 
 
 def celebrar(registradas, hoy) -> None:
@@ -1021,9 +1035,6 @@ def pagina_tablero() -> None:
             f'<p class="banda-origen">Datos: {html.escape(texto_origen(consultas))}.</p></div>')
     mostrar_mi_semana()  # solo las consultas registradas por el vendedor; no la tocan los filtros de abajo
 
-    with st.container(key="etiqueta_sinteticos"):  # pegada arriba al bajar (estilo.css)
-        st.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
-    st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
 
     c1, c2, c3 = st.columns([1, 1.4, 1.4])
     st.session_state.setdefault("filtro_periodo", PERIODO_INICIAL)  # sin index=: lo pone «Quitar filtros»
@@ -1195,6 +1206,6 @@ def pagina_tablero() -> None:
     st.caption("Se guarda solo el perfil de cada consulta, nunca el mensaje ni el teléfono.")
 
 
-{"Nueva consulta": pagina_consulta, "Tablero": pagina_tablero, "Fuentes y verificación": pagina_fuentes,
- "Mi agencia": pagina_agencia, "Estado del sistema": pagina_estado,
- "Acerca del piloto": pagina_acerca}[pagina]()
+cabecera()
+{"Consulta": pagina_consulta, "Tablero": pagina_tablero, "Fuentes": pagina_fuentes,
+ "Mi agencia": pagina_agencia, "Sistema": pagina_estado, "Piloto": pagina_acerca}[pagina]()

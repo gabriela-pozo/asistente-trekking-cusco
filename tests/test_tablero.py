@@ -140,7 +140,7 @@ class PruebasPaginaTablero(unittest.TestCase):
         self.assertEqual([m.label for m in app.metric], ["Consultas", "Tasa de cierre", "Sin respuesta de la agencia", "Monto reservado"])
         self.assertEqual(app.metric[0].value, "131")  # por defecto, los últimos 6 meses (may-oct 2026)
         self.assertIsNotNone(app.metric[0].delta)       # comparados con nov 2025-abr 2026
-        self.assertTrue(any("Datos sintéticos del demo: no son de ninguna agencia real" in str(h.proto)
+        self.assertTrue(any("Datos de demostración" in str(h.proto)
                             for h in app.get("html")))
         self.assertEqual(len([e for e in app.main if e.type == "vega_lite_chart"]), 5)
 
