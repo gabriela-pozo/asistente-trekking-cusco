@@ -52,7 +52,7 @@ from core.tablero import (  # noqa: E402
     ORDEN_ESTADOS, PERIODOS, cargar_consultas, cierre_por_trek, contar_registradas, embudo, filtrar, hallazgo_embudo,
     hallazgo_horario, hallazgo_meses, hallazgo_paises, hallazgo_treks, metricas, paises_con_otros, pct, periodo,
     por_dia_y_hora, por_mes_y_estado, registrar, registro_desde_resultado, variaciones,
-    PREGUNTA_TABLERO, texto_origen,
+    APERTURA_H, CIERRE_H, PREGUNTA_TABLERO, por_dia_y_franja, texto_origen,
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
@@ -945,6 +945,58 @@ def mostrar_mi_semana() -> None:
     celebrar(registradas, hoy)
 
 
+def mapa_por_franjas(datos: pd.DataFrame) -> None:
+    """7 días × 4 franjas con el número en cada celda. Madrugada y noche son las franjas fuera de horario."""
+    f = por_dia_y_franja(datos)
+    f["dia_corto"] = f["dia"].str[:3].str.capitalize()
+    f["horario"] = f["fuera_de_horario"].map({True: "Fuera de horario", False: "En horario"})
+    orden_dias, orden_franjas = list(dict.fromkeys(f["dia_corto"])), list(dict.fromkeys(f["franja"]))
+    tope = max(int(f["consultas"].max()), 1)
+    base = alt.Chart(f).encode(
+        x=alt.X("franja:N", sort=orden_franjas, title=None,
+                axis=alt.Axis(orient="top", labelAngle=0, ticks=False, domain=False, labelLimit=200)),
+        y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)))
+    celdas = base.mark_rect(cornerRadius=4, stroke="#FFFFFF", strokeWidth=2).encode(
+        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"], domain=[0, tope]),
+                        legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=160, tickMinStep=1,
+                                          format="d")),
+        tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Franja"),
+                 alt.Tooltip("horario:N", title="Horario"), alt.Tooltip("consultas:Q", title="Consultas")])
+    numeros = base.mark_text(font="Nunito", fontSize=TEXTO_GRAFICO + 2, fontWeight="bold").encode(
+        text="consultas:Q",
+        color=alt.condition(alt.datum.consultas > tope * 0.55, alt.value("#FFFFFF"), alt.value(TINTA)))
+    dibujar(celdas + numeros, alto=330)
+    st.caption(f"Madrugada (antes de las {APERTURA_H}:00) y noche (desde las {CIERRE_H}:00) son las franjas "
+               "fuera de tu horario de atención.")
+    tabla = f.pivot(index=["dia_n", "dia"], columns="franja", values="consultas")[orden_franjas]
+    ver_tabla(tabla.reset_index().drop(columns="dia_n").rename(columns={"dia": "Día"}), "cuando_franjas")
+
+
+def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
+    """La vista detallada: 7 × 24 celdas, con el horario de atención recuadrado."""
+    celdas = celdas.assign(dia_corto=celdas["dia"].str[:3].str.capitalize())
+    orden_dias = list(dict.fromkeys(celdas["dia_corto"]))
+    mapa = alt.Chart(celdas).mark_rect(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1.5).encode(
+        x=alt.X("hora:Q", scale=alt.Scale(domain=[0, 24], nice=False), title="Hora de llegada (Lima)",
+                axis=alt.Axis(values=list(range(0, 25, 6)), labelExpr="datum.value + ':00'", grid=False)),
+        x2="hora_fin:Q",
+        y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)),
+        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"]),
+                        legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=140,
+                                          tickMinStep=1, format="d")),
+        tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Hora"),
+                 alt.Tooltip("consultas:Q", title="Consultas")])
+    horario = alt.Chart(pd.DataFrame({"x": [APERTURA_H], "x2": [CIERRE_H]})).mark_rect(
+        fillOpacity=0, stroke=TINTA, strokeWidth=1.5, strokeDash=[5, 3]).encode(x="x:Q", x2="x2:Q")
+    rotulo_horario = alt.Chart(pd.DataFrame({"x": [(APERTURA_H + CIERRE_H) / 2],
+                                             "t": [f"Horario {APERTURA_H}:00–{CIERRE_H}:00"]})).mark_text(
+        baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito", fontWeight="bold").encode(
+        x="x:Q", y=alt.value(0), text="t:N")
+    dibujar(alt.layer(mapa, horario, rotulo_horario), alto=300)
+    ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
+                                                                     "consultas": "Consultas"}), "cuando_escriben")
+
+
 def pagina_tablero() -> None:
     st.header("Tablero")
     consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
@@ -1039,34 +1091,20 @@ def pagina_tablero() -> None:
             "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas", "reservadas": "Reservadas",
             "tasa": "Tasa de cierre"}), "treks")
 
-    # 4. Cuándo llega
+    # 4. Cuándo llega: por franjas (más legible) o hora por hora
     with tarjeta("cuando"):
         pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos))
+        vista = st.radio("Vista", ["Por franjas", "Hora por hora"], horizontal=True, key="vista_horario",
+                         label_visibility="collapsed")
         celdas = por_dia_y_hora(datos)
-        celdas["dia_corto"] = celdas["dia"].str[:3].str.capitalize()
-        orden_dias = list(dict.fromkeys(celdas["dia_corto"]))
-        mapa = alt.Chart(celdas).mark_rect(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1.5).encode(
-            x=alt.X("hora:Q", scale=alt.Scale(domain=[0, 24], nice=False), title="Hora de llegada (Lima)",
-                    axis=alt.Axis(values=list(range(0, 25, 6)), labelExpr="datum.value + ':00'", grid=False)),
-            x2="hora_fin:Q",
-            y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)),
-            color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"]),
-                            legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=140,
-                                              tickMinStep=1, format="d")),
-            tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Hora"),
-                     alt.Tooltip("consultas:Q", title="Consultas")])
-        horario = alt.Chart(pd.DataFrame({"x": [8], "x2": [20]})).mark_rect(
-            fillOpacity=0, stroke=TINTA, strokeWidth=1.5, strokeDash=[5, 3]).encode(x="x:Q", x2="x2:Q")
-        rotulo_horario = alt.Chart(pd.DataFrame({"x": [14], "t": ["Horario 8:00–20:00"]})).mark_text(
-            baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito", fontWeight="bold").encode(
-            x="x:Q", y=alt.value(0), text="t:N")
-        dibujar(alt.layer(mapa, horario, rotulo_horario), alto=300)
+        if vista == "Por franjas":
+            mapa_por_franjas(datos)
+        else:
+            mapa_hora_por_hora(celdas)
         sin_hora = len(datos) - int(celdas["consultas"].sum())
         if sin_hora:
             st.caption(f"{sin_hora} consultas registradas desde la app no tienen hora de llegada: "
                        "no están en este gráfico.")
-        ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
-                                                                         "consultas": "Consultas"}), "cuando_escriben")
 
     # 5. ¿Para qué meses?
     with tarjeta("meses"):

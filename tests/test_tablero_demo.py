@@ -15,8 +15,8 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
 from core.tablero import (  # noqa: E402
-    PERIODOS, PREGUNTA_TABLERO, cargar_consultas, cierre_por_trek, embudo, filtrar, metricas, periodo,
-    por_mes_y_estado, texto_origen,
+    PERIODOS, PREGUNTA_TABLERO, cargar_consultas, cierre_por_trek, embudo, filtrar, fuera_de_horario, metricas,
+    periodo, por_dia_y_franja, por_dia_y_hora, por_mes_y_estado, texto_origen,
 )
 
 SINTETICAS = RAIZ / "data" / "consultas_sinteticas.csv"
@@ -73,6 +73,23 @@ class PruebasCuadre(unittest.TestCase):
                         self.assertEqual(int(ct["reservadas"].sum()), m["reservadas"])
 
 
+class PruebasFranjas(unittest.TestCase):
+    def test_mismos_totales_que_hora_por_hora_y_mismo_porcentaje_fuera_de_horario(self):
+        datos, *_ = periodo(cargar_consultas(SINTETICAS), 6)
+        franjas, horas = por_dia_y_franja(datos), por_dia_y_hora(datos)
+        self.assertEqual(len(franjas), 7 * 4)
+        self.assertEqual(int(franjas["consultas"].sum()), int(horas["consultas"].sum()))
+        for dia in horas["dia"].unique():
+            self.assertEqual(int(franjas.loc[franjas["dia"] == dia, "consultas"].sum()),
+                             int(horas.loc[horas["dia"] == dia, "consultas"].sum()))
+        fuera, n = fuera_de_horario(datos)
+        self.assertAlmostEqual(franjas.loc[franjas["fuera_de_horario"], "consultas"].sum() / n, fuera)
+
+    def test_sin_datos_da_celdas_en_cero(self):
+        vacio = cargar_consultas(SINTETICAS).iloc[0:0]
+        self.assertEqual(int(por_dia_y_franja(vacio)["consultas"].sum()), 0)
+
+
 class PruebasPagina(unittest.TestCase):
     def test_banda_con_la_pregunta_y_el_origen(self):
         with tempfile.TemporaryDirectory() as carpeta:
@@ -98,6 +115,14 @@ class PruebasPagina(unittest.TestCase):
                  "suman el"]
         posiciones = [next(i for i, t in enumerate(titulos) if frase in t) for frase in orden]
         self.assertEqual(posiciones, sorted(posiciones))
+
+    def test_cambiar_a_hora_por_hora(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+            graficos = len([e for e in app.main if e.type == "vega_lite_chart"])
+            app.radio(key="vista_horario").set_value("Hora por hora").run()
+        self.assertFalse(app.exception)
+        self.assertEqual(len([e for e in app.main if e.type == "vega_lite_chart"]), graficos)
 
 
 if __name__ == "__main__":
