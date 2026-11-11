@@ -786,7 +786,7 @@ def pagina_agencia() -> None:
 
 
 # ---------------------------------------------------------------- Tablero
-PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#1E6B52", "#5E9C84", "#C9741D", "#15302B", "#5B6F6A", "#E8F0EC"
+PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#0B6E7F", "#66AFBD", "#C8660A", "#12303A", "#4A5F66", "#F5F1E8"
 
 
 # Paleta validada (#0E7C58, #3A78C2, #C8660A) + el gris secundario del sistema. Un color fijo por estado en
@@ -794,7 +794,7 @@ PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#1E6B52", "#5E9C84", "#C
 COLOR_ESTADO = {"reservada": "#0E7C58", "cotizada": "#3A78C2", "sin respuesta": "#C8660A", "perdida": "#5B6F6A"}
 TEXTO_GRAFICO = 14  # px: legible en un proyector
 MINIMO_RESPONDIDAS = 10  # como hallazgo_treks(): con menos, la tasa de cierre dice poco
-CUADRICULA = "#EDF2EF"
+CUADRICULA = "#E8E3D6"
 
 
 def dibujar(grafico: alt.Chart, alto: int) -> None:
@@ -803,7 +803,7 @@ def dibujar(grafico: alt.Chart, alto: int) -> None:
         grafico.properties(height=alto, background="#FFFFFF")
         .configure_axis(labelFont="Nunito", labelFontSize=TEXTO_GRAFICO, labelColor=SECUNDARIO, titleFont="Nunito",
                         titleFontSize=TEXTO_GRAFICO, titleColor=SECUNDARIO, titleFontWeight="normal",
-                        gridColor=CUADRICULA, domainColor="#D6E0DD", tickColor="#D6E0DD")
+                        gridColor=CUADRICULA, domainColor="#DDD6C8", tickColor="#DDD6C8")
         .configure_legend(labelFont="Nunito", titleFont="Nunito", labelColor=TINTA, titleColor=SECUNDARIO,
                           labelFontSize=TEXTO_GRAFICO, titleFontSize=TEXTO_GRAFICO)
         .configure_view(stroke=None),
@@ -966,7 +966,7 @@ def mapa_por_franjas(datos: pd.DataFrame) -> None:
                               labelExpr="split(datum.label, ' · ')")),  # dos líneas hacia abajo: entra a 390 px
         y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)))
     celdas = base.mark_rect(cornerRadius=4, stroke="#FFFFFF", strokeWidth=2).encode(
-        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"], domain=[0, tope]),
+        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#E8F3F5", "#095866"], domain=[0, tope]),
                         legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=160, tickMinStep=1,
                                           format="d")),
         tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Franja"),
@@ -990,7 +990,7 @@ def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
                 axis=alt.Axis(values=list(range(0, 25, 6)), labelExpr="datum.value + ':00'", grid=False)),
         x2="hora_fin:Q",
         y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)),
-        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"]),
+        color=alt.Color("consultas:Q", scale=alt.Scale(range=["#E8F3F5", "#095866"]),
                         legend=alt.Legend(title="Consultas", orient="bottom", gradientLength=140,
                                           tickMinStep=1, format="d")),
         tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Hora"),
@@ -1176,7 +1176,7 @@ def pagina_tablero() -> None:
         p["etiqueta"] = [f"{miles(n)} · {pct(x)}" for n, x in zip(p["consultas"], p["porcentaje"])]
         p["pct"] = p["porcentaje"].map(pct)
         barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4).encode(
-            color=alt.condition(alt.datum.pais == "Otros", alt.value("#A3ADA9"), alt.value(PRIMARIO)),
+            color=alt.condition(alt.datum.pais == "Otros", alt.value("#5B6F6A"), alt.value(PRIMARIO)),
             y=alt.Y("pais:N", sort=list(p["pais"]), title=None, scale=alt.Scale(paddingInner=.45),
                     axis=alt.Axis(ticks=False, domain=False)),
             x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(p["consultas"]) * 1.35]),

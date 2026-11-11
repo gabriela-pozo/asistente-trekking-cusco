@@ -3,16 +3,31 @@
    elementos con key= para poder darles estilo. Sin clases internas generadas. */
 
 :root {
-  --primario: #1E6B52;
-  --tinta: #15302B;
-  --secundario: #5B6F6A;
-  --superficie: #FFFFFF;
-  --suave: #E8F0EC;
-  --borde: #D6E0DD;
-  --ocre: #C9741D;        /* acento: solo barras y marcas del dato que más importa */
-  --ocre-texto: #9A5512;  /* el mismo ocre, oscurecido para llegar a 4,5:1 en texto */
-  --aviso-texto: #7A4E0F;
-  --aviso-fondo: #FBF3E6;
+  /* Paleta "Abra: del glaciar al amanecer". Solo estos tokens (docs/diseno.md). */
+  --cumbre: #0B2E3A;          /* barra lateral y cabecera */
+  --cumbre-texto: #E6F1F3;
+  --laguna: #0B6E7F;          /* botón principal y enlaces */
+  --laguna-hover: #095866;
+  --amanecer: #F59E2E;        /* destello: solo sobre fondos oscuros */
+  --sendero: #0E7C58;         /* éxito y "reservada" */
+  --arena: #F5F1E8;          /* fondo de página */
+  --nieve: #FFFFFF;           /* tarjetas */
+  --borde: #DDD6C8;
+  --borde-campo: #7F9096;     /* borde de campos: 3,3:1 sobre blanco (WCAG 1.4.11) */
+  --tinta: #12303A;
+  --secundario: #4A5F66;
+  --tenue: #5C6E74;
+  --tierra: #B45F06;          /* precios en texto pequeño */
+  --tierra-barra: #C8660A;    /* solo barras y números de 24 px o más */
+  --aviso-fondo: #FFF1D6;
+  --aviso-texto: #7A4B00;
+  --acento-destino: var(--laguna);  /* cada destino (Huaraz, Arequipa, Puno...) puede cambiar este acento */
+  /* Alias de los nombres anteriores, para no tocar cada regla */
+  --primario: var(--laguna);
+  --superficie: var(--nieve);
+  --suave: var(--arena);
+  --ocre: var(--tierra-barra);
+  --ocre-texto: var(--tierra);
 }
 
 body { font-variant-numeric: tabular-nums; }
@@ -22,7 +37,7 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-tarjeta_horario, .st-key-tarjeta_nocturna {
   background: var(--superficie);
 }
-.st-key-tarjeta_borrador { box-shadow: 0 1px 2px rgba(21, 48, 43, .06), 0 4px 16px rgba(21, 48, 43, .05); }
+.st-key-tarjeta_borrador { box-shadow: 0 1px 2px rgba(18, 48, 58, .06), 0 4px 16px rgba(18, 48, 58, .05); }
 
 /* El borrador se lee como un mensaje: ~70 caracteres por línea, interlineado amplio. */
 .st-key-borrador textarea {
@@ -64,7 +79,7 @@ body { font-variant-numeric: tabular-nums; }
 .nocturna-cabecera { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
 .estado { display: inline-block; font-size: 15px; font-weight: 700; border-radius: 999px; padding: 4px 14px; }
 .estado-envia { background: var(--primario); color: #FFFFFF; }
-.estado-espera { background: var(--aviso-fondo); color: var(--aviso-texto); border: 1px solid #B7791F; }
+.estado-espera { background: var(--aviso-fondo); color: var(--aviso-texto); border: 1px solid var(--tierra); }
 .simulacion { font-size: 13px; font-weight: 600; color: var(--secundario); border: 1px dashed var(--borde);
   border-radius: 999px; padding: 3px 10px; }
 .nocturna-motivo { font-size: 15px; color: var(--aviso-texto); margin: 0; }
@@ -99,7 +114,7 @@ body { font-variant-numeric: tabular-nums; }
 /* Tablero: etiqueta de datos sintéticos, siempre visible. */
 .sinteticos {
   display: inline-block; font-size: 13px; font-weight: 700; color: var(--aviso-texto);
-  background: var(--aviso-fondo); border: 1px solid #B7791F; border-radius: 999px; padding: 4px 12px;
+  background: var(--aviso-fondo); border: 1px solid var(--tierra); border-radius: 999px; padding: 4px 12px;
 }
 
 /* Armar paquete: desglose con montos alineados a la derecha. */
@@ -120,13 +135,13 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-tarjeta_fuentes, .st-key-tarjeta_base { background: var(--superficie); }
 .fuentes { display: flex; flex-direction: column; gap: 8px; }
 .fuente { border: 1px solid var(--borde); border-left: 4px solid var(--primario); border-radius: 10px; padding: 12px 16px; }
-.fuente-verificar { border-left-color: #B7791F; background: var(--aviso-fondo); }
+.fuente-verificar { border-left-color: var(--tierra); background: var(--aviso-fondo); }
 .fuente-cabecera { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
 .fuente-titulo { font-weight: 700; font-size: 15px; color: var(--tinta); }
 .fuente-fecha, .tabla-estado, .sin-fuente { font-size: 13px; color: var(--secundario); }
 .fuente code, .tabla-base code { font-size: 13px; color: var(--secundario); background: var(--suave);
   border-radius: 6px; padding: 1px 6px; }
-.etiqueta-verificar { background: var(--aviso-fondo); color: var(--aviso-texto); border: 1px solid #B7791F; margin-left: 0; }
+.etiqueta-verificar { background: var(--aviso-fondo); color: var(--aviso-texto); border: 1px solid var(--tierra); margin-left: 0; }
 .etiqueta-oficial { background: var(--suave); color: var(--primario); border: 1px solid var(--primario); font-size: 12px; }
 .enlaces { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
 .enlaces a { color: var(--primario); font-weight: 600; overflow-wrap: anywhere; }
@@ -159,7 +174,7 @@ body { font-variant-numeric: tabular-nums; }
 .puntos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px;
   font-size: 15px; line-height: 1.6; color: var(--tinta); }
 .puntos li { padding-left: 16px; border-left: 3px solid var(--borde); }
-.puntos-limites li { border-left-color: #B7791F; }
+.puntos-limites li { border-left-color: var(--tierra); }
 
 /* Navegación lateral: cada página con una línea que dice para qué sirve. */
 .st-key-pagina label p { font-weight: 600; }
@@ -169,14 +184,14 @@ body { font-variant-numeric: tabular-nums; }
 .enlaces li { padding: 0; }
 
 /* Tablero por preguntas */
-.pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: #15302B; margin: 0; }
-.hallazgo { font-size: 15px; color: #5B6F6A; margin: 2px 0 0; line-height: 1.45; }
+.pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: var(--tinta); margin: 0; }
+.hallazgo { font-size: 15px; color: var(--secundario); margin: 2px 0 0; line-height: 1.45; }
 [class*="st-key-grafico_"] { background: var(--superficie); }
 .st-key-etiqueta_sinteticos { position: fixed; bottom: 16px; right: 16px; z-index: 1000; width: auto;
   max-width: calc(100vw - 32px); }  /* siempre visible al bajar */
 .st-key-etiqueta_sinteticos + * { margin-top: 0; }
 [data-testid="stMainBlockContainer"]:has(.st-key-etiqueta_sinteticos) { padding-bottom: 72px; }
-.st-key-etiqueta_sinteticos .sinteticos { box-shadow: 0 2px 8px rgba(21, 48, 43, .12); }
+.st-key-etiqueta_sinteticos .sinteticos { box-shadow: 0 2px 8px rgba(18, 48, 58, .12); }
 
 /* Tablero: banda superior con la pregunta que responde y el origen de los datos. */
 .banda { background: var(--superficie); border: 1px solid var(--borde); border-left: 4px solid var(--primario);

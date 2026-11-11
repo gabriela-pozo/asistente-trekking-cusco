@@ -4,51 +4,56 @@
 toolbarMode = "minimal"   # sin "Deploy" ni opciones de desarrollador
 
 [theme]
+# Paleta "Abra: del glaciar al amanecer" (docs/diseno.md). Los colores se repiten en app/estilo.css como variables.
 base = "light"
-primaryColor = "#1E6B52"              # verde andino: acciones y marca
-backgroundColor = "#F7F9F8"
-secondaryBackgroundColor = "#E8F0EC"  # superficie suave: barra lateral y campos
-textColor = "#15302B"                 # tinta
-borderColor = "#D6E0DD"
-linkColor = "#1E6B52"
-showSidebarBorder = true
+primaryColor = "#0B6E7F"              # Laguna: botón principal y enlaces
+backgroundColor = "#F5F1E8"           # Arena: fondo de página
+secondaryBackgroundColor = "#FFFFFF"  # Nieve: tarjetas y campos
+textColor = "#12303A"                 # Tinta
+borderColor = "#DDD6C8"
+linkColor = "#0B6E7F"
+showSidebarBorder = false
 
 font = "Nunito:https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap"
 headingFont = "Montserrat:https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap"
-baseFontSize = 15
-headingFontSizes = ["32px", "24px", "18px", "15px", "15px", "13px"]
+baseFontSize = 16
+headingFontSizes = ["32px", "24px", "18px", "16px", "16px", "14px"]
 headingFontWeights = [700, 700, 600, 600, 600, 600]
-metricValueFontSize = "32px"
+metricValueFontSize = "36px"
 metricValueFontWeight = 700
-paddingTop = "1rem"  # menos aire arriba: el borrador y el botón de WhatsApp entran en la primera pantalla
-baseRadius = "10px"
-buttonRadius = "10px"
+paddingTop = "1rem"
+baseRadius = "12px"
+buttonRadius = "12px"
 
-# Semánticos, separados del acento ocre. El texto usa el tono oscuro para llegar a 4,5:1.
+# Semánticos. El texto usa el tono oscuro para llegar a 4,5:1 sobre su fondo.
 redColor = "#B4471F"
 redBackgroundColor = "#FBEDE8"
-redTextColor = "#B4471F"
-orangeColor = "#B7791F"
-orangeBackgroundColor = "#FBF3E6"
-orangeTextColor = "#7A4E0F"
-yellowColor = "#B7791F"
-yellowBackgroundColor = "#FBF3E6"
-yellowTextColor = "#7A4E0F"
-greenColor = "#2F7A4F"
-greenBackgroundColor = "#EAF4EE"
-greenTextColor = "#2F7A4F"
-# Informativo: neutro verde grisáceo (no compite con el aviso ni con el error).
-blueColor = "#5B6F6A"
-blueBackgroundColor = "#E8F0EC"
-blueTextColor = "#15302B"
-grayTextColor = "#5B6F6A"
+redTextColor = "#9A3A17"
+orangeColor = "#B45F06"
+orangeBackgroundColor = "#FFF1D6"
+orangeTextColor = "#7A4B00"
+yellowColor = "#B45F06"
+yellowBackgroundColor = "#FFF1D6"
+yellowTextColor = "#7A4B00"
+greenColor = "#0E7C58"
+greenBackgroundColor = "#E3F3EC"
+greenTextColor = "#0A5F43"
+# Informativo: Laguna suave.
+blueColor = "#0B6E7F"
+blueBackgroundColor = "#E2F1F4"
+blueTextColor = "#12303A"
+grayTextColor = "#4A5F66"
 
-dataframeHeaderBackgroundColor = "#E8F0EC"
-dataframeBorderColor = "#D6E0DD"
+dataframeHeaderBackgroundColor = "#F5F1E8"
+dataframeBorderColor = "#DDD6C8"
 
-chartCategoricalColors = ["#1E6B52", "#5E9C84", "#9CC5B3", "#C9741D", "#5B6F6A", "#15302B"]
-chartSequentialColors = ["#E8F0EC", "#D0E3DA", "#B6D4C6", "#9CC5B3", "#82B5A0", "#68A48C", "#4F9378", "#378264", "#1E6B52", "#15503D"]
+chartCategoricalColors = ["#0B6E7F", "#0E7C58", "#3A78C2", "#C8660A", "#5B6F6A", "#12303A"]
+chartSequentialColors = ["#E2F1F4", "#C5E2E8", "#A6D2DA", "#86C1CC", "#66AFBD", "#459CAD", "#2A8899", "#0B6E7F", "#095866", "#0B2E3A"]
 
 [theme.sidebar]
-backgroundColor = "#E8F0EC"
-secondaryBackgroundColor = "#FFFFFF"
+# Cumbre: la barra lateral es el bloque oscuro; el ítem activo va en Amanecer.
+backgroundColor = "#0B2E3A"
+secondaryBackgroundColor = "#123F4E"
+textColor = "#E6F1F3"
+primaryColor = "#F59E2E"
+borderColor = "#1E5160"

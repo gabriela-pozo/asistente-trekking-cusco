@@ -6,26 +6,53 @@
 
 Dónde vive cada cosa: el tema en `.streamlit/config.toml`, el CSS que el tema no cubre en `app/estilo.css`, el formato de datos en `app/presentacion.py` y el logo en `assets/`.
 
-## Color
+## Color: "Abra: del glaciar al amanecer"
 
-| Rol | Color | Contraste sobre blanco | Uso |
-| --- | --- | --- | --- |
-| Primario | `#1E6B52` | 6,4:1 | Acciones, marca, enlaces |
-| Tinta | `#15302B` | 14,1:1 | Texto |
-| Secundario | `#5B6F6A` | 5,4:1 | Texto de apoyo, rótulos |
-| Fondo / superficie / suave | `#F7F9F8` / `#FFFFFF` / `#E8F0EC` | — | Página / tarjetas / barra lateral, campos y fichas |
-| Bordes | `#D6E0DD` | — | Tarjetas y tablas |
-| Acento ocre | `#C9741D` | 3,5:1 | **Solo** el dato que más importa: barra de cada opción |
-| Ocre para texto | `#9A5512` | 5,7:1 | El precio por persona |
-| Éxito / aviso / error | `#2F7A4F` / `#B7791F` / `#B4471F` | 5,2 / 3,6 / 5,4 | Mensajes del control |
-| Aviso para texto | `#7A4E0F` | 7,2:1 | Texto de los avisos |
+Paleta de viaje y trekking pensada para proyector: bloques oscuros (Cumbre) contra bloques claros (Arena y Nieve), con un solo destello cálido (Amanecer). Sirve para cualquier destino: Cusco, Huaraz, Arequipa, Puno o el resto de Latam. Cada color es una variable CSS en `app/estilo.css` y el tema de `.streamlit/config.toml` usa los mismos valores. En el CSS solo se usan estos tokens.
 
-El ocre y el amarillo de aviso no llegan a 4,5:1 sobre blanco. Por eso se usan en barras y bordes, y su texto va en el tono oscurecido de la misma familia. Todo el texto cumple WCAG AA (4,5:1), también sobre los fondos de los avisos.
+| Token CSS | Color | Uso |
+| --- | --- | --- |
+| `--cumbre` / `--cumbre-texto` | `#0B2E3A` / `#E6F1F3` | Barra lateral y cabecera, y su texto |
+| `--laguna` / `--laguna-hover` | `#0B6E7F` / `#095866` | Botón principal (texto blanco) y enlaces |
+| `--amanecer` | `#F59E2E` | Destello **solo sobre fondos oscuros**: ítem activo del menú, indicadores, ícono destacado |
+| `--sendero` | `#0E7C58` | Éxito y "reservada" |
+| `--arena` | `#F5F1E8` | Fondo de página y de las fichas |
+| `--nieve` / `--borde` | `#FFFFFF` / `#DDD6C8` | Tarjetas (esquinas de 12 a 16 px, sombra muy suave) y su borde |
+| `--tinta` | `#12303A` | Texto |
+| `--secundario` / `--tenue` | `#4A5F66` / `#5C6E74` | Texto secundario / texto tenue |
+| `--tierra` / `--tierra-barra` | `#B45F06` / `#C8660A` | `--tierra`: precios en texto pequeño. `--tierra-barra`: solo barras y números de 24 px o más |
+| `--aviso-fondo` / `--aviso-texto` | `#FFF1D6` / `#7A4B00` | Avisos |
+| `--borde-campo` | `#7F9096` | Borde de los campos de entrada (blancos, con borde visible) |
+| `--acento-destino` | `var(--laguna)` | Acento por destino: cada destino puede redefinirlo sin tocar el resto |
+
+Estados de los gráficos, sin cambios: reservada `#0E7C58`, cotizada `#3A78C2`, sin respuesta `#C8660A`, perdida `#5B6F6A`.
+
+### Contraste (WCAG AA: 4,5:1 en texto; 3:1 en texto grande y componentes)
+
+| Par | Contraste | |
+| --- | --- | --- |
+| Tinta sobre Arena / Nieve | 12,3 / 13,9 | cumple |
+| Secundario sobre Nieve / Arena | 6,7 / 6,0 | cumple |
+| Tenue sobre Nieve / Arena | 5,3 / 4,7 | cumple |
+| Blanco sobre Laguna / Laguna hover | 5,9 / 8,1 | cumple |
+| Laguna (enlace) sobre Nieve / Arena | 5,9 / 5,3 | cumple |
+| Texto de Cumbre sobre Cumbre | 12,4 | cumple |
+| Amanecer sobre Cumbre | 6,7 | cumple |
+| Tinta de Cumbre sobre Amanecer | 6,7 | cumple |
+| Aviso: `#7A4B00` sobre `#FFF1D6` | 6,6 | cumple |
+| Tierra `#B45F06` sobre Nieve | 4,6 | cumple, **solo sobre Nieve** |
+| Sendero sobre Nieve / blanco sobre Sendero | 5,2 | cumple |
+| Cotizada `#3A78C2` sobre Nieve | 4,5 | cumple justo |
+| Borde de campo `#7F9096` sobre Nieve | 3,3 | cumple (componente, 3:1) |
+| **Tierra `#B45F06` sobre Arena** | **4,1** | **no cumple en texto pequeño**: el precio va siempre dentro de una tarjeta Nieve |
+| **`#C8660A` sobre Nieve** | **3,9** | solo en barras y números de 24 px o más (3:1) |
+| **Borde `#DDD6C8` sobre Nieve** | **1,5** | decorativo: separa tarjetas; nada depende de él para entender |
+| **Sin respuesta `#C8660A` en texto pequeño** | **3,9** | solo en barras; en el texto va la etiqueta, no el color |
 
 Los avisos se separan por gravedad:
 - **Error (rojo), arriba:** montos que no están en la cotización, depósito que no cuadra, trek sin precio, mensaje sin precio.
-- **Aviso (amarillo):** lo demás que hay que revisar.
-- **Informativo (verde grisáceo):** el ejemplo guardado y el aviso para el viajero.
+- **Aviso (ámbar):** lo demás que hay que revisar.
+- **Informativo (Laguna suave):** el ejemplo guardado.
 
 ## Tipografía
 
@@ -40,7 +67,7 @@ Los avisos se separan por gravedad:
 
 ## Espacio, forma y profundidad
 
-- Espaciado en múltiplos de 8. Radio de 10 px en tarjetas, botones y fichas.
+- Espaciado en múltiplos de 8. Radio de 12 a 16 px en tarjetas y de 12 px en botones y campos.
 - La sombra es casi imperceptible y va **solo en la tarjeta del borrador**: es lo único que "flota".
 - Iconos: Material Symbols de Streamlit, solo en acciones y avisos. Sin emojis decorativos.
 

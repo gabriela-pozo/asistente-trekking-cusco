@@ -7,8 +7,8 @@ SIN_MAPA = "Mapa no disponible todavía para este trek."
 AVISO_ERROR = "No se pudo mostrar el mapa en este momento. El resto de la respuesta no se ve afectado."
 
 COLOR_TIPO = {  # mismos tonos de docs/diseno.md
-    "inicio": [30, 107, 82], "fin": [21, 48, 43], "campamento": [201, 116, 29],
-    "paso": [180, 71, 31], "sitio": [91, 111, 106],
+    "inicio": [11, 110, 127], "fin": [18, 48, 58], "campamento": [200, 102, 10],
+    "paso": [180, 95, 6], "sitio": [92, 110, 116],
 }
 ETIQUETA_TIPO = {"inicio": "Inicio", "fin": "Fin", "campamento": "Campamento", "paso": "Paso", "sitio": "Lugar"}
 
@@ -25,7 +25,7 @@ def _dibujar(st, ruta: mapa.Ruta) -> None:
     } for p in ruta.puntos])
     camino = pd.DataFrame([{"camino": [[p.longitud, p.latitud] for p in ruta.puntos]}])
     capas = [
-        pdk.Layer("PathLayer", camino, get_path="camino", get_color=[30, 107, 82, 160], width_min_pixels=3),
+        pdk.Layer("PathLayer", camino, get_path="camino", get_color=[11, 110, 127, 160], width_min_pixels=3),
         pdk.Layer("ScatterplotLayer", datos, get_position=["lon", "lat"], get_fill_color="color",
                   get_radius="radio", radius_min_pixels=5, radius_max_pixels=11, pickable=True),
     ]
@@ -48,7 +48,7 @@ def _perfil(st, ruta: mapa.Ruta) -> None:
         x=alt.X("Km en línea recta:Q", title="Km acumulados en línea recta"),
         y=alt.Y("Altitud (m):Q", title="Altitud (m)", scale=alt.Scale(zero=False)),
         tooltip=["Lugar", alt.Tooltip("Altitud (m):Q", format=",.0f")])
-    grafico = (base.mark_line(color="#1E6B52") + base.mark_circle(color="#C9741D", size=70)).properties(height=220)
+    grafico = (base.mark_line(color="#0B6E7F") + base.mark_circle(color="#C8660A", size=70)).properties(height=220)
     st.markdown("**Perfil de altitud**")
     st.altair_chart(grafico)
     d = mapa.desnivel(ruta)
