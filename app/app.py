@@ -147,8 +147,16 @@ if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lim
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia",
-                                  "Estado del sistema", "Acerca del piloto"], key="pagina")
+# Navegación: el trabajo diario arriba, el respaldo (de dónde sale cada dato, qué funciona, límites) abajo.
+PAGINAS = {
+    "Nueva consulta": "Pega el mensaje y responde",
+    "Tablero": "Tu semana y las consultas",
+    "Fuentes y verificación": "De dónde sale cada dato",
+    "Mi agencia": "Tarifario, extras y horario",
+    "Estado del sistema": "Modelo, cuota y base",
+    "Acerca del piloto": "Alcance y límites",
+}
+pagina = st.sidebar.radio("Ir a", list(PAGINAS), captions=list(PAGINAS.values()), key="pagina")
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -790,7 +798,7 @@ def porcentaje(valor: float) -> str:
 
 # ---------------------------------------------------------------- Mi semana
 def ir_a_consulta() -> None:
-    st.session_state.pagina = "Nueva consulta"
+    ir_a("Nueva consulta")
 
 
 def celebrar(registradas, hoy) -> None:

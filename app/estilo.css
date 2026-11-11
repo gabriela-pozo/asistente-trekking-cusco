@@ -160,3 +160,6 @@ body { font-variant-numeric: tabular-nums; }
   font-size: 15px; line-height: 1.6; color: var(--tinta); }
 .puntos li { padding-left: 16px; border-left: 3px solid var(--borde); }
 .puntos-limites li { border-left-color: #B7791F; }
+
+/* Navegación lateral: cada página con una línea que dice para qué sirve. */
+.st-key-pagina label p { font-weight: 600; }

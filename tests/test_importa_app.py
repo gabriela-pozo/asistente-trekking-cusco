@@ -43,6 +43,9 @@ class PruebasImports(unittest.TestCase):
             app = AppTest.from_file(str(APP), default_timeout=60)
             app.run()
             self.assertFalse(app.exception)
+            self.assertEqual(app.sidebar.radio[0].options, [
+                "Nueva consulta", "Tablero", "Fuentes y verificación", "Mi agencia", "Estado del sistema",
+                "Acerca del piloto"])
             for pagina in app.sidebar.radio[0].options:  # antes de la primera consulta (estado vacío)
                 app.sidebar.radio[0].set_value(pagina).run()
                 self.assertFalse(app.exception, pagina)
