@@ -8,3 +8,4 @@ python-dotenv>=1.0
 folium>=0.17
 streamlit-folium>=0.22
 tzdata>=2024.1  # zona horaria America/Lima en Windows
+reportlab==5.1.0  # cotización en PDF (core/cotizacion_pdf.py)
