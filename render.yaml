@@ -1,0 +1,33 @@
+# Blueprint de Render (plan gratuito) para el webhook del modo nocturno.
+# Los valores con sync: false se escriben en el panel de Render; nunca van en este archivo.
+services:
+  - type: web
+    name: abra-webhook
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-server.txt
+    startCommand: uvicorn server.webhook:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /salud
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM      # whatsapp:+14155238886 (número del sandbox)
+        sync: false
+      - key: URL_PUBLICA               # https://<tu-servicio>.onrender.com/whatsapp, igual que en Twilio
+        sync: false
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: GEMINI_MODEL_RESPALDO
+        value: gemini-3.5-flash-lite
+      - key: FORZAR_MODO_NOCTURNO      # 1 = responde también de día (para probar)
+        value: "0"
+      - key: AGENCIA_NOMBRE
+        value: Andes Trek Demo

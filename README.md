@@ -46,12 +46,26 @@ streamlit run app/app.py  # y abre http://localhost:8501
 - Pruebas (no llaman a la API): `python -m unittest discover tests`
 - Probar con el modelo real desde la terminal: `python scripts/probar_consultas.py`
 
+## Modo nocturno con WhatsApp (sandbox de Twilio)
+
+`server/webhook.py` (FastAPI) responde solo las consultas que llegan **fuera de horario** (8:00–20:00, hora de Lima):
+
+1. El viajero escribe al número del sandbox; Twilio hace `POST /whatsapp`.
+2. Se valida la firma `X-Twilio-Signature` con el auth token y se contesta al instante con un TwiML vacío.
+3. En segundo plano, el modelo extrae el perfil y el código arma la respuesta segura de `core/respuesta_nocturna.py` (precio "desde" del tarifario, qué incluye, lo que falta preguntar y la hora del asesor). Si queda en espera del vendedor, se envía solo un acuse de recibo sin montos.
+4. Se envía con la API de Twilio. Un mismo `MessageSid` no se responde dos veces; el log no guarda textos ni teléfonos.
+
+Despliegue: `render.yaml` (Render, plan gratuito) con `requirements-server.txt`; salud en `GET /salud`. Para probar de día: `FORZAR_MODO_NOCTURNO=1`. En local: `uvicorn server.webhook:app --port 8000`.
+
+**Límites:** el sandbox es para pruebas, no para clientes reales. Usa un **número compartido de Twilio** (+1 415 523 8886), y **cada persona debe unirse antes** enviando `join <código>` desde su WhatsApp; la unión vence a los 3 días. Envía como máximo un mensaje cada 3 segundos y solo puede responder dentro de las 24 horas desde el último mensaje del viajero. En el plan gratuito de Render el servicio se duerme tras 15 minutos sin tráfico y tarda cerca de un minuto en despertar, y la lista de mensajes ya respondidos se pierde al reiniciarse. Para un número propio de la agencia hace falta la API de WhatsApp Business aprobada por Meta.
+
 ## Estructura
 
 | Carpeta | Qué contiene |
 | --- | --- |
 | `app/` | App web en Streamlit: "Nueva consulta", "Mi agencia" y "Tablero". Diseño en `docs/diseno.md` |
 | `ai/` | Esquemas (pydantic), conexión con el modelo, instrucciones, búsqueda y flujo principal |
+| `server/` | Webhook de WhatsApp (FastAPI + Twilio) para el modo nocturno |
 | `core/` | Cotización con el tarifario, enlace de WhatsApp, respuesta del modo nocturno y agregaciones del Tablero |
 | `data/` | Tarifario demo, precios de mercado, base de conocimiento de Cusco y de Huaraz |
 | `docs/` | Fuentes de precios e investigación (evidencia pública, cliente misterioso, verificación oficial) |

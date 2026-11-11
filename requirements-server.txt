@@ -1,0 +1,12 @@
+# Solo para el webhook de WhatsApp (server/webhook.py), desplegado en Render.
+# La app de Streamlit usa requirements.txt.
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.9   # FastAPI lo necesita para leer el formulario que envía Twilio
+twilio>=9.13,<10
+google-genai>=1.20
+anthropic>=0.60
+pandas>=2.2
+pydantic>=2.7
+python-dotenv>=1.0
+tzdata>=2024.1            # zona horaria America/Lima
