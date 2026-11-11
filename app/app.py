@@ -52,6 +52,7 @@ from core.tablero import (  # noqa: E402
     ORDEN_ESTADOS, PERIODOS, cargar_consultas, cierre_por_trek, contar_registradas, embudo, filtrar, hallazgo_embudo,
     hallazgo_horario, hallazgo_meses, hallazgo_paises, hallazgo_treks, metricas, paises_con_otros, pct, periodo,
     por_dia_y_hora, por_mes_y_estado, registrar, registro_desde_resultado, variaciones,
+    PREGUNTA_TABLERO, texto_origen,
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
@@ -936,13 +937,15 @@ def mostrar_mi_semana() -> None:
 
 def pagina_tablero() -> None:
     st.header("Tablero")
+    consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
+    st.html(f'<div class="banda"><p class="banda-pregunta">{html.escape(PREGUNTA_TABLERO)}</p>'
+            f'<p class="banda-origen">Datos: {html.escape(texto_origen(consultas))}.</p></div>')
     mostrar_mi_semana()  # solo las consultas registradas por el vendedor; no la tocan los filtros de abajo
 
     with st.container(key="etiqueta_sinteticos"):  # pegada arriba al bajar (estilo.css)
         st.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
     st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
 
-    consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
     c1, c2, c3 = st.columns([1, 1.4, 1.4])
     nombre_periodo = c1.selectbox("Período", list(PERIODOS), index=1)
     treks = c2.multiselect("Trek", sorted(consultas["trek"].dropna().unique()), placeholder="Todos los treks",

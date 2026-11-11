@@ -177,3 +177,9 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-etiqueta_sinteticos + * { margin-top: 0; }
 [data-testid="stMainBlockContainer"]:has(.st-key-etiqueta_sinteticos) { padding-bottom: 72px; }
 .st-key-etiqueta_sinteticos .sinteticos { box-shadow: 0 2px 8px rgba(21, 48, 43, .12); }
+
+/* Tablero: banda superior con la pregunta que responde y el origen de los datos. */
+.banda { background: var(--superficie); border: 1px solid var(--borde); border-left: 4px solid var(--primario);
+  border-radius: 10px; padding: 16px 20px; margin: -8px 0 8px; }
+.banda-pregunta { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 700; color: var(--tinta); margin: 0; }
+.banda-origen { font-size: 15px; font-weight: 600; color: var(--aviso-texto); margin: 4px 0 0; }

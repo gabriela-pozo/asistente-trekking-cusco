@@ -303,3 +303,18 @@ def hallazgo_embudo(e: pd.DataFrame) -> str:
     por_cien = round(e["numero"].iloc[-1] / e["numero"].iloc[0] * 100)
     return (f"La mayor caída es de {anterior} a {peor['etapa'].lower()}: pasa el {pct(peor['pct_anterior'])}. "
             f"De cada 100 consultas, {por_cien} terminan en reserva.")
+
+
+# --- Textos del Tablero (no cambian ningún cálculo) -----------------------------------------------------
+
+PREGUNTA_TABLERO = "¿Qué consultas se pierden y cuándo?"
+
+
+def texto_origen(df: pd.DataFrame) -> str:
+    """De dónde salen los datos, con las cantidades reales del archivo (antes de filtrar)."""
+    origen = df["origen"] if "origen" in df else pd.Series(dtype="object")
+    sinteticas, registradas = int((origen == "sintética").sum()), int((origen == "registrada").sum())
+    texto = f"{sinteticas} consultas sintéticas de demostración"
+    if registradas:
+        texto += f" y {registradas} {'registrada' if registradas == 1 else 'registradas'} en esta app"
+    return texto
