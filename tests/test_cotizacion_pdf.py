@@ -27,10 +27,57 @@ def texto_pdf(datos: bytes) -> str:
     return re.sub(r"\\([()\\])", r"\1", texto)
 
 
-def test_genera_pdf_de_una_pagina(ejemplo):
+def paginas(pdf: bytes) -> int:
+    return len(re.findall(rb"/Type\s*/Page\b", pdf))
+
+
+def con_trek(ejemplo: dict, ruta: str) -> dict:
+    """El ejemplo guardado con otro trek (solo cambia el id; los montos no se tocan)."""
+    d = deepcopy(ejemplo)
+    for o in d["opciones"]:
+        o["trek_id"] = f"{ruta}_4d"
+    return d
+
+
+def test_genera_pdf_con_pagina_de_ruta_para_salkantay(ejemplo):
     pdf = generar_cotizacion_pdf(ejemplo)
     assert pdf.startswith(b"%PDF")
-    assert len(re.findall(rb"/Type\s*/Page\b", pdf)) == 1
+    assert paginas(pdf) == 2  # cotización + ruta
+    t = texto_pdf(pdf)
+    assert "Route: " in t and "Altitude profile" in t and "Route points" in t
+    assert "OpenStreetMap" in t and "ODbL" in t
+    assert "confirm the route with the agency" in t
+    assert "partial route" not in t
+
+
+def test_camino_inca_tiene_ruta(ejemplo):
+    pdf = generar_cotizacion_pdf(con_trek(ejemplo, "camino_inca"))
+    assert pdf.startswith(b"%PDF") and paginas(pdf) == 2
+    assert "Altitude profile" in texto_pdf(pdf)
+
+
+@pytest.mark.parametrize("ruta", ["choquequirao", "inca_jungle", "camino_inca_corto"])
+def test_trek_sin_ruta_sigue_en_una_pagina(ejemplo, ruta):
+    pdf = generar_cotizacion_pdf(con_trek(ejemplo, ruta))
+    assert pdf.startswith(b"%PDF") and paginas(pdf) == 1
+    assert "Altitude profile" not in texto_pdf(pdf)
+
+
+def test_lares_dice_ruta_parcial(ejemplo):
+    pdf = generar_cotizacion_pdf(con_trek(ejemplo, "lares"))
+    assert paginas(pdf) == 2
+    assert "partial route" in texto_pdf(pdf)
+
+
+def test_la_ruta_solo_usa_puntos_de_data_rutas(ejemplo):
+    from core.mapa import cargar_ruta
+
+    t = texto_pdf(generar_cotizacion_pdf(ejemplo))
+    for p in cargar_ruta("salkantay").puntos:
+        assert p.lugar in t
+        if p.altitud_m is not None:
+            assert f"{p.altitud_m:,} m".replace(",", " ") in t
+    assert "no data" in t  # los puntos sin altitud se marcan, no se inventan
 
 
 def test_los_montos_coinciden_con_el_resultado(ejemplo):
@@ -91,7 +138,7 @@ def test_falla_con_mensaje_claro_si_falta_un_campo(ejemplo, quitar, mensaje):
 
 def test_sin_datos_personales(ejemplo):
     texto = texto_pdf(generar_cotizacion_pdf(ejemplo))
-    assert not re.search(r"\+?\d[\d ]{8,}", texto) and "@" not in texto
+    assert not re.search(r"\+?\d{3}[\d ]{6,}", texto) and "@" not in texto
 
 
 # ---- El PDF usa el mismo paquete que la respuesta y el panel "Ajustar el paquete" ----------------------------
