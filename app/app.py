@@ -56,7 +56,7 @@ from core.tablero import (  # noqa: E402
     APERTURA_H, CIERRE_H, PREGUNTA_TABLERO, por_dia_y_franja, texto_origen, titulo_embudo, titulo_horario,
     titulo_meses, titulo_paises, titulo_treks,
 )
-from core.whatsapp import enlace_whatsapp  # noqa: E402
+from core.whatsapp import enlace_whatsapp, normalizar_telefono  # noqa: E402
 from presentacion import (  # noqa: E402
     GUIA_NOTAS, GUIA_PASOS, html_chips, html_desglose, html_opciones_compactas, icono, idioma, lista_markdown,
     separar_advertencias, usd,
@@ -386,7 +386,7 @@ def _copiar_con_componente(componentes, texto_json: str) -> None:
         height=54)
 
 
-def mostrar_borrador(resultado, telefono: str) -> None:
+def mostrar_borrador(resultado) -> None:
     """Paso 2, Revisar: la respuesta como burbuja de WhatsApp, con Copiar y Abrir en WhatsApp."""
     with st.container(border=True, key="tarjeta_borrador"):
         etiqueta_idioma = (f'<span class="etiqueta-idioma">{icono("translate")}'
@@ -400,6 +400,12 @@ def mostrar_borrador(resultado, telefono: str) -> None:
             st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         texto = st.text_area("Respuesta para el viajero (puedes editarla)", key="borrador", height=220,
                              label_visibility="collapsed")
+        # El número solo vive en st.session_state (clave telefono_viajero): no se guarda ni va al modelo.
+        telefono = st.text_input("WhatsApp del viajero (opcional)", key="telefono_viajero",
+                                 placeholder="+51 987 654 321",
+                                 help="Con código de país, por ejemplo +51 987 654 321")
+        if telefono.strip() and normalizar_telefono(telefono) is None:
+            st.warning("Revisa el número: escríbelo con código de país", icon=":material/phone_disabled:")
         # Justo encima del botón, para que se vea sin bajar.
         st.caption(f"Respondió: {resultado.uso.modelos_que_respondieron()} · Tokens usados: "
                    f"{resultado.uso.tokens_entrada} de entrada y {resultado.uso.tokens_salida} de salida "
@@ -497,8 +503,6 @@ def pagina_consulta() -> None:
                       icon=":material/bookmark:" if variable else None,
                       help="Muestra una consulta real ya resuelta. No gasta cuota del modelo.")
         with st.expander("Opciones", icon=":material/settings:", expanded=False):
-            telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)",
-                                     placeholder="+1 555 123 4567")
             st.session_state.hora_llegada = st.time_input(
                 "Hora de llegada de la consulta", st.session_state.hora_llegada, step=60,
                 help="Hora de Lima. Fuera de tu horario de atención, con el modo nocturno activo, "
@@ -554,7 +558,7 @@ def pagina_consulta() -> None:
             fecha = html.escape(str(st.session_state.get("fecha_ejemplo", "")))
             st.html(f'<span class="insignia insignia-guardado" title="No se llamó a la API, así que no gastó cuota.">'
                     f'{icono("bookmark")}Resultado guardado · {fecha} · No se llamó a la API</span>')
-        mostrar_borrador(resultado, telefono)
+        mostrar_borrador(resultado)
 
     # Segunda fila (en el celular, después de la respuesta): lo entendido, advertencias y opciones | ajustar
     opciones, ajuste = st.columns([5, 7], gap="large")

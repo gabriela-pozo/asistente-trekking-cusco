@@ -19,8 +19,20 @@ def solo_digitos(telefono: str | None) -> str:
     return re.sub(r"\D", "", telefono or "")
 
 
+def normalizar_telefono(telefono: str | None) -> str | None:
+    """'+51 987-654-321' -> '51987654321'. Quita espacios, guiones, paréntesis y '+'.
+
+    Devuelve None si lo que queda no son solo dígitos (8 a 15). No supone ningún país por defecto.
+    """
+    limpio = re.sub(r"[\s\-()+]", "", telefono or "")
+    return limpio if re.fullmatch(r"[0-9]{8,15}", limpio) else None
+
+
 def enlace_whatsapp(texto: str, telefono: str | None = None) -> str:
-    """Enlace wa.me con el mensaje codificado para URL (espacios, saltos de línea, tildes, US$)."""
-    digitos = solo_digitos(telefono)
+    """Enlace wa.me con el mensaje codificado para URL (espacios, saltos de línea, tildes, US$).
+
+    Con número válido abre el chat directo; vacío o inválido, WhatsApp pide elegir el contacto.
+    """
+    digitos = normalizar_telefono(telefono)
     base = f"https://wa.me/{digitos}" if digitos else "https://wa.me/"
     return f"{base}?text={quote(texto, safe='')}"

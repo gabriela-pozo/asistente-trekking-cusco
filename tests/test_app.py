@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlparse
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
-from core.whatsapp import enlace_whatsapp, solo_digitos  # noqa: E402
+from core.whatsapp import enlace_whatsapp, normalizar_telefono, solo_digitos  # noqa: E402
 
 APP = str(RAIZ / "app" / "app.py")
 
@@ -28,6 +28,31 @@ class PruebasWhatsApp(unittest.TestCase):
 
     def test_enlace_sin_numero(self):
         self.assertTrue(enlace_whatsapp("Hola").startswith("https://wa.me/?text="))
+
+    def test_normaliza_con_mas_y_espacios(self):
+        self.assertEqual(normalizar_telefono("+51 987 654 321"), "51987654321")
+
+    def test_normaliza_con_guiones_y_parentesis(self):
+        self.assertEqual(normalizar_telefono("+51-987-654-321"), "51987654321")
+        self.assertEqual(normalizar_telefono("(51) 987 654 321"), "51987654321")
+
+    def test_normaliza_rechaza_vacio_letras_corto_y_largo(self):
+        for malo in ("", "   ", None, "51 987 abc 321", "1234567", "1234567890123456", "+51 987.654.321"):
+            with self.subTest(malo=malo):
+                self.assertIsNone(normalizar_telefono(malo))
+
+    def test_normaliza_acepta_los_limites(self):
+        self.assertEqual(normalizar_telefono("12345678"), "12345678")
+        self.assertEqual(normalizar_telefono("123456789012345"), "123456789012345")
+
+    def test_enlace_con_numero_valido_abre_el_chat_directo(self):
+        enlace = enlace_whatsapp("Hola, un saludo", "+51 987 654 321")
+        self.assertEqual(urlparse(enlace).path, "/51987654321")
+        self.assertEqual(parse_qs(urlparse(enlace).query)["text"][0], "Hola, un saludo")
+
+    def test_enlace_con_numero_invalido_o_vacio_se_comporta_como_sin_numero(self):
+        for malo in ("", "abc", "123"):
+            self.assertEqual(enlace_whatsapp("Hola", malo), enlace_whatsapp("Hola"))
 
     def test_el_mensaje_se_recupera_intacto(self):
         texto = "Hi! US$ 600 per person & total US$ 1,200.\nIncluded: guía, Machu Picchu?"
