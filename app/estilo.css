@@ -65,12 +65,12 @@ body { font-variant-numeric: tabular-nums; }
 }
 .opcion-nombre { font-weight: 700; font-size: 18px; color: var(--tinta); }
 .opcion-meta { font-size: 15px; color: var(--secundario); }
-.precio { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 24px; color: var(--ocre-texto); }
+.precio { font-family: Inter, sans-serif; font-weight: 700; font-size: 24px; color: var(--ocre-texto); }
 .precio-unidad { font-size: 15px; color: var(--secundario); margin-left: 6px; }
 
 /* Cronómetro: cuánto tardó la respuesta (solo con una consulta real al modelo). */
 .cronometro {
-  display: inline-block; font-family: Montserrat, sans-serif; font-weight: 700; font-size: 15px;
+  display: inline-block; font-family: Inter, sans-serif; font-weight: 700; font-size: 15px;
   color: #FFFFFF; background: var(--primario); border-radius: 999px; padding: 4px 14px;
 }
 
@@ -124,7 +124,7 @@ body { font-variant-numeric: tabular-nums; }
 .desglose-monto { text-align: right; white-space: nowrap; font-weight: 600; padding-left: 16px !important; }
 .desglose-calculo { font-size: 13px; color: var(--secundario); }
 .desglose-total td { font-weight: 700; border-bottom: 2px solid var(--tinta); }
-.desglose-total .desglose-monto { color: var(--ocre-texto); font-family: Montserrat, sans-serif; font-size: 17px; }
+.desglose-total .desglose-monto { color: var(--ocre-texto); font-family: Inter, sans-serif; font-size: 17px; }
 
 /* Mi semana: el avance del vendedor, separado de los datos del demo */
 .st-key-mi_semana { background: var(--superficie); border-left: 4px solid var(--primario); margin-bottom: 16px; }
@@ -184,14 +184,14 @@ body { font-variant-numeric: tabular-nums; }
 .enlaces li { padding: 0; }
 
 /* Tablero por preguntas */
-.pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: var(--tinta); margin: 0; }
+.pregunta { font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; color: var(--tinta); margin: 0; }
 .hallazgo { font-size: 15px; color: var(--secundario); margin: 2px 0 0; line-height: 1.45; }
 [class*="st-key-grafico_"] { background: var(--superficie); }
 
 /* Tablero: banda superior con la pregunta que responde y el origen de los datos. */
 .banda { background: var(--superficie); border: 1px solid var(--borde); border-left: 4px solid var(--primario);
   border-radius: 10px; padding: 16px 20px; margin: -8px 0 8px; }
-.banda-pregunta { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 700; color: var(--tinta); margin: 0; }
+.banda-pregunta { font-family: Inter, sans-serif; font-size: 24px; font-weight: 700; color: var(--tinta); margin: 0; }
 .banda-origen { font-size: 15px; font-weight: 600; color: var(--aviso-texto); margin: 4px 0 0; }
 
 /* ---------- Cabecera y navegación ---------- */
@@ -203,7 +203,7 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-barra { position: sticky; top: 8px; z-index: 60; background: var(--cumbre); color: var(--cumbre-texto);
   border-radius: 14px; padding: 8px 16px; min-height: 52px; box-shadow: 0 2px 10px rgba(11, 46, 58, .18); }
 .barra-contenido { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.barra-agencia { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 16px; color: var(--cumbre-texto); }
+.barra-agencia { font-family: Inter, sans-serif; font-weight: 700; font-size: 16px; color: var(--cumbre-texto); }
 .insignia { display: inline-flex; align-items: center; font-size: 14px; font-weight: 700; border-radius: 999px;
   padding: 3px 12px; line-height: 1.4; }
 .insignia-demo { background: var(--aviso-fondo); color: var(--aviso-texto); }
@@ -304,12 +304,12 @@ label p, [data-testid="stWidgetLabel"] p { font-size: 14px; }
 .opcion-compacta { background: var(--nieve); border: 1px solid var(--borde); border-radius: 12px; padding: 8px 14px; }
 .opcion-linea { font-size: 16px; font-weight: 700; color: var(--tinta); line-height: 1.45; }
 .opcion-linea .opcion-meta { font-weight: 400; font-size: 14px; color: var(--secundario); }
-.precio-chico { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 16px; color: var(--tierra); }
+.precio-chico { font-family: Inter, sans-serif; font-weight: 700; font-size: 16px; color: var(--tierra); }
 .etiqueta-alternativa { color: var(--laguna); border-color: var(--laguna); background: var(--nieve); margin-left: 8px; }
 .resumen { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 40px; margin: 4px 0 12px; }
 .resumen div { display: flex; flex-direction: column; }
-.resumen-total { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 40px; line-height: 1.05; color: var(--tierra-barra); }
-.resumen-cifra { font-family: Montserrat, sans-serif; font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--tinta); }
+.resumen-total { font-family: Inter, sans-serif; font-weight: 700; font-size: 40px; line-height: 1.05; color: var(--tierra-barra); }
+.resumen-cifra { font-family: Inter, sans-serif; font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--tinta); }
 .resumen-dato { font-size: 14px; color: var(--secundario); }
 
 @media (max-width: 640px) {
@@ -332,7 +332,7 @@ label p, [data-testid="stWidgetLabel"] p { font-size: 14px; }
 /* ---------- Tablero ---------- */
 .banda { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 10px 16px; margin: 0 0 8px; border-left: 4px solid var(--amanecer);
   background: var(--cumbre); border-radius: 12px; }
-.banda-pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: var(--cumbre-texto); margin: 0; }
+.banda-pregunta { font-family: Inter, sans-serif; font-size: 18px; font-weight: 700; color: var(--cumbre-texto); margin: 0; }
 .banda-origen { font-size: 14px; font-weight: 600; color: #A9C3CA; margin: 0; }
 .pregunta { font-size: 18px; margin: 0; }
 .hallazgo { font-size: 14px; color: var(--secundario); margin: 2px 0 0; line-height: 1.4; }
@@ -340,7 +340,7 @@ label p, [data-testid="stWidgetLabel"] p { font-size: 14px; }
 .st-key-mi_semana { margin-bottom: 8px; }
 .st-key-mi_semana [data-testid="stMetricValue"] { font-size: 32px; }
 /* KPIs: número grande con ícono en la etiqueta */
-[class*="st-key-kpi_"] [data-testid="stMetricValue"] { font-size: 38px; line-height: 1.1; font-family: Montserrat, sans-serif; }
+[class*="st-key-kpi_"] [data-testid="stMetricValue"] { font-size: 38px; line-height: 1.1; font-family: Inter, sans-serif; }
 [class*="st-key-kpi_"] [data-testid="stMetricLabel"] p { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 [class*="st-key-kpi_"] [data-testid="stMetricLabel"] p::before { font-family: var(--icono); font-weight: 400; font-size: 20px; color: var(--laguna); font-feature-settings: "liga"; }
 .st-key-kpi_consultas [data-testid="stMetricLabel"] p::before { content: "forum"; }
@@ -367,3 +367,79 @@ h2 { font-size: 24px !important; padding-top: 0; }
 .revision { display: flex; align-items: center; gap: 8px; font-size: 18px; }
 .revision .ico { font-size: 26px; color: var(--laguna); margin: 0; }
 .st-key-tarjeta_revision { background: var(--nieve); border-left: 4px solid var(--laguna); }
+
+/* =====================================================================================================
+   Diseño 2026: claro, casi sin bordes, sombras suaves, un punto focal por pantalla.
+   Escala: 14 / 16 / 20 / 28 / 40. Estas reglas van al final y mandan sobre las anteriores.
+   ===================================================================================================== */
+html, body, [data-testid="stApp"] { font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+:root { --sombra: 0 1px 3px rgba(18, 48, 58, .06), 0 8px 24px rgba(18, 48, 58, .05); --radio: 20px; }
+
+/* Cabecera delgada y clara */
+.st-key-barra { background: transparent; color: var(--tinta); box-shadow: none; border-radius: 0; padding: 4px 0; min-height: 44px;
+  border-bottom: 1px solid var(--borde); }
+.barra-agencia { color: var(--tinta); font-size: 16px; font-weight: 600; }
+.insignia-estado { color: var(--secundario); border: 1px solid var(--borde); }
+.st-key-barra button { color: var(--laguna) !important; border: 1px solid var(--laguna); background: transparent; min-height: 36px; }
+.st-key-barra button:hover { background: color-mix(in srgb, var(--laguna) 10%, white); border-color: var(--laguna-hover); color: var(--laguna-hover) !important; }
+
+/* Barra lateral clara; el color de marca solo en el ítem activo */
+.st-key-pagina label p, .st-key-pagina label p::before { color: var(--tinta); }
+.st-key-pagina label:hover { background: var(--arena); }
+.st-key-pagina label:has(input:checked) { background: color-mix(in srgb, var(--laguna) 10%, white); box-shadow: none; }
+.st-key-pagina label:has(input:checked) p, .st-key-pagina label:has(input:checked) p::before { color: var(--laguna); }
+.pie-lateral, .pie-lateral span { color: var(--tenue); }
+
+/* Títulos de sección: más grandes, sin mayúsculas pequeñas */
+.rotulo { font-size: 20px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--tinta); margin: 0 0 8px; }
+h2 { font-size: 28px !important; font-weight: 600 !important; }
+.pregunta { font-size: 20px; font-weight: 600; }
+.pregunta-kpi { font-size: 20px; margin: 16px 0 4px; }
+.burbuja-meta .rotulo { margin: 0 auto 0 0; }
+
+/* Tarjetas: sin borde, con espacio y sombra suave */
+[data-testid="stVerticalBlockBorderWrapper"] { border: none !important; border-radius: var(--radio) !important; }
+[class*="st-key-tarjeta_"], [class*="st-key-grafico_"], .st-key-mi_semana { background: var(--nieve); border-radius: var(--radio) !important;
+  box-shadow: var(--sombra); padding: 12px 16px; }
+[data-testid="stMetric"] { border: none !important; box-shadow: var(--sombra); border-radius: var(--radio); padding: 16px 20px; }
+.st-key-mi_semana { border-left: none; }
+.st-key-tarjeta_nocturna { border-left: none; }
+/* Sin tarjeta dentro de tarjeta: los bloques interiores van planos */
+[data-testid="stExpander"] { border: none !important; background: var(--arena); border-radius: 14px; }
+.chip, .opcion-compacta, .etiqueta-idioma, .insignia-guardado { border: none; background: var(--arena); }
+.opcion-compacta { border-radius: 14px; }
+.insignia-guardado { background: var(--nieve); box-shadow: var(--sombra); }
+.vacio { display: flex; gap: 16px; align-items: center; border: none; border-radius: var(--radio); box-shadow: var(--sombra);
+  padding: 32px; font-size: 16px; color: var(--secundario); min-height: 200px; justify-content: center; text-align: left; }
+.vacio .ico { font-size: 40px; color: var(--laguna); margin: 0; }
+.vacio strong { color: var(--tinta); font-size: 20px; }
+
+/* Punto focal: cuadro de texto grande y un botón primario muy visible */
+.st-key-consulta textarea { font-size: 16px; line-height: 1.5; }
+button[kind="primary"], [data-testid="stBaseLinkButton-primary"] { min-height: 52px; font-size: 16px; padding: 0 24px; box-shadow: 0 4px 14px rgba(11, 110, 127, .28); }
+button[kind="primary"]:disabled { opacity: 1; background: var(--laguna) !important; filter: saturate(.6) brightness(1.15); }
+button[kind="secondary"] { min-height: 52px; font-size: 16px; border-color: var(--borde-campo); }
+
+/* La respuesta: burbuja grande de WhatsApp */
+.st-key-borrador textarea { font-size: 16px; line-height: 1.6; max-height: none; min-height: 300px;
+  border-radius: 20px 20px 6px 20px; padding: 18px 20px; }
+.st-key-borrador [data-baseweb="textarea"] { border-radius: 20px 20px 6px 20px !important; border: none !important; }
+
+/* Tablero tipo bento */
+.banda { background: var(--nieve); border: none; border-radius: var(--radio); box-shadow: var(--sombra); padding: 14px 20px; }
+.banda-pregunta { color: var(--tinta); font-size: 20px; font-weight: 600; }
+.banda-origen { color: var(--secundario); }
+[class*="st-key-kpi_"] [data-testid="stMetricValue"] { font-size: 40px; font-weight: 600; }
+[class*="st-key-kpi_"] [data-testid="stMetricLabel"] p { font-size: 14px; font-weight: 500; color: var(--secundario); }
+[data-baseweb="tab"] { font-size: 16px; font-weight: 500; }
+.resumen-total { font-size: 40px; font-weight: 600; }
+.resumen-cifra { font-size: 28px; font-weight: 600; }
+.chips { gap: 8px; }
+.chip { font-size: 14px; padding: 6px 14px 6px 10px; }
+@media (max-width: 640px) { .vacio { padding: 20px; min-height: 0; } .st-key-borrador textarea { min-height: 220px; } }
+[class*="st-key-kpi_"] [data-testid="stMetricValue"] { font-size: clamp(26px, 2.2vw, 40px); }
+[class*="st-key-kpi_"] [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] { overflow: visible !important; text-overflow: clip !important; white-space: nowrap; }
+[class*="st-key-kpi_"] [data-testid="stMetricLabel"] p, [data-testid="stMetricLabel"] { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+.st-key-mi_semana button { white-space: nowrap; }
+.revision { display: block; }
+.revision .ico { vertical-align: middle; margin-right: 8px; }

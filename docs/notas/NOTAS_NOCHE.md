@@ -333,3 +333,36 @@ Levanté la app en el puerto 8577 y la recorrí con Chrome headless (Playwright)
 - El servidor de `streamlit run` no recarga `presentacion.py` si cambia mientras corre: reiniciarlo tras cada despliegue (ya pasaba antes).
 - Cambié `app.py` y el CSS de forma amplia: conviene un recorrido manual completo del demo (ejemplo guardado → registrar → Tablero) antes de las 9:04 p. m.
 - El elemento "Copiar" es un iframe: en algunos navegadores el portapapeles puede pedir permiso.
+
+
+---
+
+# Informe: giro infinito y diseño claro (rama `mejoras-visual`, tarde del 11 de noviembre)
+
+## Tarea 0: giro infinito
+- **No logré reproducir un bucle de reruns.** Con AppTest, "Usar mensaje de ejemplo" carga en 0,5 s, no llama a la API (`crear_llm` y `responder_con_respaldo` simulados con error si se usan), y el borrador sigue ahí al ir a otra página y volver.
+- **Causa más probable (no confirmada en la copia desplegada):** la barra "Leyendo el mensaje → Buscando tu tarifa → Redactando" solo existe al pulsar "Preparar respuesta". Si la copia desplegada tenía una clave (o una que fallaba), `ai/llm.py` reintenta 429 con esperas de 10, 20 y 40 s por llamada y por modelo, con tope de 90 s por llamada: puede girar minutos, y el cuadro de texto queda vacío porque el script aún no llega a dibujarlo.
+- **Arreglo (`8f763c4`):** `responder_con_limite` en `app/app.py` corre la cadena en un hilo con tope de 45 s (variable `ABRA_LIMITE_RESPUESTA_S`). Pasado el tope muestra el ejemplo guardado con el aviso "El modelo tardó demasiado" y cierra la barra. Los errores también cierran la barra en estado de error.
+- **Pruebas nuevas:** modelo colgado → ejemplo guardado en menos de 4 s; sin claves → el ejemplo no llama a la API, "Preparar respuesta" queda desactivado y hay un aviso con la clave que falta.
+- **No hice:** no probé en Streamlit Cloud; si el giro persiste allí, el siguiente sospechoso es el log de la copia desplegada (pido que me lo pases).
+
+## Tarea 1: diseño claro
+Ver "Actualización de la tarde" en `docs/diseno.md`. Resumen: cabecera y barra lateral claras, tarjetas sin borde con sombra suave, Inter, Consulta en dos columnas (mensaje | respuesta), un solo botón primario, Tablero bento con pestañas.
+- **Capturas:** regeneradas `docs/captura_1_consulta.png`, `captura_2_perfil_y_opciones.png`, `captura_4_tablero.png` y `docs/capturas_diseno/consulta_vacia.png` (1528 px de ancho). `captura_3` (WhatsApp) no se tocó. La captura de 390 px no se guardó: medí que no hay desborde horizontal en Consulta, Tablero, Mi agencia y Piloto con un iframe de 390 px, y revisé una captura intermedia.
+- **Tarea 2 (PDF):** pendiente, a la espera de tu aviso.
+
+## Pytest
+273 pasan, 1 falla (la conocida de `anthropic`). Tests cambiados: ninguno de los existentes en esta tanda; se añadieron 2.
+
+## Lo que quedó sin hacer
+- Sin skeleton: uso `st.status` con los tres pasos.
+- Riel de solo íconos: usé barra lateral clara normal.
+- La captura a 1440 px exactos no se pudo (la ventana del navegador no se deja redimensionar); son 1528 px.
+- Contraste: el botón primario desactivado (sin clave) se ve atenuado a propósito para indicar que no se puede usar; es la única excepción visual. El resto de pares sigue la tabla de `docs/diseno.md`.
+
+## Riesgos al desplegar en Streamlit Cloud
+- **Google Fonts (Inter):** sin internet o con la fuente bloqueada se ve la fuente del sistema; los íconos Material vienen de Streamlit.
+- **`st.components.v1.html` ("Copiar"):** en 1.65 avisa de que será retirado; hay caída a `st.popover` + `st.code`.
+- **Hilo del tope de tiempo:** si el modelo se cuelga, el hilo sigue vivo en segundo plano hasta su propio límite (90 s por llamada); no bloquea la pantalla.
+- **Servidor sin reiniciar:** si Cloud no reinicia tras el despliegue, `presentacion.py` puede quedar viejo; reiniciar la app.
+- **Mucho CSS sobre selectores de Streamlit** (`data-testid`, `data-baseweb`): una versión nueva de Streamlit podría cambiarlos; la app seguiría funcionando pero con otro aspecto.

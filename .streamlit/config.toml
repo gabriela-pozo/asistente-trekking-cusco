@@ -14,16 +14,16 @@ borderColor = "#DDD6C8"
 linkColor = "#0B6E7F"
 showSidebarBorder = false
 
-font = "Nunito:https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap"
-headingFont = "Montserrat:https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap"
 baseFontSize = 16
-headingFontSizes = ["32px", "24px", "18px", "16px", "16px", "14px"]
-headingFontWeights = [700, 700, 600, 600, 600, 600]
-metricValueFontSize = "36px"
+headingFontSizes = ["40px", "28px", "20px", "16px", "16px", "14px"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "40px"
 metricValueFontWeight = 700
 paddingTop = "1rem"
-baseRadius = "12px"
-buttonRadius = "12px"
+baseRadius = "16px"
+buttonRadius = "14px"
 
 # Semánticos. El texto usa el tono oscuro para llegar a 4,5:1 sobre su fondo.
 redColor = "#B4471F"
@@ -51,9 +51,9 @@ chartCategoricalColors = ["#0B6E7F", "#0E7C58", "#3A78C2", "#C8660A", "#5B6F6A",
 chartSequentialColors = ["#E2F1F4", "#C5E2E8", "#A6D2DA", "#86C1CC", "#66AFBD", "#459CAD", "#2A8899", "#0B6E7F", "#095866", "#0B2E3A"]
 
 [theme.sidebar]
-# Cumbre: la barra lateral es el bloque oscuro; el ítem activo va en Amanecer.
-backgroundColor = "#0B2E3A"
-secondaryBackgroundColor = "#123F4E"
-textColor = "#E6F1F3"
-primaryColor = "#F59E2E"
-borderColor = "#1E5160"
+# Barra lateral clara: el color de marca solo en el ítem activo.
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F1E8"
+textColor = "#12303A"
+primaryColor = "#0B6E7F"
+borderColor = "#DDD6C8"

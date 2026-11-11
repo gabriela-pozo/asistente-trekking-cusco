@@ -287,7 +287,7 @@ def mostrar_paquete(resultado) -> None:
     p = resultado.paquete
 
     with st.container(border=True, key="tarjeta_paquete"):
-        rotulo("3 · Ajustar")
+        rotulo("Ajustar el paquete")
         st.html('<div class="resumen"><div><span class="resumen-total">' + usd(p.total_c / 100) + '</span>'
                 '<span class="resumen-dato">total del grupo</span></div>'
                 f'<div><span class="resumen-cifra">{usd(p.por_persona_c / 100)}</span>'
@@ -366,7 +366,7 @@ def boton_copiar(texto: str) -> None:
 def _copiar_con_componente(componentes, texto_json: str) -> None:
     componentes.html(
         """<button id="b" style="width:100%;height:44px;border:1px solid #0B6E7F;border-radius:12px;background:#fff;
-        color:#0B6E7F;font:700 16px Nunito,sans-serif;cursor:pointer">Copiar</button>
+        color:#0B6E7F;font:700 16px Inter,sans-serif;cursor:pointer">Copiar</button>
         <script>const t=__TEXTO__,b=document.getElementById('b');
         b.onclick=async()=>{try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');
         a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
@@ -383,7 +383,7 @@ def mostrar_borrador(resultado, telefono: str) -> None:
         if resultado.segundos is not None and st.session_state.get("origen") == "modelo":
             segundos = f"{resultado.segundos:.1f}".replace(".", ",")
             meta.append(f'<span class="cronometro">Respuesta lista en {segundos} s</span>')
-        st.html('<div class="burbuja-meta"><span class="rotulo">2 · Revisar la respuesta</span>' + "".join(meta) + "</div>")
+        st.html('<div class="burbuja-meta"><span class="rotulo">Respuesta lista para enviar</span>' + "".join(meta) + "</div>")
         if "borrador" not in st.session_state:  # Streamlit borra el widget al cambiar de página: se vuelve a sembrar
             st.session_state.borrador = resultado.borrador.mensaje_para_cliente
         texto = st.text_area("Respuesta para el viajero (puedes editarla)", key="borrador", height=220,
@@ -461,33 +461,29 @@ def mostrar_respuesta_nocturna(resultado) -> None:
                    f"de {st.session_state.apertura:%H:%M} a {st.session_state.cierre:%H:%M}. No se envió nada.")
 
 
-def pasos(actual: int) -> None:
-    nombres = ["Pegar", "Revisar", "Ajustar"]
-    st.html('<ol class="pasos">' + "".join(
-        f'<li class="{"activo" if i + 1 == actual else "hecho" if i + 1 < actual else ""}"><b>{i + 1}</b>{n}</li>'
-        for i, n in enumerate(nombres)) + "</ol>")
-
-
 def pagina_consulta() -> None:
     resultado = st.session_state.get("resultado")
     st.header("Nueva consulta")
-    pasos(2 if resultado else 1)
 
     variable = falta_clave()
     if variable:
         st.warning(f"Falta la clave **{variable}** ({proveedor()}). Ponla en `.env` (ver `.env.example`). "
                    "Mientras tanto usa **Usar mensaje de ejemplo**.", icon=":material/key_off:")
 
-    with st.container(border=True, key="tarjeta_entrada"):
-        rotulo("1 · Pegar el mensaje del viajero")
-        consulta = st.text_area("Mensaje del viajero", key="consulta", height=68 if resultado else 112, placeholder=EJEMPLO,
-                                label_visibility="collapsed")
+    # Fila principal: a la izquierda pegar el mensaje; a la derecha, la respuesta (burbuja de WhatsApp).
+    izquierda, derecha = st.columns([5, 7], gap="large")
+    with izquierda, st.container(border=True, key="tarjeta_entrada"):
+        rotulo("Pega el mensaje del viajero")
+        consulta = st.text_area("Mensaje del viajero", key="consulta", height=150 if not resultado else 110,
+                                placeholder=EJEMPLO, label_visibility="collapsed")
         with st.container(horizontal=True, vertical_alignment="center"):
-            preparar = st.button("Preparar respuesta", type="primary", icon=":material/edit_note:",
-                                 disabled=not consulta or bool(variable))
-            st.button("Usar mensaje de ejemplo", type="tertiary", on_click=usar_ejemplo,
+            # Un solo botón primario: con clave, preparar; sin clave, el ejemplo guardado.
+            preparar = st.button("Preparar respuesta", type="primary" if not (variable or resultado) else "secondary",
+                                 icon=":material/edit_note:", disabled=bool(variable))
+            st.button("Usar mensaje de ejemplo", type="primary" if variable else "tertiary", on_click=usar_ejemplo,
+                      icon=":material/bookmark:" if variable else None,
                       help="Muestra una consulta real ya resuelta. No gasta cuota del modelo.")
-        with st.expander("Opciones", icon=":material/settings:"):
+        with st.expander("Opciones", icon=":material/settings:", expanded=False):
             telefono = st.text_input("WhatsApp del viajero (opcional, con código de país)",
                                      placeholder="+1 555 123 4567")
             st.session_state.hora_llegada = st.time_input(
@@ -495,61 +491,66 @@ def pagina_consulta() -> None:
                 help="Hora de Lima. Fuera de tu horario de atención, con el modo nocturno activo, "
                      "se muestra la respuesta automática que se enviaría.")
 
-    if preparar:
-        try:
-            with st.status("Leyendo el mensaje → Buscando tu tarifa → Redactando", expanded=False) as avance:
-                # Cadena de respaldo: modelo principal -> modelo de respaldo -> ejemplo guardado.
-                resultado, es_ejemplo = responder_con_limite(
-                    consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
-                    st.session_state.extras, st.session_state.agencia)
-                avance.update(label="Respuesta lista", state="complete")
-        except ClaveInvalidaError as error:  # esperar no sirve: hay que cambiar la clave
-            avance.update(label="No se pudo preparar la respuesta", state="error")
-            st.error(str(error), icon=":material/key_off:")
-            return
-        except Exception as error:  # noqa: BLE001 - se muestra un mensaje claro en vez del error técnico
-            avance.update(label="No se pudo preparar la respuesta", state="error")
-            st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.", icon=":material/error:")
-            with st.expander("Detalle técnico"):
-                st.code(f"{type(error).__name__}: {error}")
-            return
-        st.session_state.resultado = resultado
-        st.session_state.borrador = resultado.borrador.mensaje_para_cliente
-        st.session_state.origen = "tardo" if es_ejemplo == "tardo" else "sin_cuota" if es_ejemplo else "modelo"
-        if not es_ejemplo:  # para "Estado del sistema": cuántas consultas al modelo en esta sesión
-            st.session_state.consultas_modelo = st.session_state.get("consultas_modelo", 0) + 1
-        st.session_state.registrada = None
-        iniciar_paquete()
-
-    if st.session_state.get("resultado") and st.session_state.pop("recomponer", False):
-        componer_paquete()  # cambiaron los extras o los recargos en "Mi agencia"
-    resultado = st.session_state.get("resultado")
-    if not resultado:
-        st.html('<div class="vacio"><strong>Aquí aparecerá la respuesta.</strong> Pega el mensaje y pulsa '
-                '«Preparar respuesta».</div>')
-        return
-
-    origen = st.session_state.get("origen", "modelo")
-    if origen == "sin_cuota":
-        st.warning(f"**{AVISO_SIN_CUOTA}.** Este resultado no corresponde al mensaje que pegaste; "
-                   "vuelve a intentarlo mañana.", icon=":material/hourglass_empty:")
-    elif origen == "tardo":
-        st.warning("**El modelo tardó demasiado en responder.** Se muestra el ejemplo guardado, que no corresponde "
-                   "al mensaje que pegaste. Vuelve a intentarlo en un minuto.", icon=":material/hourglass_empty:")
-    elif origen == "ejemplo":
-        fecha = html.escape(str(st.session_state.get("fecha_ejemplo", "")))
-        st.html(f'<span class="insignia insignia-guardado" title="No se llamó a la API, así que no gastó cuota.">'
-                f'{icono("bookmark")}Resultado guardado · {fecha} · No se llamó a la API</span>')
-
-    # Laptop: respuesta a la izquierda; lo entendido, advertencias y opciones a la derecha.
-    izquierda, derecha = st.columns([7, 5], gap="large")
-    with izquierda:
-        mostrar_borrador(resultado, telefono)
     with derecha:
+        if preparar and not consulta.strip():
+            st.warning("Pega primero el mensaje del viajero.", icon=":material/edit_note:")
+        elif preparar:
+            try:
+                with st.status("Leyendo el mensaje → Buscando tu tarifa → Redactando", expanded=False) as avance:
+                    # Cadena de respaldo: modelo principal -> modelo de respaldo -> ejemplo guardado (con tope de tiempo).
+                    resultado, es_ejemplo = responder_con_limite(
+                        consulta, modelo(proveedor()), base_conocimiento(), st.session_state.tarifario,
+                        st.session_state.extras, st.session_state.agencia)
+                    avance.update(label="Respuesta lista", state="complete")
+            except ClaveInvalidaError as error:  # esperar no sirve: hay que cambiar la clave
+                avance.update(label="No se pudo preparar la respuesta", state="error")
+                st.error(str(error), icon=":material/key_off:")
+                return
+            except Exception as error:  # noqa: BLE001 - se muestra un mensaje claro en vez del error técnico
+                avance.update(label="No se pudo preparar la respuesta", state="error")
+                st.error("No se pudo preparar la respuesta. Intenta de nuevo en un minuto.", icon=":material/error:")
+                with st.expander("Detalle técnico"):
+                    st.code(f"{type(error).__name__}: {error}")
+                return
+            st.session_state.resultado = resultado
+            st.session_state.borrador = resultado.borrador.mensaje_para_cliente
+            st.session_state.origen = "tardo" if es_ejemplo == "tardo" else "sin_cuota" if es_ejemplo else "modelo"
+            if not es_ejemplo:  # para "Estado del sistema": cuántas consultas al modelo en esta sesión
+                st.session_state.consultas_modelo = st.session_state.get("consultas_modelo", 0) + 1
+            st.session_state.registrada = None
+            iniciar_paquete()
+
+        if st.session_state.get("resultado") and st.session_state.pop("recomponer", False):
+            componer_paquete()  # cambiaron los extras o los recargos en "Mi agencia"
+        resultado = st.session_state.get("resultado")
+        if not resultado:
+            st.html('<div class="vacio">' + icono("chat") + '<div><strong>Aquí aparecerá la respuesta, lista para '
+                    'WhatsApp.</strong><br>Pega el mensaje de un viajero o prueba con el ejemplo guardado.</div></div>')
+            if not variable:
+                st.caption("Pulsa «Preparar respuesta» cuando hayas pegado el mensaje.")
+            return
+
+        origen = st.session_state.get("origen", "modelo")
+        if origen == "sin_cuota":
+            st.warning(f"**{AVISO_SIN_CUOTA}.** Este resultado no corresponde al mensaje que pegaste; "
+                       "vuelve a intentarlo mañana.", icon=":material/hourglass_empty:")
+        elif origen == "tardo":
+            st.warning("**El modelo tardó demasiado en responder.** Se muestra el ejemplo guardado, que no corresponde "
+                       "al mensaje que pegaste. Vuelve a intentarlo en un minuto.", icon=":material/hourglass_empty:")
+        elif origen == "ejemplo":
+            fecha = html.escape(str(st.session_state.get("fecha_ejemplo", "")))
+            st.html(f'<span class="insignia insignia-guardado" title="No se llamó a la API, así que no gastó cuota.">'
+                    f'{icono("bookmark")}Resultado guardado · {fecha} · No se llamó a la API</span>')
+        mostrar_borrador(resultado, telefono)
+
+    # Segunda fila (en el celular, después de la respuesta): lo entendido, advertencias y opciones | ajustar
+    opciones, ajuste = st.columns([5, 7], gap="large")
+    with opciones:
         mostrar_perfil(resultado.perfil)
         mostrar_avisos(resultado)
         mostrar_opciones(resultado)
-    mostrar_paquete(resultado)
+    with ajuste:
+        mostrar_paquete(resultado)
 
     llegada = datetime.combine(hoy_en_lima(), st.session_state.hora_llegada)  # sin zona = hora de Lima
     if st.session_state.modo_nocturno and fuera_de_horario(llegada, st.session_state.apertura, st.session_state.cierre):
@@ -915,10 +916,10 @@ def dibujar(grafico: alt.Chart, alto: int) -> None:
     """Estilo común: textos en tinta y gris verdoso, cuadrícula discreta, sin borde."""
     st.altair_chart(
         grafico.properties(height=alto, background="#FFFFFF")
-        .configure_axis(labelFont="Nunito", labelFontSize=TEXTO_GRAFICO, labelColor=SECUNDARIO, titleFont="Nunito",
+        .configure_axis(labelFont="Inter", labelFontSize=TEXTO_GRAFICO, labelColor=SECUNDARIO, titleFont="Inter",
                         titleFontSize=TEXTO_GRAFICO, titleColor=SECUNDARIO, titleFontWeight="normal",
                         gridColor=CUADRICULA, domainColor="#DDD6C8", tickColor="#DDD6C8")
-        .configure_legend(labelFont="Nunito", titleFont="Nunito", labelColor=TINTA, titleColor=SECUNDARIO,
+        .configure_legend(labelFont="Inter", titleFont="Inter", labelColor=TINTA, titleColor=SECUNDARIO,
                           labelFontSize=TEXTO_GRAFICO, titleFontSize=TEXTO_GRAFICO)
         .configure_view(stroke=None),
         theme=None, width="stretch")
@@ -930,7 +931,7 @@ def pregunta(titulo: str, hallazgo: str, corto: str = "") -> None:
     Si no hay conclusión (p. ej., sin datos para ese gráfico), el título es la pregunta.
     """
     if corto or hallazgo:
-        largo = f'<p class="hallazgo">{html.escape(hallazgo)}</p>' if hallazgo and hallazgo != corto else ""
+        largo = f'<p class="hallazgo">{html.escape(hallazgo)}</p>' if hallazgo and not (corto and hallazgo.startswith(corto[:18])) else ""
         st.html(f'<p class="rotulo">{html.escape(titulo)}</p><h3 class="pregunta">{html.escape(corto or hallazgo)}</h3>'
                 + largo)
     else:
@@ -1030,7 +1031,7 @@ def mostrar_mi_semana() -> None:
     with st.container(border=True, key="mi_semana"):
         rotulo("Tu semana")
         if registradas.empty:  # corto y con una meta chica: el primer paso es registrar
-            barra, texto, boton = st.columns([3, 5, 2], vertical_alignment="center")
+            barra, texto, boton = st.columns([3, 4, 3], vertical_alignment="center")
             barra.progress(0, text=f"**0 de {META_INICIAL}** consultas registradas esta semana")
             texto.markdown("Registra tus consultas y aquí verás tu avance y lo que espera seguimiento.")
             boton.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a_consulta)
@@ -1097,7 +1098,7 @@ def mapa_por_franjas(datos: pd.DataFrame) -> None:
                                           format="d")),
         tooltip=[alt.Tooltip("dia:N", title="Día"), alt.Tooltip("franja:N", title="Franja"),
                  alt.Tooltip("horario:N", title="Horario"), alt.Tooltip("consultas:Q", title="Consultas")])
-    numeros = base.mark_text(font="Nunito", fontSize=TEXTO_GRAFICO + 2, fontWeight="bold").encode(
+    numeros = base.mark_text(font="Inter", fontSize=TEXTO_GRAFICO + 2, fontWeight="bold").encode(
         text="consultas:Q",
         color=alt.condition(alt.datum.consultas > tope * 0.55, alt.value("#FFFFFF"), alt.value(TINTA)))
     dibujar(celdas + numeros, alto=230)
@@ -1125,7 +1126,7 @@ def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
         fillOpacity=0, stroke=TINTA, strokeWidth=1.5, strokeDash=[5, 3]).encode(x="x:Q", x2="x2:Q")
     rotulo_horario = alt.Chart(pd.DataFrame({"x": [(APERTURA_H + CIERRE_H) / 2],
                                              "t": [f"Horario {APERTURA_H}:00–{CIERRE_H}:00"]})).mark_text(
-        baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito", fontWeight="bold").encode(
+        baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Inter", fontWeight="bold").encode(
         x="x:Q", y=alt.value(0), text="t:N")
     dibujar(alt.layer(mapa, horario, rotulo_horario), alto=230)
     ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
@@ -1215,7 +1216,7 @@ def pagina_tablero() -> None:
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             tooltip=[alt.Tooltip("etapa:N", title="Etapa"), alt.Tooltip("numero:Q", title="Consultas"),
                      alt.Tooltip("porcentaje:N", title="% de la etapa anterior")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Inter").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=260)
         st.caption("Cada % compara la etapa con la anterior. Cotizadas: respondidas con un precio.")
@@ -1249,7 +1250,7 @@ def pagina_tablero() -> None:
             opacity=alt.condition(alt.datum.poca_base, alt.value(.35), alt.value(1)),
             tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("estado:N", title="Estado"),
                      alt.Tooltip("n:Q", title="Consultas")])
-        etiquetas = alt.Chart(t).mark_text(align="left", dx=6, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
+        etiquetas = alt.Chart(t).mark_text(align="left", dx=6, fontSize=TEXTO_GRAFICO, font="Inter").encode(
             y=eje_y, x="consultas:Q", text="etiqueta:N",
             color=alt.condition(alt.datum.poca_base, alt.value(SECUNDARIO), alt.value(TINTA)),
             tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
@@ -1262,22 +1263,23 @@ def pagina_tablero() -> None:
             "nombre": "Trek", "consultas": "Consultas", "respondidas": "Respondidas (n)", "reservadas": "Reservadas",
             "tasa": "Tasa de cierre"}), "treks")
 
-    # 4. Cuándo llega: por franjas (más legible) o hora por hora
-    with tarjeta("cuando"):
-        pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos), titulo_horario(datos))
-        vista = st.radio("Vista", ["Por franjas", "Hora por hora"], horizontal=True, key="vista_horario",
-                         label_visibility="collapsed")
-        celdas = por_dia_y_hora(datos)
-        if vista == "Por franjas":
-            mapa_por_franjas(datos)
-        else:
-            mapa_hora_por_hora(celdas)
-        sin_hora = len(datos) - int(celdas["consultas"].sum())
-        if sin_hora:
-            st.caption(f"{sin_hora} consultas registradas desde la app no tienen hora de llegada: "
-                       "no están en este gráfico.")
+    pestana_cuando, pestana_mas, pestana_tablas = st.tabs(["Cuándo llegan", "Mes y países", "Tablas"])
+    with pestana_cuando:
+        # 4. Cuándo llega: por franjas (más legible) o hora por hora
+        with tarjeta("cuando"):
+            pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos), titulo_horario(datos))
+            vista = st.radio("Vista", ["Por franjas", "Hora por hora"], horizontal=True, key="vista_horario",
+                             label_visibility="collapsed")
+            celdas = por_dia_y_hora(datos)
+            if vista == "Por franjas":
+                mapa_por_franjas(datos)
+            else:
+                mapa_hora_por_hora(celdas)
+            sin_hora = len(datos) - int(celdas["consultas"].sum())
+            if sin_hora:
+                st.caption(f"{sin_hora} consultas registradas desde la app no tienen hora de llegada: "
+                           "no están en este gráfico.")
 
-    pestana_mas, pestana_tablas = st.tabs(["Más análisis", "Tablas"])
     with pestana_mas:
         izq_mas, der_mas = st.columns(2, gap="medium")
         # 5. ¿Para qué meses?
@@ -1317,7 +1319,7 @@ def pagina_tablero() -> None:
                         axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
                 tooltip=[alt.Tooltip("pais:N", title="País"), alt.Tooltip("consultas:Q", title="Consultas"),
                          alt.Tooltip("pct:N", title="Del total")])
-            etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
+            etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Inter").encode(
                 text="etiqueta:N")
             dibujar(barras + etiquetas, alto=max(260, 30 * len(p) + 50))
             st.caption("Los 7 países con más consultas, de mayor a menor; el resto, sumado en «Otros» (en gris)."

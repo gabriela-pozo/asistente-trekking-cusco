@@ -119,3 +119,11 @@ Verbos y español claro: "Preparar respuesta", "Abrir en WhatsApp", "Descargar t
 
 - **Compatibilidad:** la app declara `streamlit>=1.40`. Solo usa funciones que existen en esa versión (`st.dialog`, `st.status`, `st.segmented_control`, `st.tabs`, íconos `:material/…:`). Los íconos del menú y de los KPI salen de CSS sobre la fuente Material de Streamlit.
 - **Portapapeles:** "Copiar" usa un componente mínimo (`st.components.v1.html`, sin red); si Streamlit lo quita, cae a un botón que abre el texto con el ícono de copiar de `st.code`.
+
+## Actualización de la tarde del 11 de noviembre: diseño claro
+
+- **Fondo claro en todo:** cabecera delgada (agencia, insignia "Datos de demostración", estado y "¿Cómo se usa?") y barra lateral blanca. El color de marca (Laguna) solo marca el ítem activo y el botón principal. Amanecer ya no se usa en la interfaz (la paleta lo reserva para fondos oscuros).
+- **Casi sin bordes:** las tarjetas se separan con espacio y sombra suave (`0 1px 3px` y `0 8px 24px`, muy tenues), esquinas de 20 px, sin tarjeta dentro de tarjeta. Los campos conservan su borde (contraste de componente).
+- **Tipografía:** Inter (Google Fonts, con respaldo del sistema), cifras tabulares, escala 14 / 16 / 20 / 28 / 40. Sin rótulos en mayúsculas pequeñas ni círculos de pasos.
+- **Consulta:** mensaje a la izquierda y respuesta (burbuja de WhatsApp) a la derecha, visible sin scroll a 1080 px; debajo, lo entendido (chips), advertencias, opciones y el ajuste del paquete. En el celular, la respuesta queda justo después del mensaje. Un solo botón primario: "Preparar respuesta" (o "Usar mensaje de ejemplo" si no hay clave); con resultado, el primario es "Abrir en WhatsApp".
+- **Tablero tipo bento:** 4 KPIs, 2 gráficos amplios (embudo y por trek) y el resto en pestañas: Cuándo llegan, Mes y países, Tablas.
