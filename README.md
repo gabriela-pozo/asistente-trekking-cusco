@@ -67,6 +67,10 @@ streamlit run app/app.py  # y abre http://localhost:8501
 
 Un destino nuevo es solo una carpeta nueva de conocimiento más el tarifario de la agencia: `data/knowledge_huaraz/` (Santa Cruz y Laguna 69) ya tiene el mismo formato que la de Cusco, sin cambiar el código.
 
+En el producto:
+
+- **Mapa de la ruta en la respuesta al viajero**: lo pidió la [conversación 2](docs/research/conversacion_2.md); los trazados de 3 rutas ya están en `data/rutas/`.
+
 ## Riesgos
 
 - **El modelo puede equivocarse.** Por eso los precios los calcula el código, un control revisa el borrador y el vendedor siempre lo revisa antes de enviarlo.
