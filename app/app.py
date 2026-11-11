@@ -1153,7 +1153,8 @@ def pagina_tablero() -> None:
         pregunta("¿De dónde escriben?", hallazgo_paises(p))
         p["etiqueta"] = [f"{miles(n)} · {pct(x)}" for n, x in zip(p["consultas"], p["porcentaje"])]
         p["pct"] = p["porcentaje"].map(pct)
-        barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4, color=PRIMARIO).encode(
+        barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4).encode(
+            color=alt.condition(alt.datum.pais == "Otros", alt.value("#A3ADA9"), alt.value(PRIMARIO)),
             y=alt.Y("pais:N", sort=list(p["pais"]), title=None, scale=alt.Scale(paddingInner=.45),
                     axis=alt.Axis(ticks=False, domain=False)),
             x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(p["consultas"]) * 1.35]),
@@ -1163,8 +1164,9 @@ def pagina_tablero() -> None:
         etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=34 * len(p) + 40)
-        if registradas:
-            st.caption("Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\".")
+        st.caption("Los 7 países con más consultas, de mayor a menor; el resto, sumado en «Otros» (en gris)."
+                   + (" Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\"."
+                      if registradas else ""))
         ver_tabla(p[["pais", "consultas", "pct"]].rename(columns={"pais": "País", "consultas": "Consultas",
                                                                    "pct": "Del total"}), "paises")
 
