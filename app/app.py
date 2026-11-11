@@ -787,7 +787,10 @@ def pagina_agencia() -> None:
 PRIMARIO, TONO_VERDE, OCRE, TINTA, SECUNDARIO, SUAVE = "#1E6B52", "#5E9C84", "#C9741D", "#15302B", "#5B6F6A", "#E8F0EC"
 
 
-COLOR_ESTADO = {"reservada": "#0E7C58", "cotizada": "#3A78C2", "sin respuesta": "#A3ADA9", "perdida": "#B5654A"}
+# Paleta validada (#0E7C58, #3A78C2, #C8660A) + el gris secundario del sistema. Un color fijo por estado en
+# todos los gráficos: "sin respuesta" va en ocre porque es la pérdida que el Tablero quiere mostrar.
+COLOR_ESTADO = {"reservada": "#0E7C58", "cotizada": "#3A78C2", "sin respuesta": "#C8660A", "perdida": "#5B6F6A"}
+TEXTO_GRAFICO = 14  # px: legible en un proyector
 CUADRICULA = "#EDF2EF"
 
 
@@ -795,10 +798,11 @@ def dibujar(grafico: alt.Chart, alto: int) -> None:
     """Estilo común: textos en tinta y gris verdoso, cuadrícula discreta, sin borde."""
     st.altair_chart(
         grafico.properties(height=alto, background="#FFFFFF")
-        .configure_axis(labelFont="Nunito", labelFontSize=12, labelColor=SECUNDARIO, titleFont="Nunito",
-                        titleFontSize=12, titleColor=SECUNDARIO, titleFontWeight="normal", gridColor=CUADRICULA,
-                        domainColor="#D6E0DD", tickColor="#D6E0DD")
-        .configure_legend(labelFont="Nunito", titleFont="Nunito", labelColor=TINTA, titleColor=SECUNDARIO)
+        .configure_axis(labelFont="Nunito", labelFontSize=TEXTO_GRAFICO, labelColor=SECUNDARIO, titleFont="Nunito",
+                        titleFontSize=TEXTO_GRAFICO, titleColor=SECUNDARIO, titleFontWeight="normal",
+                        gridColor=CUADRICULA, domainColor="#D6E0DD", tickColor="#D6E0DD")
+        .configure_legend(labelFont="Nunito", titleFont="Nunito", labelColor=TINTA, titleColor=SECUNDARIO,
+                          labelFontSize=TEXTO_GRAFICO, titleFontSize=TEXTO_GRAFICO)
         .configure_view(stroke=None),
         theme=None, width="stretch")
 
@@ -1007,7 +1011,7 @@ def pagina_tablero() -> None:
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             tooltip=[alt.Tooltip("etapa:N", title="Etapa"), alt.Tooltip("numero:Q", title="Consultas"),
                      alt.Tooltip("porcentaje:N", title="% de la etapa anterior")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=200)
         st.caption("Cada % compara la etapa con la anterior. Cotizadas: respondidas con un precio.")
@@ -1028,7 +1032,7 @@ def pagina_tablero() -> None:
             tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
                      alt.Tooltip("respondidas:Q", title="Respondidas"),
                      alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=40 * len(t) + 40)
         ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
@@ -1054,7 +1058,7 @@ def pagina_tablero() -> None:
         horario = alt.Chart(pd.DataFrame({"x": [8], "x2": [20]})).mark_rect(
             fillOpacity=0, stroke=TINTA, strokeWidth=1.5, strokeDash=[5, 3]).encode(x="x:Q", x2="x2:Q")
         rotulo_horario = alt.Chart(pd.DataFrame({"x": [14], "t": ["Horario 8:00–20:00"]})).mark_text(
-            baseline="bottom", dy=-4, color=TINTA, fontSize=12, font="Nunito", fontWeight="bold").encode(
+            baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito", fontWeight="bold").encode(
             x="x:Q", y=alt.value(0), text="t:N")
         dibujar(alt.layer(mapa, horario, rotulo_horario), alto=300)
         sin_hora = len(datos) - int(celdas["consultas"].sum())
@@ -1074,7 +1078,7 @@ def pagina_tablero() -> None:
                     scale=alt.Scale(paddingInner=.35), axis=alt.Axis(labelAngle=0, ticks=False)),
             y=alt.Y("consultas:Q", title="Consultas", axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
-                            legend=alt.Legend(title=None, orient="top", direction="horizontal", labelFontSize=13,
+                            legend=alt.Legend(title=None, orient="top", direction="horizontal", labelFontSize=TEXTO_GRAFICO,
                                               labelColor=TINTA, symbolType="square")),
             order=alt.Order("orden:Q", sort="ascending"),
             tooltip=[alt.Tooltip("mes_nombre:N", title="Mes"), alt.Tooltip("estado:N", title="Estado"),
@@ -1096,7 +1100,7 @@ def pagina_tablero() -> None:
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             tooltip=[alt.Tooltip("pais:N", title="País"), alt.Tooltip("consultas:Q", title="Consultas"),
                      alt.Tooltip("pct:N", title="Del total")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=12, font="Nunito").encode(
+        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
         dibujar(barras + etiquetas, alto=34 * len(p) + 40)
         if registradas:
