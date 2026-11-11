@@ -960,7 +960,8 @@ def mapa_por_franjas(datos: pd.DataFrame) -> None:
     tope = max(int(f["consultas"].max()), 1)
     base = alt.Chart(f).encode(
         x=alt.X("franja:N", sort=orden_franjas, title=None,
-                axis=alt.Axis(orient="top", labelAngle=0, ticks=False, domain=False, labelLimit=200)),
+                axis=alt.Axis(orient="bottom", labelAngle=0, ticks=False, domain=False, labelLimit=200,
+                              labelExpr="split(datum.label, ' · ')")),  # dos líneas hacia abajo: entra a 390 px
         y=alt.Y("dia_corto:N", sort=orden_dias, title=None, axis=alt.Axis(ticks=False, domain=False)))
     celdas = base.mark_rect(cornerRadius=4, stroke="#FFFFFF", strokeWidth=2).encode(
         color=alt.Color("consultas:Q", scale=alt.Scale(range=["#EEF6F1", "#0E5C42"], domain=[0, tope]),
@@ -1105,10 +1106,12 @@ def pagina_tablero() -> None:
                       axis=alt.Axis(ticks=False, domain=False, labelLimit=170))
         barras = alt.Chart(apilado).mark_bar(cornerRadius=3, stroke="#FFFFFF", strokeWidth=1).encode(
             y=eje_y,
-            x=alt.X("sum(n):Q", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 1.8]),
+            # Sin agregar (una fila por trek y estado ya viene contada): así la opacidad ve el campo poca_base.
+            x=alt.X("n:Q", stack="zero", title="Consultas", scale=alt.Scale(domain=[0, max(t["consultas"]) * 2.1]),
                     axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
             color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
-                            legend=alt.Legend(title=None, orient="top", direction="horizontal", symbolType="square")),
+                            legend=alt.Legend(title=None, orient="top", direction="horizontal", symbolType="square",
+                                              columns=2)),  # en 2 columnas no se corta en el celular
             order=alt.Order("orden:Q", sort="ascending"),
             opacity=alt.condition(alt.datum.poca_base, alt.value(.35), alt.value(1)),
             tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("estado:N", title="Estado"),

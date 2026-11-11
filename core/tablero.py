@@ -325,7 +325,7 @@ FRANJAS = [("Madrugada", 0, APERTURA_H), ("Mañana", APERTURA_H, 14), ("Tarde", 
 
 
 def nombre_franja(nombre: str, desde: int, hasta: int) -> str:
-    return f"{nombre} ({desde}–{hasta} h)"
+    return f"{nombre} · {desde}–{hasta} h"  # el gráfico parte el rótulo en dos líneas en el " · "
 
 
 def por_dia_y_franja(df: pd.DataFrame) -> pd.DataFrame:
