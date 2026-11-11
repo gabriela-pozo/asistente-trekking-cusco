@@ -21,6 +21,12 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 sys.path.insert(0, str(RAIZ / "app"))
 
+from recarga import marcar_cargados, recargar_si_cambiaron  # noqa: E402
+
+# Streamlit solo recarga los módulos de app/: si ai/ o core/ cambiaron (un commit nuevo en Streamlit Cloud),
+# se vuelven a leer del disco. Sin esto, el demo se cayó con un ImportError de ai.pipeline (ver app/recarga.py).
+recargar_si_cambiaron(RAIZ)
+
 from ai.ejemplo import AVISO_SIN_CUOTA, cargar_ejemplo, responder_con_respaldo  # noqa: E402
 from ai.fecha import ZONA, hoy_en_lima  # noqa: E402
 from ai.knowledge import BaseConocimiento  # noqa: E402
@@ -42,6 +48,8 @@ from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
     html_desglose, html_opciones, html_perfil, idioma, lista_markdown, separar_advertencias, usd,
 )
+
+marcar_cargados(RAIZ)
 
 try:  # .env en local (con la clave). En Streamlit Cloud se usan los secretos.
     from dotenv import load_dotenv

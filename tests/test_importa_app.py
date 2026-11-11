@@ -1,0 +1,86 @@
+"""Un import roto en app/app.py debe fallar aquí, no en el demo publicado. Sin llamadas a la API.
+
+Correr:  python -m unittest discover tests -v
+"""
+import ast
+import importlib
+import os
+import sys
+import tempfile
+import types
+import unittest
+from pathlib import Path
+from unittest import mock
+
+RAIZ = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RAIZ))
+sys.path.insert(0, str(RAIZ / "app"))
+
+from recarga import marcar_cargados, recargar_si_cambiaron  # noqa: E402
+
+APP = RAIZ / "app" / "app.py"
+DEL_PROYECTO = ("ai", "core", "presentacion", "recarga")
+
+
+class PruebasImports(unittest.TestCase):
+    def test_cada_nombre_importado_en_app_existe(self):
+        arbol = ast.parse(APP.read_text(encoding="utf-8"))
+        revisados = 0
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, ast.ImportFrom) and nodo.module and nodo.module.split(".")[0] in DEL_PROYECTO:
+                modulo = importlib.import_module(nodo.module)
+                for alias in nodo.names:
+                    with self.subTest(modulo=nodo.module, nombre=alias.name):
+                        self.assertTrue(hasattr(modulo, alias.name), f"{nodo.module} no tiene {alias.name}")
+                        revisados += 1
+        self.assertGreater(revisados, 30)
+
+    def test_la_app_carga_sin_errores_en_las_tres_paginas(self):
+        from streamlit.testing.v1 import AppTest
+
+        with tempfile.TemporaryDirectory() as carpeta, \
+                mock.patch.dict(os.environ, {"GEMINI_API_KEY": "", "ABRA_REGISTRO": str(Path(carpeta) / "r.csv")}):
+            app = AppTest.from_file(str(APP), default_timeout=60)
+            app.run()
+            self.assertFalse(app.exception)
+            next(b for b in app.button if b.label == "Usar mensaje de ejemplo").click().run()
+            self.assertFalse(app.exception)
+            for pagina in ("Mi agencia", "Tablero", "Nueva consulta"):
+                app.sidebar.radio[0].set_value(pagina).run()
+                self.assertFalse(app.exception, pagina)
+
+
+class PruebasRecarga(unittest.TestCase):
+    """La caída del demo: app.py nuevo con un ai.pipeline viejo en memoria."""
+
+    def test_un_modulo_viejo_en_memoria_se_vuelve_a_leer(self):
+        import ai.pipeline
+
+        real = sys.modules["ai.pipeline"]
+        viejo = types.ModuleType("ai.pipeline")  # como el ai.pipeline anterior al paquete
+        viejo.__file__ = real.__file__
+        viejo.AGENCIA = real.AGENCIA
+        try:
+            sys.modules["ai.pipeline"] = viejo
+            marcar_cargados(RAIZ)
+            viejo.__abra_mtime__ = os.path.getmtime(real.__file__) - 60  # se cargó antes del último cambio
+            with self.assertRaises(ImportError):  # lo que pasó en Streamlit Cloud
+                exec("from ai.pipeline import AGENCIA, aplicar_paquete", {})
+            sacados = recargar_si_cambiaron(RAIZ)
+            self.assertIn("ai.pipeline", sacados)
+            self.assertIn("core.cotizacion", sacados)  # todos juntos, para no mezclar versiones
+            exec("from ai.pipeline import AGENCIA, aplicar_paquete", {})  # ahora sí
+        finally:
+            for nombre in [n for n in sys.modules if n.split(".")[0] in ("ai", "core")]:
+                sys.modules.pop(nombre, None)
+            importlib.import_module("ai.pipeline")
+
+    def test_sin_cambios_no_saca_nada(self):
+        import ai.pipeline  # noqa: F401
+
+        marcar_cargados(RAIZ)
+        self.assertEqual(recargar_si_cambiaron(RAIZ), [])
+
+
+if __name__ == "__main__":
+    unittest.main()
