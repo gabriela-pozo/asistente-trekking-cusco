@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 import altair as alt
+import pandas as pd
 import streamlit as st
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -33,6 +34,9 @@ from ai.knowledge import BaseConocimiento  # noqa: E402
 from ai.llm import ClaveInvalidaError, crear_llm  # noqa: E402
 from ai.pipeline import AGENCIA, aplicar_paquete  # noqa: E402
 from core.cotizacion import NOMBRE_NIVEL, NOMBRE_RUTA, cargar_extras, cargar_tarifario  # noqa: E402
+from core.mi_semana import (  # noqa: E402
+    META_POR_DEFECTO, cambiar_estado, inicio_semana, leer_registradas, pendientes, progreso_meta, racha, semana,
+)
 from core.paquete import (  # noqa: E402
     METODOS, RECARGOS, UNIDADES, Seleccion, armar_paquete, extras_aplicables, fila_del_trek, noches_sugeridas,
     sugeridos_validos,
@@ -133,12 +137,13 @@ if "agencia" not in st.session_state:
 st.session_state.setdefault("apertura", APERTURA)  # horario de atención, en hora de Lima
 st.session_state.setdefault("cierre", CIERRE)
 st.session_state.setdefault("modo_nocturno", True)
+st.session_state.setdefault("meta_semanal", META_POR_DEFECTO)  # consultas respondidas por semana ("Mi semana")
 if "hora_llegada" not in st.session_state:  # por defecto, la hora actual en Lima
     st.session_state.hora_llegada = datetime.now(ZONA).time().replace(second=0, microsecond=0)
 
 st.logo(LOGO, icon_image=ICONO, size="large")
 st.sidebar.caption(f"Agencia: **{st.session_state.agencia}**")
-pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia", "Tablero"])
+pagina = st.sidebar.radio("Ir a", ["Nueva consulta", "Mi agencia", "Tablero"], key="pagina")
 st.sidebar.divider()
 st.sidebar.caption("Revisas cada respuesta antes de enviarla. Ningún mensaje se envía solo.")
 
@@ -271,6 +276,7 @@ def registrar_consulta(estado: str) -> None:
     registrar(fila, RUTA_REGISTRO)
     st.session_state.registrada = estado
     st.toast(f"Consulta registrada como {estado}. Ya cuenta en el Tablero.", icon=":material/check_circle:")
+    celebrar(leer_registradas(RUTA_REGISTRO), hoy_en_lima())
 
 
 def mostrar_borrador(resultado, telefono: str) -> None:
@@ -470,6 +476,13 @@ def pagina_agencia() -> None:
                    "código (precio desde tu tarifario, qué incluye y lo que falta preguntar) solo si el control "
                    "no encontró problemas. Si no, queda en espera del vendedor.")
 
+    with st.container(border=True, key="tarjeta_meta"):
+        rotulo("Meta semanal")
+        st.session_state.meta_semanal = st.number_input(
+            "Consultas respondidas por semana", 1, 500, int(st.session_state.meta_semanal), step=1,
+            help="Cuentan las consultas que registras como cotizadas o reservadas, de lunes a domingo.")
+        st.caption('Tu avance aparece arriba del Tablero, en "Mi semana".')
+
     with st.container(border=True, key="tarjeta_tarifario"):
         rotulo("Tarifario")
         st.caption("Edita una celda para cambiar un precio, o sube tu tarifario en CSV con las mismas columnas.")
@@ -546,8 +559,108 @@ def porcentaje(valor: float) -> str:
     return f"{valor * 100:.1f} %".replace(".", ",")
 
 
+# ---------------------------------------------------------------- Mi semana
+def ir_a_consulta() -> None:
+    st.session_state.pagina = "Nueva consulta"
+
+
+def celebrar(registradas, hoy) -> None:
+    """Logros reales, una vez por semana: meta cumplida y nueva mejor semana. Toast breve, sin globos."""
+    if registradas.empty:
+        return
+    lunes = inicio_semana(hoy).isoformat()
+    meta = progreso_meta(registradas, hoy, st.session_state.meta_semanal)
+    if meta.cumplida and not st.session_state.get(f"celebrada_meta_{lunes}"):
+        st.session_state[f"celebrada_meta_{lunes}"] = True
+        st.toast(f"Cumpliste tu meta: {meta.respondidas} consultas respondidas esta semana. ¡Bien hecho!",
+                 icon=":material/flag:")
+    s = semana(registradas, hoy)
+    if s.supera_mejor and not st.session_state.get(f"celebrada_mejor_{lunes}"):
+        st.session_state[f"celebrada_mejor_{lunes}"] = True
+        st.toast(f"Tu mejor semana: {usd(s.esta)} reservados, más que tus {usd(s.mejor_anterior)} anteriores.",
+                 icon=":material/trending_up:")
+
+
+def cerrar_cotizacion(id_consulta: str, estado: str) -> None:
+    hoy = hoy_en_lima()
+    cambiar_estado(RUTA_REGISTRO, id_consulta, estado, hoy)
+    st.toast(f"Cotización marcada como {estado}.", icon=":material/check_circle:")
+    celebrar(leer_registradas(RUTA_REGISTRO), hoy)
+
+
+def plural(n: int, singular: str, plural_: str) -> str:
+    return f"{n} {singular if n == 1 else plural_}"
+
+
+def texto_racha(r) -> str:
+    if r.registro_hoy:
+        if r.dias == 1:
+            return "Hoy registraste consultas: es el primer día de tu racha."
+        return f"Llevas {r.dias} días seguidos registrando consultas."
+    if r.dias:
+        return (f"Llevas {plural(r.dias, 'día seguido', 'días seguidos')} registrando consultas. Hoy todavía no "
+                "registraste ninguna: cuando respondas la próxima, regístrala y la racha sigue.")
+    return "Hoy todavía no registraste consultas. Cuando respondas una, regístrala y empiezas una racha."
+
+
+def mostrar_mi_semana() -> None:
+    """Solo las consultas registradas en la app (nunca las sintéticas). El vendedor contra sí mismo."""
+    hoy = hoy_en_lima()
+    registradas = leer_registradas(RUTA_REGISTRO)
+    with st.container(border=True, key="mi_semana"):
+        rotulo("Mi semana")
+        if registradas.empty:
+            st.markdown("Registra tus consultas y aquí verás cuánto vendes, qué treks te piden y qué cotizaciones "
+                        "esperan seguimiento.")
+            st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a_consulta)
+            return
+
+        meta = progreso_meta(registradas, hoy, st.session_state.meta_semanal)
+        s = semana(registradas, hoy)
+        izquierda, derecha = st.columns([2, 3], gap="large")
+        with izquierda:
+            if s.variacion > 0:
+                delta, color = f"+{usd(s.variacion)} frente a la semana anterior", "normal"
+            elif s.variacion < 0:
+                delta, color = f"-{usd(-s.variacion)} frente a la semana anterior", "normal"
+            else:
+                delta, color = "Igual que la semana anterior", "off"
+            st.metric("Reservados esta semana", usd(s.esta), delta, delta_color=color)
+            if s.supera_mejor:
+                st.caption(f":material/trending_up: Tu mejor semana hasta ahora (antes: {usd(s.mejor_anterior)}).")
+        with derecha:
+            st.progress(meta.fraccion, text=f"**{meta.respondidas} de {meta.meta}** respondidas esta semana")
+            if meta.cumplida:
+                st.caption(":material/flag: Meta cumplida esta semana.")
+            else:
+                st.caption(f"Te {'falta' if meta.faltan == 1 else 'faltan'} {meta.faltan} para tu meta "
+                           "(la cambias en Mi agencia).")
+            st.caption(f":material/local_fire_department: {texto_racha(racha(registradas, hoy))}")
+
+        esperan = pendientes(registradas, hoy)
+        if not esperan.empty:
+            with st.container(border=True, key="seguimiento"):
+                st.markdown(f"**{plural(len(esperan), 'cotización espera', 'cotizaciones esperan')} seguimiento**")
+                for fila in esperan.itertuples():
+                    personas = pd.to_numeric(fila.personas, errors="coerce")
+                    detalle = [NOMBRE_RUTA.get(fila.trek, fila.trek)]
+                    if pd.notna(personas):
+                        detalle.append(plural(int(personas), "persona", "personas"))
+                    dias = (hoy - fila.fecha_estado).days
+                    detalle.append(f"cotizada el {fila.fecha_estado:%d/%m} (hace {dias} días)")
+                    with st.container(horizontal=True, vertical_alignment="center"):
+                        st.markdown(" · ".join(detalle))
+                        st.button("Reservada", key=f"reservar_{fila.id}", icon=":material/check:",
+                                  on_click=cerrar_cotizacion, args=(fila.id, "reservada"))
+                        st.button("Perdida", key=f"perder_{fila.id}", type="tertiary",
+                                  on_click=cerrar_cotizacion, args=(fila.id, "perdida"))
+        st.caption("Solo tus consultas registradas en esta app. Te comparas contigo: semana contra semana.")
+    celebrar(registradas, hoy)
+
+
 def pagina_tablero() -> None:
     st.header("Tablero")
+    mostrar_mi_semana()
     st.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
     st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')  # visible mientras se baja
 

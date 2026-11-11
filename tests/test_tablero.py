@@ -20,7 +20,7 @@ import generar_consultas_sinteticas as gen  # noqa: E402
 from ai.ejemplo import cargar_ejemplo  # noqa: E402
 from core.cotizacion import cargar_tarifario  # noqa: E402
 from core.tablero import (  # noqa: E402
-    COLUMNAS, cargar_consultas, filtrar, metricas, por_mes_viaje, por_pais, por_trek, registrar,
+    COLUMNAS, COLUMNAS_REGISTRO, cargar_consultas, filtrar, metricas, por_mes_viaje, por_pais, por_trek, registrar,
     registro_desde_resultado,
 )
 
@@ -101,7 +101,7 @@ class PruebasRegistro(unittest.TestCase):
     def test_registro_sin_texto_ni_telefono(self):
         resultado, datos = cargar_ejemplo()
         fila = registro_desde_resultado(resultado, "reservada", date(2026, 11, 10), 1)
-        self.assertEqual(list(fila), COLUMNAS)
+        self.assertEqual(list(fila), COLUMNAS_REGISTRO)
         self.assertEqual((fila["trek"], fila["idioma"], fila["mes_viaje"], fila["estado"], fila["monto_usd"]),
                          ("salkantay", "en", 3, "reservada", 1200))
         texto = " ".join(str(v) for v in fila.values())
@@ -111,7 +111,7 @@ class PruebasRegistro(unittest.TestCase):
     def test_estado_invalido(self):
         resultado, _ = cargar_ejemplo()
         with self.assertRaises(ValueError):
-            registro_desde_resultado(resultado, "perdida", date(2026, 11, 10), 1)
+            registro_desde_resultado(resultado, "vendida", date(2026, 11, 10), 1)
 
     def test_registrar_y_leer_junto_a_las_sinteticas(self):
         resultado, _ = cargar_ejemplo()
@@ -156,7 +156,7 @@ class PruebasPaginaTablero(unittest.TestCase):
             self.assertFalse(app.exception)
             guardado = pd.read_csv(ruta)
             self.assertEqual(guardado[["trek", "estado", "monto_usd"]].iloc[0].tolist(), ["salkantay", "reservada", 1200])
-            self.assertEqual(list(guardado.columns), COLUMNAS)
+            self.assertEqual(list(guardado.columns), COLUMNAS_REGISTRO)
             self.assertTrue(app.button(key="registrar_cotizada").disabled)  # no se registra dos veces
 
 

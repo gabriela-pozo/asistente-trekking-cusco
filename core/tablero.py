@@ -19,7 +19,9 @@ from core.cotizacion import NOMBRE_RUTA
 
 COLUMNAS = ["id", "fecha_consulta", "trek", "pais", "idioma", "mes_viaje", "personas", "nivel", "estado",
             "monto_usd"]
-ESTADOS = ("cotizada", "reservada", "sin respuesta")
+# Las registradas guardan además el día del último cambio de estado (core/mi_semana.py).
+COLUMNAS_REGISTRO = COLUMNAS + ["fecha_estado"]
+ESTADOS = ("cotizada", "reservada", "sin respuesta", "perdida")  # perdida: se marca en "Mi semana"
 SIN_DATO = "no indicado"
 
 
@@ -108,15 +110,19 @@ def registro_desde_resultado(resultado, estado: str, hoy: date, numero: int) -> 
         "nivel": opcion.nivel if opcion else "",
         "estado": estado,
         "monto_usd": opcion.total if opcion and estado != "sin respuesta" else 0,
+        "fecha_estado": hoy.isoformat(),
     }
 
 
 def registrar(fila: dict, ruta: Path) -> int:
     """Agrega la fila al CSV de consultas registradas. Devuelve cuántas hay ahora."""
     ruta = Path(ruta)
-    nuevo = pd.DataFrame([fila], columns=COLUMNAS)
+    nuevo = pd.DataFrame([fila], columns=COLUMNAS_REGISTRO)
     if ruta.exists():
-        df = pd.concat([pd.read_csv(ruta), nuevo], ignore_index=True)
+        anteriores = pd.read_csv(ruta)
+        if "fecha_estado" not in anteriores:  # registros de antes de "Mi semana"
+            anteriores["fecha_estado"] = anteriores["fecha_consulta"]
+        df = pd.concat([anteriores, nuevo], ignore_index=True)
     else:
         ruta.parent.mkdir(parents=True, exist_ok=True)
         df = nuevo

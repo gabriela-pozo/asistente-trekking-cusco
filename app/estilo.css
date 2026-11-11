@@ -110,3 +110,8 @@ body { font-variant-numeric: tabular-nums; }
 .desglose-calculo { font-size: 13px; color: var(--secundario); }
 .desglose-total td { font-weight: 700; border-bottom: 2px solid var(--tinta); }
 .desglose-total .desglose-monto { color: var(--ocre-texto); font-family: Montserrat, sans-serif; font-size: 17px; }
+
+/* Mi semana: el avance del vendedor, separado de los datos del demo */
+.st-key-mi_semana { background: var(--superficie); border-left: 4px solid var(--primario); margin-bottom: 16px; }
+.st-key-seguimiento { background: var(--aviso-fondo); }
+.st-key-mi_semana [data-testid="stMetricValue"] { font-size: 40px; }
