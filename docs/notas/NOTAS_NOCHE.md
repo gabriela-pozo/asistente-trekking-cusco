@@ -158,3 +158,39 @@ En USD por persona, sin la fila premium:
 3. Confirmar en https://visitaareasnaturales.sernanp.gob.pe la tarifa vigente del Parque Nacional Huascarán.
 4. Si quieres mostrar el mapa con el sendero real, hay que bajar el trazo de OpenStreetMap (es otro paso).
 5. Activar el entorno: `conda activate trekking`.
+
+## Informe de la rama mejoras-mapas (mapa de rutas)
+
+**Commits** (todos en `mejoras-mapas`; nada en main):
+1. `c33a00e` Módulo `core/mapa.py` + `tests/test_mapa.py` (9 pruebas con datos reales de `data/rutas/`).
+2. `d3c2cba` `app/mapa_ui.py` con `mostrar_mapa(trek)`, atribución ODbL y try/except general + `tests/test_mapa_ui.py`.
+3. `8ef75f1` `app/app.py`: una import y una llamada (`mostrar_mapa_del_resultado(resultado)`) después de `mostrar_perfil`.
+4. `4f87b9a` Perfil de altitud.
+5. `d41e5d6` Enlace "Abrir punto de inicio en Google Maps".
+6. `28ab1ce` README: punto 4 de "Qué sigue" actualizado, con atribución ODbL.
+
+**Qué treks tienen mapa:** Salkantay (11 puntos, 8 con altitud), Camino Inca clásico (10 puntos, 7 con altitud) y Lares (6 puntos, **incompleto**: faltan campamentos y el tramo alto de los días 1 y 2; la app lo avisa). Sin mapa: Choquequirao, Inca Jungle y Camino Inca corto; muestran "Mapa no disponible todavía para este trek." y la atribución.
+- El trek que se mapea es el primero de `perfil.treks_de_interes` (lo que pidió el viajero). Si no hay trek detectado, no se muestra nada.
+- El archivo de datos es un itinerario de referencia (Salkantay 5 días, Camino Inca 4, Lares 4); la app lo dice debajo del mapa, porque un trek de 4 días de Salkantay usa el mismo trazado de 5.
+
+**Pytest:**
+- Antes: 232 pasan, 1 skipped, **1 falla** (`tests/test_pipeline.py::PruebasLLM::test_proveedor_claude_pide_su_clave`).
+- Después: 244 pasan, 1 skipped, la misma 1 falla. Las 12 nuevas son de esta rama. No investigué esa falla (ya fallaba antes de mi primer cambio; parece depender de las claves del entorno).
+- `python -c "import app.app"` y `tests/test_importa_app.py` pasan tras cada commit.
+
+**Verificación de la app:** `streamlit run app/app.py` arrancó 25 s sin excepciones. Con la prueba de sesión de Streamlit (AppTest) y el ejemplo guardado: el expander "Ver la ruta en el mapa" aparece con Salkantay (mapa, perfil, enlace y atribución); al forzar Choquequirao muestra "Mapa no disponible" y la atribución; sin trek no aparece el expander. **No lo vi en un navegador real**, así que el aspecto del mapa pydeck (teselas y tooltip) no está confirmado visualmente.
+
+**Dependencias:** ninguna nueva en `requirements.txt`. Se usa `pydeck` y `altair` (vienen con Streamlit) y `pandas`. Para correr las pruebas en esta máquina instalé `pytest` en el Python local (no en el proyecto) y hay que correrlo con `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` por un conflicto de plugins local (`platformdirs`). `folium` y `streamlit-folium` ya están en requirements.txt pero no los usé.
+
+**Riesgos:**
+- El mapa base de pydeck lo sirve un proveedor externo de teselas; sin internet el mapa se vería sin fondo (los puntos y la línea siguen). El resto de la app no se afecta.
+- La distancia entre puntos (`distancia_recta_km`) existe en `core/mapa.py` pero **no se muestra**: es en línea recta e incluye tramos en vehículo, y podría engañar. El perfil usa km en línea recta como eje y lo rotula así.
+- El desnivel se calcula solo con los puntos que tienen altitud (parcial); la nota lo indica ("8 de 11 puntos").
+- Altitudes en conflicto y datos leídos por resumen automático (ver `data/rutas/README.md`): conviene revisarlos antes de afirmar cifras ante un cliente.
+- Si `mejoras-diseno` también toca el final de `pagina_consulta` o el bloque de imports de `app/app.py`, puede haber un conflicto de 2 líneas al unir.
+
+**Sin hacer:**
+- El mapa no está en el texto de la respuesta por WhatsApp, solo en la pantalla de la agencia.
+- Completar Lares y agregar Choquequirao, Inca Jungle y Camino Inca corto (requiere datos reales de OSM).
+- Revisión visual en navegador y en celular.
+
