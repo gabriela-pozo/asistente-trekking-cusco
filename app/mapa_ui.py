@@ -73,6 +73,9 @@ def mostrar_mapa(trek: str | None) -> None:
         st.caption(f"Puntos clave de un itinerario de referencia de {dias} días; las rutas varían entre agencias. "
                    f"{mapa.ATRIBUCION}")
         _perfil(st, ruta)
+        url = mapa.enlace_google_maps(ruta)
+        if url:
+            st.link_button("Abrir punto de inicio en Google Maps", url, icon=":material/open_in_new:")
         claves = [f"{ETIQUETA_TIPO.get(p.tipo, 'Lugar')}: {p.lugar}" for p in ruta.de_tipo("inicio", "campamento", "fin")]
         if claves:
             st.markdown("**Inicio, campamentos y fin:** " + " · ".join(claves))
