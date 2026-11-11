@@ -2,7 +2,7 @@
 
 **Estado:** Pendiente: se graba el 11 de noviembre antes de la presentación.
 
-Cuando esté listo, aquí irá el enlace al video en YouTube (no listado).
+Cuando esté listo, aquí irá el enlace al video en Google Drive (acceso: cualquier persona con el enlace, rol lector).
 
 ## Qué muestra
 

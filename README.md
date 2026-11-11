@@ -82,7 +82,7 @@ Las reglas de la respuesta salen de la prueba de cliente misterioso (`docs/resea
 
 **App:** [https://abra-travel.streamlit.app](https://abra-travel.streamlit.app)
 
-Video de respaldo: pendiente, ver [docs/video/README.md](docs/video/README.md)
+Video de respaldo: pendiente, en Google Drive (acceso: cualquier persona con el enlace, rol lector); ver [docs/video/README.md](docs/video/README.md)
 
 Modelo: **Gemini** (`gemini-3.5-flash`), con respaldo `gemini-3.5-flash-lite` si se queda sin cuota o está saturado, y un **ejemplo guardado** de una consulta real si los dos fallan. El botón "Usar mensaje de ejemplo" muestra ese resultado sin llamar a la API.
 
