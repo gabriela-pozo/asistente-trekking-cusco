@@ -136,7 +136,7 @@ Qué se ve en la app:
 1. **Piloto gratis de 2 semanas con 3 agencias**, midiendo cuántas ventas se recuperan respondiendo antes; si funciona, la meta es llegar a 10 agencias pagando.
 2. **Modo nocturno con WhatsApp real:** el webhook ya funciona con el sandbox de Twilio. La integración directa con Meta se intentó, pero la cuenta quedó bloqueada temporalmente por iniciar sesión desde un dispositivo nuevo.
 3. **Paquetes** (trek + extras + días en Cusco) para subir el ticket de cada venta.
-4. **Mapa de la ruta en la respuesta al viajero:** lo pidió la [conversación 2](docs/research/conversacion_2.md); los trazados de 3 rutas ya están en `data/rutas/`.
+4. **Mapa de la ruta:** lo pidió la [conversación 2](docs/research/conversacion_2.md). Ya hay un expander "Ver la ruta en el mapa" en "Nueva consulta" para Salkantay, Camino Inca y Lares (este último incompleto), con perfil de altitud y enlace al inicio en Google Maps; los demás treks muestran "Mapa no disponible todavía". Datos en `data/rutas/`: © OpenStreetMap contributors (ODbL). Falta mostrar el mapa dentro de la respuesta al viajero.
 5. **Luego Huaraz, Arequipa y Puno**; después los departamentos con boleto turístico (Ley 32586) y Latinoamérica. Un destino nuevo es solo una carpeta nueva de conocimiento más el tarifario de la agencia: `data/knowledge_huaraz/` (Santa Cruz y Laguna 69) ya tiene el mismo formato que la de Cusco, sin cambiar el código.
 
 ### Riesgos
