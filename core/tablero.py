@@ -339,3 +339,39 @@ def por_dia_y_franja(df: pd.DataFrame) -> pd.DataFrame:
                    "fuera_de_horario": desde < APERTURA_H or hasta > CIERRE_H, "consultas": int(c)}
                   for (n, dia), c in suma.items()]
     return pd.DataFrame(filas, columns=["dia", "dia_n", "franja", "franja_n", "fuera_de_horario", "consultas"])
+
+
+# --- Títulos cortos (≤ 8 palabras) con la conclusión; la frase larga de cada hallazgo va debajo ---------
+
+def titulo_embudo(e: pd.DataFrame) -> str:
+    if e["numero"].iloc[0] == 0:
+        return ""
+    etapas = e.iloc[1:]
+    peor = etapas.loc[etapas["pct_anterior"].astype(float).idxmin()]
+    anterior = e.iloc[int(peor["orden"]) - 1]["etapa"].lower()
+    return f"Mayor caída: de {anterior} a {peor['etapa'].lower()}"
+
+
+def titulo_treks(t: pd.DataFrame) -> str:
+    if t.empty:
+        return ""
+    return f"{t.iloc[0]['nombre']} concentra el {pct(t.iloc[0]['consultas'] / t['consultas'].sum())} de consultas"
+
+
+def titulo_horario(df: pd.DataFrame) -> str:
+    fuera, n = fuera_de_horario(df)
+    return f"El {pct(fuera)} llega fuera de horario" if n else "Sin hora de llegada en estas consultas"
+
+
+def titulo_meses(m: pd.DataFrame) -> str:
+    por_mes = m.groupby("mes")["consultas"].sum()
+    if por_mes.sum() == 0:
+        return ""
+    return f"{MESES[int(por_mes.idxmax()) - 1].capitalize()} es el mes más pedido"
+
+
+def titulo_paises(p: pd.DataFrame) -> str:
+    if p[p["pais"] != "Otros"].empty:
+        return ""
+    primero = p[p["pais"] != "Otros"].iloc[0]
+    return f"{primero['pais']} lidera con el {pct(primero['porcentaje'])}"

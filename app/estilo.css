@@ -333,3 +333,30 @@ label p, [data-testid="stWidgetLabel"] p { font-size: 14px; }
   background: var(--laguna); color: #FFFFFF; font-size: 14px; }
 .guia-notas { margin: 8px 0 0 !important; padding-left: 20px !important; font-size: 14px; color: var(--secundario); line-height: 1.5; }
 .guia-notas li { margin-bottom: 4px !important; }
+
+/* ---------- Tablero ---------- */
+.banda { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 10px 16px; margin: 0 0 8px; border-left: 4px solid var(--amanecer);
+  background: var(--cumbre); border-radius: 12px; }
+.banda-pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: var(--cumbre-texto); margin: 0; }
+.banda-origen { font-size: 14px; font-weight: 600; color: #A9C3CA; margin: 0; }
+.pregunta { font-size: 18px; margin: 0; }
+.hallazgo { font-size: 14px; color: var(--secundario); margin: 2px 0 0; line-height: 1.4; }
+.pregunta-kpi { margin: 8px 0 0; }
+.st-key-mi_semana { margin-bottom: 8px; }
+.st-key-mi_semana [data-testid="stMetricValue"] { font-size: 32px; }
+/* KPIs: número grande con ícono en la etiqueta */
+[class*="st-key-kpi_"] [data-testid="stMetricValue"] { font-size: 38px; line-height: 1.1; font-family: Montserrat, sans-serif; }
+[class*="st-key-kpi_"] [data-testid="stMetricLabel"] p { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+[class*="st-key-kpi_"] [data-testid="stMetricLabel"] p::before { font-family: var(--icono); font-weight: 400; font-size: 20px; color: var(--laguna); font-feature-settings: "liga"; }
+.st-key-kpi_consultas [data-testid="stMetricLabel"] p::before { content: "forum"; }
+.st-key-kpi_cierre [data-testid="stMetricLabel"] p::before { content: "task_alt"; }
+.st-key-kpi_sin_respuesta [data-testid="stMetricLabel"] p::before { content: "mark_chat_unread"; color: var(--tierra); }
+.st-key-kpi_monto [data-testid="stMetricLabel"] p::before { content: "payments"; color: var(--sendero); }
+/* Pestañas y control segmentado */
+[data-baseweb="tab"] { font-size: 16px; min-height: 44px; }
+[data-baseweb="tab-highlight"] { background: var(--laguna) !important; }
+[data-testid="stMetric"] { background: var(--nieve); border-radius: 14px; }
+[data-testid="stMainBlockContainer"] { padding-top: 40px; }
+.st-key-barra { top: 4px; }
+h2 { font-size: 24px !important; padding-top: 0; }
+[data-testid="stProgress"] p { font-size: 14px; }

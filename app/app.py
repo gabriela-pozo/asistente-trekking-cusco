@@ -53,7 +53,8 @@ from core.tablero import (  # noqa: E402
     ORDEN_ESTADOS, PERIODOS, cargar_consultas, cierre_por_trek, contar_registradas, embudo, filtrar, hallazgo_embudo,
     hallazgo_horario, hallazgo_meses, hallazgo_paises, hallazgo_treks, metricas, paises_con_otros, pct, periodo,
     por_dia_y_hora, por_mes_y_estado, registrar, registro_desde_resultado, variaciones,
-    APERTURA_H, CIERRE_H, PREGUNTA_TABLERO, por_dia_y_franja, texto_origen,
+    APERTURA_H, CIERRE_H, PREGUNTA_TABLERO, por_dia_y_franja, texto_origen, titulo_embudo, titulo_horario,
+    titulo_meses, titulo_paises, titulo_treks,
 )
 from core.whatsapp import enlace_whatsapp  # noqa: E402
 from presentacion import (  # noqa: E402
@@ -883,13 +884,15 @@ def dibujar(grafico: alt.Chart, alto: int) -> None:
         theme=None, width="stretch")
 
 
-def pregunta(titulo: str, hallazgo: str) -> None:
-    """La pregunta del dueño como rótulo; el título es la conclusión (la frase de core/tablero.py).
+def pregunta(titulo: str, hallazgo: str, corto: str = "") -> None:
+    """La pregunta del dueño como rótulo; el título es la conclusión corta (≤ 8 palabras) y, debajo, la frase larga.
 
     Si no hay conclusión (p. ej., sin datos para ese gráfico), el título es la pregunta.
     """
-    if hallazgo:
-        st.html(f'<p class="rotulo">{html.escape(titulo)}</p><h3 class="pregunta">{html.escape(hallazgo)}</h3>')
+    if corto or hallazgo:
+        largo = f'<p class="hallazgo">{html.escape(hallazgo)}</p>' if hallazgo and hallazgo != corto else ""
+        st.html(f'<p class="rotulo">{html.escape(titulo)}</p><h3 class="pregunta">{html.escape(corto or hallazgo)}</h3>'
+                + largo)
     else:
         st.html(f'<h3 class="pregunta">{html.escape(titulo)}</h3>')
 
@@ -898,9 +901,19 @@ def tarjeta(nombre: str):
     return st.container(border=True, key=f"grafico_{nombre}")
 
 
+TABLAS: list = []  # (nombre, tabla): se llena al dibujar cada gráfico y se muestra en la pestaña "Tablas"
+TITULO_TABLA = {"embudo": "Embudo", "treks": "Por trek", "cuando_franjas": "Cuándo llegan (por franjas)",
+                "cuando_escriben": "Cuándo llegan (hora por hora)", "meses": "Por mes del viaje", "paises": "Países"}
+
+
 def ver_tabla(tabla, nombre: str) -> None:
-    """Los mismos datos del gráfico en una tabla: se lee con lector de pantalla y sin depender del color."""
-    with st.expander("Ver los datos en una tabla"):
+    """Los mismos datos del gráfico, en tabla: se lee con lector de pantalla y sin depender del color."""
+    TABLAS.append((nombre, tabla))
+
+
+def mostrar_tablas() -> None:
+    for nombre, tabla in TABLAS:
+        st.markdown(f"**{TITULO_TABLA.get(nombre, nombre)}**")
         st.dataframe(tabla, hide_index=True, width="stretch")
         st.download_button("Descargar CSV", tabla.to_csv(index=False).encode("utf-8"), mime="text/csv",
                            file_name=f"tablero_{nombre}.csv", icon=":material/download:", key=f"descargar_{nombre}")
@@ -977,10 +990,10 @@ def mostrar_mi_semana() -> None:
     with st.container(border=True, key="mi_semana"):
         rotulo("Tu semana")
         if registradas.empty:  # corto y con una meta chica: el primer paso es registrar
-            st.progress(0, text=f"**0 de {META_INICIAL}** consultas registradas esta semana")
-            st.markdown("Registra tus consultas y aquí verás cuánto vendes, qué treks te piden y qué cotizaciones "
-                        f"esperan seguimiento. Primera meta: {META_INICIAL} esta semana.")
-            st.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a_consulta)
+            barra, texto, boton = st.columns([3, 5, 2], vertical_alignment="center")
+            barra.progress(0, text=f"**0 de {META_INICIAL}** consultas registradas esta semana")
+            texto.markdown("Registra tus consultas y aquí verás tu avance y lo que espera seguimiento.")
+            boton.button("Ir a Nueva consulta", type="primary", icon=":material/edit_note:", on_click=ir_a_consulta)
             return
 
         meta = progreso_meta(registradas, hoy, st.session_state.meta_semanal)
@@ -1047,7 +1060,7 @@ def mapa_por_franjas(datos: pd.DataFrame) -> None:
     numeros = base.mark_text(font="Nunito", fontSize=TEXTO_GRAFICO + 2, fontWeight="bold").encode(
         text="consultas:Q",
         color=alt.condition(alt.datum.consultas > tope * 0.55, alt.value("#FFFFFF"), alt.value(TINTA)))
-    dibujar(celdas + numeros, alto=330)
+    dibujar(celdas + numeros, alto=230)
     st.caption(f"Madrugada (antes de las {APERTURA_H}:00) y noche (desde las {CIERRE_H}:00) son las franjas "
                "fuera de tu horario de atención.")
     tabla = f.pivot(index=["dia_n", "dia"], columns="franja", values="consultas")[orden_franjas]
@@ -1074,7 +1087,7 @@ def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
                                              "t": [f"Horario {APERTURA_H}:00–{CIERRE_H}:00"]})).mark_text(
         baseline="bottom", dy=-4, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito", fontWeight="bold").encode(
         x="x:Q", y=alt.value(0), text="t:N")
-    dibujar(alt.layer(mapa, horario, rotulo_horario), alto=300)
+    dibujar(alt.layer(mapa, horario, rotulo_horario), alto=230)
     ver_tabla(celdas[["dia", "franja", "consultas"]].rename(columns={"dia": "Día", "franja": "Hora",
                                                                      "consultas": "Consultas"}), "cuando_escriben")
 
@@ -1088,20 +1101,24 @@ def quitar_filtros() -> None:
 
 
 def pagina_tablero() -> None:
+    TABLAS.clear()
     st.header("Tablero")
     consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
-    st.html(f'<div class="banda"><p class="banda-pregunta">{html.escape(PREGUNTA_TABLERO)}</p>'
-            f'<p class="banda-origen">Datos: {html.escape(texto_origen(consultas))}.</p></div>')
+    st.html(f'<div class="banda"><span class="banda-pregunta">{html.escape(PREGUNTA_TABLERO)}</span>'
+            f'<span class="banda-origen">Datos: {html.escape(texto_origen(consultas))}.</span></div>')
     mostrar_mi_semana()  # solo las consultas registradas por el vendedor; no la tocan los filtros de abajo
 
-
-    c1, c2, c3 = st.columns([1, 1.4, 1.4])
-    st.session_state.setdefault("filtro_periodo", PERIODO_INICIAL)  # sin index=: lo pone «Quitar filtros»
-    nombre_periodo = c1.selectbox("Período", list(PERIODOS), key="filtro_periodo")
+    c1, c2, c3 = st.columns([4, 4, 4], vertical_alignment="bottom")
+    st.session_state.setdefault("filtro_periodo", PERIODO_INICIAL)  # sin default=: lo pone «Quitar filtros»
+    with c1:
+        seleccion = st.segmented_control("Período", list(PERIODOS), key="filtro_periodo", label_visibility="collapsed",
+                                         format_func=lambda p: p.replace("Últimos ", ""))
+    nombre_periodo = seleccion or PERIODO_INICIAL
     treks = c2.multiselect("Trek", sorted(consultas["trek"].dropna().unique()), placeholder="Todos los treks",
-                           format_func=lambda t: NOMBRE_RUTA.get(t, t), key="filtro_treks")
+                           format_func=lambda t: NOMBRE_RUTA.get(t, t), key="filtro_treks", label_visibility="collapsed")
     idiomas = c3.multiselect("Idioma", sorted(consultas["idioma"].dropna().unique()),
-                             placeholder="Todos los idiomas", format_func=idioma, key="filtro_idiomas")
+                             placeholder="Todos los idiomas", format_func=idioma, key="filtro_idiomas",
+                             label_visibility="collapsed")
     meses = PERIODOS[nombre_periodo]
     filtradas = filtrar(consultas, treks, idiomas)
     datos, anteriores, comparable, (desde, hasta) = periodo(filtradas, meses)
@@ -1113,29 +1130,33 @@ def pagina_tablero() -> None:
         return
     registradas = int((datos["origen"] == "registrada").sum())
     st.caption(f"Del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}: {miles(len(datos))} consultas"
-               + (f", {registradas} de ellas registradas en esta app" if registradas else "")
+               + (f", {registradas} registradas en esta app" if registradas else "")
                + f". Cada indicador se compara con los {meses} meses anteriores.")
 
     # 1. ¿Cómo voy?
-    pregunta("¿Cómo voy?", "")
+    st.html('<p class="rotulo pregunta-kpi">¿Cómo voy?</p>')
     m = metricas(datos)
     v = variaciones(datos, anteriores) if comparable else None
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Consultas", miles(m["consultas"]), border=True,
-              delta=None if v is None else f"{con_signo(v['consultas'])}"
-              + (f" ({con_signo(round(v['pct_consultas'] * 100))} %)" if v["pct_consultas"] is not None else ""))
-    k2.metric("Tasa de cierre", porcentaje(m["tasa_cierre"]), border=True,
-              delta=None if v is None else f"{con_signo(round(v['tasa_cierre_pp'], 1), decimal=True)} pp",
-              help="Reservadas ÷ consultas respondidas. La variación está en puntos porcentuales (pp).")
-    k2.caption(f"Reservadas ÷ respondidas: {miles(m['reservadas'])} ÷ {miles(m['respondidas'])}")
-    k3.metric("Sin respuesta de la agencia", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
-              delta=None if v is None else con_signo(v["sin_respuesta"]),
-              help=f"{porcentaje(m['pct_sin_respuesta'])} de las consultas no recibieron respuesta. "
-                   "Que baje es bueno.")
-    k3.caption(f"{porcentaje(m['pct_sin_respuesta'])} de las consultas: la agencia no contestó")
-    k4.metric("Monto reservado", usd(m["monto_reservado"]), border=True,
-              delta=None if v is None else usd_con_signo(v["monto_reservado"]),
-              help="Suma del total de las consultas reservadas, en dólares.")
+    with k1, st.container(key="kpi_consultas"):
+        st.metric("Consultas", miles(m["consultas"]), border=True,
+                  delta=None if v is None else f"{con_signo(v['consultas'])}"
+                  + (f" ({con_signo(round(v['pct_consultas'] * 100))} %)" if v["pct_consultas"] is not None else ""),
+                  help="Consultas recibidas en el período, frente al período anterior de igual largo.")
+    with k2, st.container(key="kpi_cierre"):
+        st.metric("Tasa de cierre", porcentaje(m["tasa_cierre"]), border=True,
+                  delta=None if v is None else f"{con_signo(round(v['tasa_cierre_pp'], 1), decimal=True)} pp",
+                  help="Reservadas ÷ consultas respondidas. La variación está en puntos porcentuales (pp).")
+        st.caption(f"Reservadas ÷ respondidas: {miles(m['reservadas'])} ÷ {miles(m['respondidas'])}")
+    with k3, st.container(key="kpi_sin_respuesta"):
+        st.metric("Sin respuesta de la agencia", miles(m["sin_respuesta"]), border=True, delta_color="inverse",
+                  delta=None if v is None else con_signo(v["sin_respuesta"]),
+                  help=f"{porcentaje(m['pct_sin_respuesta'])} de las consultas no recibieron respuesta de la "
+                       "agencia. Que baje es bueno.")
+    with k4, st.container(key="kpi_monto"):
+        st.metric("Monto reservado", usd(m["monto_reservado"]), border=True,
+                  delta=None if v is None else usd_con_signo(v["monto_reservado"]),
+                  help="Suma del total de las consultas reservadas, en dólares.")
     if v is None:
         st.caption(f"Sin variación: los datos no cubren los {meses} meses anteriores completos.")
 
@@ -1143,7 +1164,7 @@ def pagina_tablero() -> None:
     # 2. Embudo: dónde se cae el proceso
     with izquierda, tarjeta("embudo"):
         e = embudo(datos)
-        pregunta("¿En qué paso se pierden las ventas?", hallazgo_embudo(e))
+        pregunta("¿En qué paso se pierden las ventas?", hallazgo_embudo(e), titulo_embudo(e))
         e["porcentaje"] = [None if p is None or pd.isna(p) else pct(p) for p in e["pct_anterior"]]
         e["etiqueta"] = [miles(n) if pd.isna(p) else f"{miles(n)} · {p}"
                          for n, p in zip(e["numero"], e["porcentaje"])]
@@ -1156,7 +1177,7 @@ def pagina_tablero() -> None:
                      alt.Tooltip("porcentaje:N", title="% de la etapa anterior")])
         etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
             text="etiqueta:N")
-        dibujar(barras + etiquetas, alto=200)
+        dibujar(barras + etiquetas, alto=260)
         st.caption("Cada % compara la etapa con la anterior. Cotizadas: respondidas con un precio.")
         ver_tabla(e[["etapa", "numero", "porcentaje"]].rename(columns={
             "etapa": "Etapa", "numero": "Consultas", "porcentaje": "% de la etapa anterior"}), "embudo")
@@ -1164,7 +1185,7 @@ def pagina_tablero() -> None:
     # 3. Dónde se pierde: por trek
     with derecha, tarjeta("treks"):
         t = cierre_por_trek(datos)
-        pregunta("¿En qué trek se pierden?", hallazgo_treks(t))
+        pregunta("¿En qué trek se pierden?", hallazgo_treks(t), titulo_treks(t))
         t["tasa"] = t["tasa_cierre"].map(pct)
         t["poca_base"] = t["respondidas"] < MINIMO_RESPONDIDAS
         t["etiqueta"] = [f"{pct(x)} cierre · n={n}" for x, n in zip(t["tasa_cierre"], t["respondidas"])]
@@ -1194,7 +1215,7 @@ def pagina_tablero() -> None:
             tooltip=[alt.Tooltip("nombre:N", title="Trek"), alt.Tooltip("consultas:Q", title="Consultas"),
                      alt.Tooltip("respondidas:Q", title="Respondidas"),
                      alt.Tooltip("reservadas:Q", title="Reservadas"), alt.Tooltip("tasa:N", title="Tasa de cierre")])
-        dibujar(barras + etiquetas, alto=44 * len(t) + 60)
+        dibujar(barras + etiquetas, alto=min(max(260, 34 * len(t) + 70), 320))
         st.caption(f"n = consultas respondidas. Atenuados: menos de {MINIMO_RESPONDIDAS} respondidas, "
                    "su tasa de cierre todavía dice poco.")
         ver_tabla(t[["nombre", "consultas", "respondidas", "reservadas", "tasa"]].rename(columns={
@@ -1203,7 +1224,7 @@ def pagina_tablero() -> None:
 
     # 4. Cuándo llega: por franjas (más legible) o hora por hora
     with tarjeta("cuando"):
-        pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos))
+        pregunta("¿Cuándo llegan las consultas?", hallazgo_horario(datos), titulo_horario(datos))
         vista = st.radio("Vista", ["Por franjas", "Hora por hora"], horizontal=True, key="vista_horario",
                          label_visibility="collapsed")
         celdas = por_dia_y_hora(datos)
@@ -1216,51 +1237,56 @@ def pagina_tablero() -> None:
             st.caption(f"{sin_hora} consultas registradas desde la app no tienen hora de llegada: "
                        "no están en este gráfico.")
 
-    # 5. ¿Para qué meses?
-    with tarjeta("meses"):
-        mes_estado = por_mes_y_estado(datos)
-        pregunta("¿Para qué meses?", hallazgo_meses(mes_estado))
-        estados = [x for x in ORDEN_ESTADOS if x in set(mes_estado["estado"])]
-        columnas = alt.Chart(mes_estado).mark_bar(cornerRadius=4, stroke="#FFFFFF", strokeWidth=2).encode(
-            x=alt.X("mes_nombre:N", sort=list(dict.fromkeys(mes_estado["mes_nombre"])), title="Mes del viaje",
-                    scale=alt.Scale(paddingInner=.35), axis=alt.Axis(labelAngle=0, ticks=False)),
-            y=alt.Y("consultas:Q", title="Consultas", axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
-            color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
-                            legend=alt.Legend(title=None, orient="top", direction="horizontal", labelFontSize=TEXTO_GRAFICO,
-                                              labelColor=TINTA, symbolType="square")),
-            order=alt.Order("orden:Q", sort="ascending"),
-            tooltip=[alt.Tooltip("mes_nombre:N", title="Mes"), alt.Tooltip("estado:N", title="Estado"),
-                     alt.Tooltip("consultas:Q", title="Consultas")])
-        dibujar(columnas, alto=280)
-        sin_mes = len(datos) - int(mes_estado["consultas"].sum())
-        if sin_mes:  # p. ej., registradas sin mes de viaje: así el total no parece no cuadrar con los KPIs
-            st.caption(f"{sin_mes} {'consulta no dice' if sin_mes == 1 else 'consultas no dicen'} el mes del viaje: "
-                       "no están en este gráfico.")
-        tabla_meses = mes_estado.pivot(index=["mes", "mes_nombre"], columns="estado", values="consultas")
-        ver_tabla(tabla_meses.reset_index().drop(columns="mes").rename(columns={"mes_nombre": "Mes"}), "meses")
+    pestana_mas, pestana_tablas = st.tabs(["Más análisis", "Tablas"])
+    with pestana_mas:
+        izq_mas, der_mas = st.columns(2, gap="medium")
+        # 5. ¿Para qué meses?
+        with izq_mas, tarjeta("meses"):
+            mes_estado = por_mes_y_estado(datos)
+            pregunta("¿Para qué meses?", hallazgo_meses(mes_estado), titulo_meses(mes_estado))
+            estados = [x for x in ORDEN_ESTADOS if x in set(mes_estado["estado"])]
+            columnas = alt.Chart(mes_estado).mark_bar(cornerRadius=4, stroke="#FFFFFF", strokeWidth=2).encode(
+                x=alt.X("mes_nombre:N", sort=list(dict.fromkeys(mes_estado["mes_nombre"])), title="Mes del viaje",
+                        scale=alt.Scale(paddingInner=.35), axis=alt.Axis(labelAngle=0, ticks=False)),
+                y=alt.Y("consultas:Q", title="Consultas", axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
+                color=alt.Color("estado:N", scale=alt.Scale(domain=estados, range=[COLOR_ESTADO[x] for x in estados]),
+                                legend=alt.Legend(title=None, orient="top", direction="horizontal", labelFontSize=TEXTO_GRAFICO,
+                                                  labelColor=TINTA, symbolType="square")),
+                order=alt.Order("orden:Q", sort="ascending"),
+                tooltip=[alt.Tooltip("mes_nombre:N", title="Mes"), alt.Tooltip("estado:N", title="Estado"),
+                         alt.Tooltip("consultas:Q", title="Consultas")])
+            dibujar(columnas, alto=280)
+            sin_mes = len(datos) - int(mes_estado["consultas"].sum())
+            if sin_mes:  # p. ej., registradas sin mes de viaje: así el total no parece no cuadrar con los KPIs
+                st.caption(f"{sin_mes} {'consulta no dice' if sin_mes == 1 else 'consultas no dicen'} el mes del viaje: "
+                           "no están en este gráfico.")
+            tabla_meses = mes_estado.pivot(index=["mes", "mes_nombre"], columns="estado", values="consultas")
+            ver_tabla(tabla_meses.reset_index().drop(columns="mes").rename(columns={"mes_nombre": "Mes"}), "meses")
 
-    # 6. ¿De dónde escriben?
-    with tarjeta("paises"):
-        p = paises_con_otros(datos)
-        pregunta("¿De dónde escriben?", hallazgo_paises(p))
-        p["etiqueta"] = [f"{miles(n)} · {pct(x)}" for n, x in zip(p["consultas"], p["porcentaje"])]
-        p["pct"] = p["porcentaje"].map(pct)
-        barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4).encode(
-            color=alt.condition(alt.datum.pais == "Otros", alt.value("#5B6F6A"), alt.value(PRIMARIO)),
-            y=alt.Y("pais:N", sort=list(p["pais"]), title=None, scale=alt.Scale(paddingInner=.45),
-                    axis=alt.Axis(ticks=False, domain=False)),
-            x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(p["consultas"]) * 1.35]),
-                    axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
-            tooltip=[alt.Tooltip("pais:N", title="País"), alt.Tooltip("consultas:Q", title="Consultas"),
-                     alt.Tooltip("pct:N", title="Del total")])
-        etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
-            text="etiqueta:N")
-        dibujar(barras + etiquetas, alto=34 * len(p) + 40)
-        st.caption("Los 7 países con más consultas, de mayor a menor; el resto, sumado en «Otros» (en gris)."
-                   + (" Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\"."
-                      if registradas else ""))
-        ver_tabla(p[["pais", "consultas", "pct"]].rename(columns={"pais": "País", "consultas": "Consultas",
-                                                                   "pct": "Del total"}), "paises")
+        # 6. ¿De dónde escriben?
+        with der_mas, tarjeta("paises"):
+            p = paises_con_otros(datos)
+            pregunta("¿De dónde escriben?", hallazgo_paises(p), titulo_paises(p))
+            p["etiqueta"] = [f"{miles(n)} · {pct(x)}" for n, x in zip(p["consultas"], p["porcentaje"])]
+            p["pct"] = p["porcentaje"].map(pct)
+            barras = alt.Chart(p).mark_bar(cornerRadiusEnd=4).encode(
+                color=alt.condition(alt.datum.pais == "Otros", alt.value("#5B6F6A"), alt.value(PRIMARIO)),
+                y=alt.Y("pais:N", sort=list(p["pais"]), title=None, scale=alt.Scale(paddingInner=.45),
+                        axis=alt.Axis(ticks=False, domain=False)),
+                x=alt.X("consultas:Q", title="Consultas", scale=alt.Scale(domain=[0, max(p["consultas"]) * 1.35]),
+                        axis=alt.Axis(tickMinStep=1, tickCount=5, format="d")),
+                tooltip=[alt.Tooltip("pais:N", title="País"), alt.Tooltip("consultas:Q", title="Consultas"),
+                         alt.Tooltip("pct:N", title="Del total")])
+            etiquetas = barras.mark_text(align="left", dx=6, color=TINTA, fontSize=TEXTO_GRAFICO, font="Nunito").encode(
+                text="etiqueta:N")
+            dibujar(barras + etiquetas, alto=max(260, 30 * len(p) + 50))
+            st.caption("Los 7 países con más consultas, de mayor a menor; el resto, sumado en «Otros» (en gris)."
+                       + (" Las consultas registradas desde la app no traen el país: cuentan como \"no indicado\"."
+                          if registradas else ""))
+            ver_tabla(p[["pais", "consultas", "pct"]].rename(columns={"pais": "País", "consultas": "Consultas",
+                                                                       "pct": "Del total"}), "paises")
+    with pestana_tablas:
+        mostrar_tablas()
 
     st.caption("Se guarda solo el perfil de cada consulta, nunca el mensaje ni el teléfono.")
 

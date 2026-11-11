@@ -148,8 +148,7 @@ class PruebasPagina(unittest.TestCase):
         with tempfile.TemporaryDirectory() as carpeta:
             app = abrir_tablero(carpeta)
         graficos = len([e for e in app.main if e.type == "vega_lite_chart"])
-        tablas = [e for e in app.expander if e.label == "Ver los datos en una tabla"]
-        self.assertEqual(len(tablas), graficos)
+        self.assertEqual(len(app.dataframe), graficos)  # todas en la pestaña "Tablas"
 
     def test_tu_semana_sin_registros_muestra_cero_y_una_meta_chica(self):
         with tempfile.TemporaryDirectory() as carpeta:

@@ -171,10 +171,10 @@ class PruebasPagina(unittest.TestCase):
             app = AppTest.from_file(APP, default_timeout=60)
             app.run()
             app.sidebar.radio[0].set_value("Tablero").run()
-            app.selectbox[0].set_value("Últimos 12 meses").run()
+            app.segmented_control(key="filtro_periodo").set_value("Últimos 12 meses").run()
             self.assertFalse(app.exception)
             self.assertFalse(app.metric[0].delta)  # no hay 12 meses anteriores completos
-            app.selectbox[0].set_value("Últimos 3 meses").run()
+            app.segmented_control(key="filtro_periodo").set_value("Últimos 3 meses").run()
             app.multiselect[0].set_value(["salkantay"]).run()
             self.assertFalse(app.exception)
             esperado = len(periodo(filtrar(cargar_consultas(SINTETICAS), ["salkantay"]), 3)[0])
