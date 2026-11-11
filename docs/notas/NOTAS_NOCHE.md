@@ -273,3 +273,63 @@ Levanté la app en el puerto 8577 y la recorrí con Chrome headless (Playwright)
 - Completar Lares y agregar Choquequirao, Inca Jungle y Camino Inca corto (requiere datos reales de OSM).
 - Revisión visual en navegador y en celular.
 
+
+
+---
+
+# Informe: rediseño visual "Abra: del glaciar al amanecer" (rama `mejoras-visual`, 11 de noviembre)
+
+## Lo primero: dos cosas que no coincidían con el encargo
+1. **La rama estaba atrasada.** `mejoras-visual` era ancestro de `main` y solo tenía 3 páginas (sin Fuentes, Sistema, Piloto ni mapa). La puse al día con un avance rápido (`git merge --ff-only main`, sin commits propios que perder; `main` no se tocó). Con eso aparecieron las seis páginas y el mapa.
+2. **Playwright no está instalado**, así que no hay capturas automáticas. Revisé en el navegador (Chrome) y guardé las capturas desde ahí. En ese navegador no pude cambiar el tamaño real de la ventana; el 1280×720 y el 390 px los medí así: la altura del botón principal con JavaScript y el celular dentro de un iframe de 390 px.
+
+## Commits (sobre `1a1d496`, el estado de `main`)
+| Commit | Cambio |
+| --- | --- |
+| `cb1a16a` | Paleta, tema (`config.toml`), variables CSS, logo SVG nuevo, `docs/diseno.md` |
+| `a564a23` | Cabecera compacta, menú con íconos, una sola insignia de demo |
+| `9204086` | Consulta en tres pasos |
+| `1685820` | Guía "¿Cómo se usa?" y `docs/manual_consultas.md` (enlazado desde el README) |
+| `5b9d033` | Tablero |
+| `8608cc8` | Fuentes, Sistema, Mi agencia y Piloto |
+| `f12c220` | Arreglo: la respuesta se perdía al volver a Consulta desde otra página (error que ya existía) |
+| `d10ef72` | Capturas y documentación |
+| `6f6153d` | Limpieza de CSS |
+
+## Qué cambió en cada pantalla
+- **Todas:** fondo Arena, tarjetas Nieve con borde `#DDD6C8`, botón principal Laguna, barra lateral Cumbre con el ítem activo en Amanecer. El verde `#1E6B52` ya no existe en CSS, tema, logo, mapa ni gráficos. Campos y botones de 44 px.
+- **Cabecera:** barra fija con agencia, **una** insignia "Datos de demostración", el estado (modelo o "Ejemplo guardado") y "¿Cómo se usa?". Se eliminó la etiqueta flotante y su repetición en la barra lateral.
+- **Menú:** Consulta, Tablero, Fuentes, Mi agencia, Sistema, Piloto, con íconos y sin descripciones.
+- **Consulta:** pasos 1-2-3. Paso 1 con "Opciones" plegado (WhatsApp y hora). Paso 2: burbuja con idioma y hora, "Copiar" y "Abrir en WhatsApp", chips de lo entendido, advertencias en máximo 3 viñetas (el resto, en un expander), opciones en 2 líneas, "Alimenta el Tablero". Se quitó el "Aviso para el viajero" duplicado. Paso 3: resumen grande y expander cerrado con extras / Más opciones / Desglose. Estado de carga con `st.status`.
+- **Tablero:** banda de pregunta y origen en una línea; "Tu semana" compacta; período segmentado; KPIs de 38 px con ícono; títulos de ≤ 8 palabras (funciones nuevas `titulo_*` añadidas a `core/tablero.py`; no se cambió ningún cálculo); "Cuándo llegan" más chico; pestañas "Más análisis" y "Tablas".
+- **Fuentes, Sistema, Mi agencia, Piloto:** como pedía el encargo (ver `docs/diseno.md`).
+
+## Funciones de Streamlit usadas y compatibilidad (`requirements.txt`: `streamlit>=1.40`; instalada: 1.65.0)
+`st.dialog` (1.37), `st.status` (1.27), `st.segmented_control` (1.40), `st.tabs`, `st.expander(icon=…)`, `st.popover` (1.31) y los íconos `:material/…:`. Todas existen en 1.40 **según mi conocimiento; solo las probé en 1.65**. No usé `st.pills`, `st.badge`, `st.fragment` ni `st.metric(chart_data=…)`.
+- **"Copiar"** usa `st.components.v1.html`, que en 1.65 avisa de que será retirado. Si se retira, la app cae a un `st.popover` con `st.code` (ícono de copiar) dentro de un `try/except`. No hay forma de copiar sin ese componente en 1.40.
+
+## Contraste AA: pares que no cumplen
+- `#B45F06` (Tierra) sobre Arena: **4,1:1**. Solo lo uso sobre Nieve (4,6:1), dentro de tarjetas.
+- `#C8660A` sobre Nieve: **3,9:1**. Solo en barras y números de 24 px o más.
+- Borde `#DDD6C8` sobre Nieve: **1,5:1**. Es decorativo; por eso agregué `--borde-campo #7F9096` (3,3:1) para los campos. **Es un token fuera de la lista que me diste.**
+- Cotizada `#3A78C2` sobre Nieve: 4,5:1, en el límite.
+- Todo lo demás cumple (tabla completa en `docs/diseno.md`).
+
+## Pytest
+- **Antes** (en `main`, línea base): 270 pasan, 1 falla (`test_proveedor_claude_pide_su_clave`, falta `anthropic`).
+- **Después:** 271 pasan, 1 falla (la misma). Agregué 1 prueba (la respuesta no se pierde al cambiar de página).
+- **Tests cuyo texto o estructura cambié a propósito:** `test_importa_app.py` (nombres del menú y la página Sistema), `test_mi_semana.py` (nombre del menú), `test_tablero.py` (texto de la insignia), `test_tablero_preguntas.py` (el período ahora es `segmented_control`), `test_tablero_demo.py` (las tablas están en una pestaña y no en un expander por gráfico), `test_app.py` (el aviso "Resultado guardado" ahora es una insignia en HTML; el botón de WhatsApp va en una columna).
+
+## Lo que quedó sin hacer o distinto
+- **KPIs sin minigráfico:** `st.metric(chart_data=…)` no estaba garantizado en 1.40. Lo dejé fuera.
+- **Mapa y capturas por tamaño:** no hay un juego de capturas a 1280×720, 1920×1080 y 390 px. Solo medí (sin desbordes horizontales en Consulta, Tablero y Mi agencia a 390 px; el botón principal queda a 465 px de altura, dentro de 720). `captura_3_respuesta_whatsapp.png` es de WhatsApp y no la toqué.
+- **Tablero sin scroll:** con 1080 px de alto se ven KPIs, embudo y el inicio de "por trek"; a 720 px hace falta bajar un poco para ver los gráficos.
+- **"Más opciones" anidado:** Streamlit no permite expanders dentro de expanders; usé pestañas (Extras / Más opciones / Desglose).
+- **Mi agencia:** no reordené las tarjetas; solo acorté textos y plegué los niveles.
+- **Diálogo de la guía y mapa:** los revisé en el navegador (la guía) y con las pruebas existentes (el mapa); no abrí el mapa a mano en el navegador.
+- Los íconos del menú y de los KPI dependen de la fuente Material Symbols de Streamlit; sin internet, Streamlit la carga desde su propio paquete, pero no lo probé sin red.
+
+## Riesgos
+- El servidor de `streamlit run` no recarga `presentacion.py` si cambia mientras corre: reiniciarlo tras cada despliegue (ya pasaba antes).
+- Cambié `app.py` y el CSS de forma amplia: conviene un recorrido manual completo del demo (ejemplo guardado → registrar → Tablero) antes de las 9:04 p. m.
+- El elemento "Copiar" es un iframe: en algunos navegadores el portapapeles puede pedir permiso.
