@@ -131,6 +131,26 @@ class PruebasPagina(unittest.TestCase):
         especificaciones = " ".join(str(e.proto) for e in app.main if e.type == "vega_lite_chart")
         self.assertRegex(especificaciones, r"cierre .{1,12}n=\d+")
 
+    def test_filtro_sin_resultados_explica_y_permite_quitar_filtros(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+            app.multiselect(key="filtro_treks").set_value(["choquequirao"]).run()
+            app.multiselect(key="filtro_idiomas").set_value(["fr"]).run()  # no hay ninguna en los datos
+            self.assertFalse(app.exception)
+            self.assertTrue(any("Ninguna consulta cumple a la vez" in i.value for i in app.info))
+            self.assertEqual(len([e for e in app.main if e.type == "vega_lite_chart"]), 0)
+            app.button(key="quitar_filtros").click().run()
+            self.assertFalse(app.exception)
+            self.assertEqual(app.multiselect(key="filtro_treks").value, [])
+            self.assertGreater(len([e for e in app.main if e.type == "vega_lite_chart"]), 0)
+
+    def test_cada_grafico_tiene_su_tabla(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            app = abrir_tablero(carpeta)
+        graficos = len([e for e in app.main if e.type == "vega_lite_chart"])
+        tablas = [e for e in app.expander if e.label == "Ver los datos en una tabla"]
+        self.assertEqual(len(tablas), graficos)
+
 
 if __name__ == "__main__":
     unittest.main()

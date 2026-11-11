@@ -824,7 +824,8 @@ def tarjeta(nombre: str):
 
 
 def ver_tabla(tabla, nombre: str) -> None:
-    with st.expander("Ver tabla"):
+    """Los mismos datos del gráfico en una tabla: se lee con lector de pantalla y sin depender del color."""
+    with st.expander("Ver los datos en una tabla"):
         st.dataframe(tabla, hide_index=True, width="stretch")
         st.download_button("Descargar CSV", tabla.to_csv(index=False).encode("utf-8"), mime="text/csv",
                            file_name=f"tablero_{nombre}.csv", icon=":material/download:", key=f"descargar_{nombre}")
@@ -998,6 +999,11 @@ def mapa_hora_por_hora(celdas: pd.DataFrame) -> None:
                                                                      "consultas": "Consultas"}), "cuando_escriben")
 
 
+def quitar_filtros() -> None:
+    st.session_state.filtro_treks, st.session_state.filtro_idiomas = [], []
+    st.session_state.filtro_periodo = list(PERIODOS)[1]  # el mismo período que al abrir el Tablero
+
+
 def pagina_tablero() -> None:
     st.header("Tablero")
     consultas = cargar_consultas(CONSULTAS_SINTETICAS, RUTA_REGISTRO)
@@ -1010,16 +1016,19 @@ def pagina_tablero() -> None:
     st.sidebar.html(f'<span class="sinteticos">{ETIQUETA_SINTETICOS}</span>')
 
     c1, c2, c3 = st.columns([1, 1.4, 1.4])
-    nombre_periodo = c1.selectbox("Período", list(PERIODOS), index=1)
+    nombre_periodo = c1.selectbox("Período", list(PERIODOS), index=1, key="filtro_periodo")
     treks = c2.multiselect("Trek", sorted(consultas["trek"].dropna().unique()), placeholder="Todos los treks",
-                           format_func=lambda t: NOMBRE_RUTA.get(t, t))
+                           format_func=lambda t: NOMBRE_RUTA.get(t, t), key="filtro_treks")
     idiomas = c3.multiselect("Idioma", sorted(consultas["idioma"].dropna().unique()),
-                             placeholder="Todos los idiomas", format_func=idioma)
+                             placeholder="Todos los idiomas", format_func=idioma, key="filtro_idiomas")
     meses = PERIODOS[nombre_periodo]
     filtradas = filtrar(consultas, treks, idiomas)
     datos, anteriores, comparable, (desde, hasta) = periodo(filtradas, meses)
     if datos.empty:
-        st.info("No hay consultas con esos filtros.", icon=":material/filter_alt_off:")
+        elegidos = [NOMBRE_RUTA.get(t, t) for t in treks] + [idioma(i) for i in idiomas]
+        st.info(f"**Ninguna consulta cumple a la vez: {' + '.join(elegidos)}.** Elige otro trek u otro idioma, "
+                "o quita los filtros para ver todas.", icon=":material/filter_alt_off:")
+        st.button("Quitar filtros", icon=":material/filter_alt_off:", on_click=quitar_filtros, key="quitar_filtros")
         return
     registradas = int((datos["origen"] == "registrada").sum())
     st.caption(f"Del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}: {miles(len(datos))} consultas"
