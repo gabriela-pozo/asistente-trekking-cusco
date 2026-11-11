@@ -91,13 +91,15 @@ Qué se ve en la app:
 - **Nueva consulta:** el borrador listo para WhatsApp, con un **cronómetro** ("Respuesta lista en X s"), el perfil del viajero, las opciones del tarifario, los avisos del control y **Armar paquete** (trek + extras + días en Cusco + recargo por forma de pago).
 - **Modo nocturno:** si la consulta llega fuera de horario, muestra la respuesta segura que se enviaría sola. En la app es una **simulación**; el webhook de WhatsApp con Twilio (`server/webhook.py`) está escrito y probado, pero aún no conectado en vivo.
 - **Mi agencia:** tarifario editable, extras, recargos, horario de atención y meta semanal.
-- **Tablero:** arriba, **Mi semana** (solo las consultas registradas por el vendedor: meta semanal, monto reservado frente a la semana anterior, racha y cotizaciones que esperan seguimiento). Debajo, consultas, tasa de cierre, sin respuesta y monto reservado por mes del viaje, trek y país, con **datos sintéticos** del demo (`data/consultas_sinteticas.csv`).
+- **Tablero:** arriba, **Mi semana** (solo las consultas registradas por el vendedor: meta semanal, monto reservado frente a la semana anterior, racha y cotizaciones que esperan seguimiento). Debajo, un tablero por preguntas (¿cómo voy?, ¿cuándo escriben?, ¿qué piden y qué se cierra?, ¿dónde se pierden las ventas?, ¿para qué meses?, ¿de dónde escriben?), cada una con un hallazgo calculado, filtros de período, trek e idioma, variación frente al período anterior y descarga de cada tabla, con **datos sintéticos** del demo (`data/consultas_sinteticas.csv`).
 
 ![Nueva consulta: la respuesta lista para WhatsApp](docs/captura_1_consulta.png)
 
 ![Perfil del viajero y opciones del tarifario](docs/captura_2_perfil_y_opciones.png)
 
 ![La respuesta abierta en WhatsApp](docs/captura_3_respuesta_whatsapp.png)
+
+![Tablero por preguntas, con datos sintéticos del demo](docs/captura_4_tablero.png)
 
 ## 7. Modelo de negocio
 

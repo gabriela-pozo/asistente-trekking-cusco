@@ -115,3 +115,13 @@ body { font-variant-numeric: tabular-nums; }
 .st-key-mi_semana { background: var(--superficie); border-left: 4px solid var(--primario); margin-bottom: 16px; }
 .st-key-seguimiento { background: var(--aviso-fondo); }
 .st-key-mi_semana [data-testid="stMetricValue"] { font-size: 40px; }
+
+/* Tablero por preguntas */
+.pregunta { font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 700; color: #15302B; margin: 0; }
+.hallazgo { font-size: 15px; color: #5B6F6A; margin: 2px 0 0; line-height: 1.45; }
+[class*="st-key-grafico_"] { background: var(--superficie); }
+.st-key-etiqueta_sinteticos { position: fixed; bottom: 16px; right: 16px; z-index: 1000; width: auto;
+  max-width: calc(100vw - 32px); }  /* siempre visible al bajar */
+.st-key-etiqueta_sinteticos + * { margin-top: 0; }
+[data-testid="stMainBlockContainer"]:has(.st-key-etiqueta_sinteticos) { padding-bottom: 72px; }
+.st-key-etiqueta_sinteticos .sinteticos { box-shadow: 0 2px 8px rgba(21, 48, 43, .12); }

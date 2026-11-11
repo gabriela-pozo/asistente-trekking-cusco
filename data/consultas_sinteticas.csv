@@ -1,301 +1,301 @@
-id,fecha_consulta,trek,pais,idioma,mes_viaje,personas,nivel,estado,monto_usd
-S001,2025-09-02,salkantay,Reino Unido,en,8,3,economico,cotizada,1380
-S002,2025-09-03,inca_jungle,Francia,fr,7,5,economico,cotizada,1800
-S003,2025-09-04,camino_inca,Estados Unidos,en,10,1,estandar,reservada,840
-S004,2025-09-04,salkantay,Israel,en,4,2,estandar,reservada,1200
-S005,2025-09-09,choquequirao,Alemania,de,5,2,estandar,cotizada,1060
-S006,2025-09-10,inca_jungle,Países Bajos,en,5,2,economico,cotizada,780
-S007,2025-09-12,lares,Reino Unido,en,3,2,estandar,reservada,1300
-S008,2025-09-13,salkantay,Países Bajos,en,8,2,premium,sin respuesta,0
-S009,2025-09-16,inca_jungle,Francia,fr,5,1,economico,cotizada,390
-S010,2025-09-16,camino_inca_corto,Brasil,pt,7,4,estandar,cotizada,2320
-S011,2025-09-17,salkantay,Francia,fr,7,1,premium,sin respuesta,0
-S012,2025-09-17,salkantay,Estados Unidos,en,12,2,economico,cotizada,960
-S013,2025-09-18,camino_inca_corto,Canadá,en,5,1,estandar,cotizada,600
-S014,2025-09-18,inca_jungle,Perú,es,9,3,economico,cotizada,1110
-S015,2025-09-22,salkantay,Brasil,pt,8,2,estandar,reservada,1360
-S016,2025-09-24,salkantay,Francia,fr,2,3,premium,cotizada,3150
-S017,2025-09-25,camino_inca,Estados Unidos,en,5,2,estandar,cotizada,1680
-S018,2025-09-26,camino_inca_corto,Brasil,pt,12,1,premium,reservada,960
-S019,2025-09-26,inca_jungle,Estados Unidos,en,6,4,economico,cotizada,1480
-S020,2025-09-26,salkantay,Reino Unido,en,8,1,estandar,sin respuesta,0
-S021,2025-09-27,camino_inca,Argentina,es,5,2,estandar,reservada,1680
-S022,2025-09-29,salkantay,Reino Unido,en,8,1,economico,cotizada,480
-S023,2025-09-29,choquequirao,Alemania,de,8,3,premium,cotizada,2460
-S024,2025-09-29,camino_inca_corto,Reino Unido,en,3,6,estandar,cotizada,3300
-S025,2025-09-29,salkantay,Canadá,en,7,2,estandar,reservada,1200
-S026,2025-10-02,inca_jungle,Australia,en,11,2,estandar,cotizada,980
-S027,2025-10-03,camino_inca,Francia,fr,11,5,economico,sin respuesta,0
-S028,2025-10-04,camino_inca_corto,Francia,fr,8,2,premium,cotizada,1920
-S029,2025-10-04,choquequirao,Canadá,en,7,2,economico,sin respuesta,0
-S030,2025-10-05,salkantay,Reino Unido,en,12,5,premium,cotizada,4400
-S031,2025-10-06,lares,Estados Unidos,en,8,1,economico,cotizada,520
-S032,2025-10-07,choquequirao,Reino Unido,en,1,2,premium,sin respuesta,0
-S033,2025-10-08,camino_inca,Francia,fr,12,3,estandar,cotizada,2430
-S034,2025-10-14,camino_inca,Argentina,es,7,2,economico,cotizada,1340
-S035,2025-10-14,camino_inca_corto,Países Bajos,en,5,1,estandar,cotizada,600
-S036,2025-10-17,lares,Francia,fr,7,2,estandar,cotizada,1300
-S037,2025-10-19,camino_inca,Francia,fr,11,4,estandar,reservada,3240
-S038,2025-10-21,camino_inca_corto,Estados Unidos,en,9,2,estandar,cotizada,1200
-S039,2025-10-26,lares,Brasil,pt,7,2,estandar,cotizada,1300
-S040,2025-10-28,camino_inca_corto,Países Bajos,en,9,2,premium,sin respuesta,0
-S041,2025-10-30,salkantay,Australia,en,5,2,economico,reservada,1080
-S042,2025-10-31,inca_jungle,Francia,fr,9,2,estandar,cotizada,980
-S043,2025-11-02,camino_inca_corto,Brasil,pt,4,1,premium,sin respuesta,0
-S044,2025-11-03,salkantay,Argentina,es,8,2,estandar,cotizada,1200
-S045,2025-11-05,lares,Canadá,en,9,2,estandar,cotizada,1300
-S046,2025-11-07,salkantay,Países Bajos,en,7,2,estandar,cotizada,1200
-S047,2025-11-10,camino_inca,Reino Unido,en,8,1,premium,cotizada,1340
-S048,2025-11-13,camino_inca,Estados Unidos,en,9,2,economico,cotizada,1340
-S049,2025-11-14,inca_jungle,Estados Unidos,en,12,1,estandar,reservada,490
-S050,2025-11-15,lares,España,es,7,5,economico,reservada,2400
-S051,2025-11-16,inca_jungle,Reino Unido,en,4,6,premium,cotizada,4320
-S052,2025-11-16,salkantay,Estados Unidos,en,7,4,estandar,cotizada,2600
-S053,2025-11-17,camino_inca,Perú,es,8,2,estandar,cotizada,1680
-S054,2025-11-18,camino_inca,Francia,fr,9,2,estandar,cotizada,1680
-S055,2025-11-18,salkantay,Brasil,pt,6,1,estandar,cotizada,680
-S056,2025-11-18,salkantay,Reino Unido,en,6,3,economico,cotizada,1560
-S057,2025-11-22,choquequirao,Estados Unidos,en,3,2,estandar,reservada,1060
-S058,2025-11-23,camino_inca,México,es,8,2,estandar,sin respuesta,0
-S059,2025-11-23,camino_inca,Estados Unidos,en,11,3,economico,cotizada,1920
-S060,2025-11-30,camino_inca,Estados Unidos,en,4,2,premium,cotizada,2680
-S061,2025-12-01,salkantay,España,es,7,1,estandar,cotizada,600
-S062,2025-12-02,inca_jungle,Estados Unidos,en,5,2,estandar,reservada,980
-S063,2025-12-03,salkantay,Reino Unido,en,9,1,estandar,cotizada,680
-S064,2025-12-05,camino_inca,Brasil,pt,9,2,estandar,reservada,1680
-S065,2025-12-06,choquequirao,Reino Unido,en,8,1,estandar,reservada,530
-S066,2025-12-07,camino_inca_corto,Australia,en,6,4,premium,cotizada,3680
-S067,2025-12-08,inca_jungle,Países Bajos,en,7,2,estandar,cotizada,980
-S068,2025-12-08,camino_inca,Canadá,en,4,1,estandar,cotizada,840
-S069,2025-12-08,inca_jungle,Estados Unidos,en,8,4,estandar,sin respuesta,0
-S070,2025-12-12,salkantay,Reino Unido,en,6,2,premium,cotizada,1920
-S071,2025-12-13,camino_inca,Francia,fr,9,1,economico,sin respuesta,0
-S072,2025-12-14,salkantay,Brasil,pt,8,4,premium,reservada,4200
-S073,2025-12-15,choquequirao,Canadá,en,5,4,estandar,reservada,2040
-S074,2025-12-16,salkantay,Reino Unido,en,11,2,economico,reservada,1080
-S075,2025-12-18,inca_jungle,Brasil,pt,9,2,premium,cotizada,1560
-S076,2025-12-20,salkantay,Canadá,en,11,1,estandar,reservada,600
-S077,2025-12-20,lares,Estados Unidos,en,4,4,economico,cotizada,2000
-S078,2025-12-23,choquequirao,Estados Unidos,en,8,2,estandar,cotizada,1060
-S079,2025-12-26,salkantay,Alemania,de,8,4,estandar,cotizada,2600
-S080,2025-12-29,salkantay,Canadá,en,6,1,estandar,cotizada,600
-S081,2026-01-02,salkantay,Brasil,pt,3,2,economico,sin respuesta,0
-S082,2026-01-04,lares,Reino Unido,en,3,2,estandar,sin respuesta,0
-S083,2026-01-05,inca_jungle,España,es,7,5,premium,reservada,3600
-S084,2026-01-05,camino_inca,Estados Unidos,en,9,4,estandar,reservada,3240
-S085,2026-01-07,camino_inca,Canadá,en,6,2,premium,cotizada,2680
-S086,2026-01-07,salkantay,México,es,9,6,estandar,cotizada,3300
-S087,2026-01-07,camino_inca_corto,México,es,11,4,estandar,reservada,2320
-S088,2026-01-08,lares,Alemania,de,8,4,economico,cotizada,2000
-S089,2026-01-08,camino_inca,Reino Unido,en,7,3,estandar,cotizada,2430
-S090,2026-01-08,salkantay,Estados Unidos,en,8,4,estandar,cotizada,2600
-S091,2026-01-09,salkantay,Australia,en,9,1,estandar,sin respuesta,0
-S092,2026-01-13,salkantay,España,es,12,8,estandar,cotizada,4400
-S093,2026-01-13,inca_jungle,México,es,9,2,estandar,reservada,980
-S094,2026-01-13,camino_inca_corto,Argentina,es,8,2,premium,cotizada,1920
-S095,2026-01-14,salkantay,Brasil,pt,8,1,estandar,cotizada,600
-S096,2026-01-17,salkantay,Países Bajos,en,2,2,estandar,cotizada,1360
-S097,2026-01-20,inca_jungle,Australia,en,11,2,premium,sin respuesta,0
-S098,2026-01-21,camino_inca_corto,Brasil,pt,8,2,estandar,cotizada,1200
-S099,2026-01-21,salkantay,Reino Unido,en,2,1,economico,sin respuesta,0
-S100,2026-01-22,camino_inca,España,es,5,5,estandar,cotizada,3850
-S101,2026-01-23,camino_inca_corto,Australia,en,6,2,estandar,cotizada,1200
-S102,2026-01-25,salkantay,Alemania,de,5,1,economico,sin respuesta,0
-S103,2026-01-28,camino_inca,Perú,es,4,4,estandar,cotizada,3240
-S104,2026-01-29,choquequirao,Reino Unido,en,6,2,estandar,cotizada,1060
-S105,2026-01-31,salkantay,Estados Unidos,en,7,1,premium,reservada,960
-S106,2026-02-01,salkantay,Reino Unido,en,6,6,estandar,reservada,3780
-S107,2026-02-01,choquequirao,Alemania,de,8,1,estandar,cotizada,530
-S108,2026-02-02,salkantay,Reino Unido,en,2,3,economico,reservada,1380
-S109,2026-02-03,choquequirao,Brasil,pt,1,3,economico,cotizada,1200
-S110,2026-02-04,inca_jungle,Estados Unidos,en,6,4,estandar,reservada,1880
-S111,2026-02-05,salkantay,Estados Unidos,en,6,2,premium,reservada,2180
-S112,2026-02-06,salkantay,Estados Unidos,en,9,2,estandar,cotizada,1200
-S113,2026-02-06,choquequirao,Brasil,pt,12,1,estandar,cotizada,530
-S114,2026-02-07,salkantay,Israel,en,9,6,estandar,cotizada,3780
-S115,2026-02-12,camino_inca,Francia,fr,5,1,premium,cotizada,1340
-S116,2026-02-12,inca_jungle,México,es,8,1,estandar,cotizada,490
-S117,2026-02-12,salkantay,Países Bajos,en,10,2,economico,cotizada,960
-S118,2026-02-13,inca_jungle,Estados Unidos,en,8,2,estandar,reservada,980
-S119,2026-02-13,salkantay,Estados Unidos,en,4,2,economico,cotizada,1080
-S120,2026-02-15,camino_inca_corto,Estados Unidos,en,6,8,economico,cotizada,3520
-S121,2026-02-18,camino_inca_corto,Reino Unido,en,6,8,estandar,cotizada,4400
-S122,2026-02-20,camino_inca,Estados Unidos,en,5,6,economico,cotizada,3720
-S123,2026-02-20,salkantay,México,es,12,6,premium,cotizada,6000
-S124,2026-02-21,salkantay,Perú,es,11,3,premium,cotizada,2760
-S125,2026-02-21,camino_inca_corto,Alemania,de,6,2,estandar,reservada,1200
-S126,2026-02-21,inca_jungle,Países Bajos,en,1,1,estandar,cotizada,490
-S127,2026-02-22,salkantay,Argentina,es,6,4,economico,cotizada,1840
-S128,2026-02-24,lares,Australia,en,4,1,estandar,reservada,650
-S129,2026-02-26,inca_jungle,España,es,12,2,economico,cotizada,780
-S130,2026-03-01,camino_inca_corto,Reino Unido,en,4,4,premium,sin respuesta,0
-S131,2026-03-02,camino_inca,Estados Unidos,en,5,2,premium,cotizada,2680
-S132,2026-03-02,inca_jungle,Argentina,es,9,1,economico,sin respuesta,0
-S133,2026-03-03,inca_jungle,Brasil,pt,6,1,estandar,cotizada,490
-S134,2026-03-05,salkantay,Estados Unidos,en,12,1,estandar,cotizada,600
-S135,2026-03-06,inca_jungle,Brasil,pt,5,1,estandar,cotizada,490
-S136,2026-03-06,choquequirao,Brasil,pt,5,2,economico,cotizada,840
-S137,2026-03-08,inca_jungle,Francia,fr,11,4,premium,cotizada,3000
-S138,2026-03-08,camino_inca,Estados Unidos,en,10,1,estandar,cotizada,840
-S139,2026-03-09,salkantay,Israel,en,12,3,premium,reservada,2760
-S140,2026-03-10,choquequirao,Reino Unido,en,9,3,premium,cotizada,2460
-S141,2026-03-11,lares,Estados Unidos,en,12,4,economico,cotizada,2000
-S142,2026-03-11,lares,Estados Unidos,en,6,2,estandar,cotizada,1300
-S143,2026-03-11,camino_inca,España,es,3,1,estandar,reservada,840
-S144,2026-03-12,choquequirao,Argentina,es,6,2,estandar,sin respuesta,0
-S145,2026-03-13,salkantay,Estados Unidos,en,9,3,premium,cotizada,2760
-S146,2026-03-15,choquequirao,Argentina,es,10,5,estandar,cotizada,2450
-S147,2026-03-16,choquequirao,Brasil,pt,6,1,estandar,cotizada,530
-S148,2026-03-19,salkantay,Alemania,de,2,2,economico,cotizada,960
-S149,2026-03-21,choquequirao,España,es,4,2,estandar,cotizada,1060
-S150,2026-03-27,salkantay,Brasil,pt,2,2,estandar,sin respuesta,0
-S151,2026-03-31,lares,Estados Unidos,en,9,2,estandar,cotizada,1300
-S152,2026-03-31,camino_inca,México,es,8,4,premium,reservada,5160
-S153,2026-04-01,camino_inca,Francia,fr,4,2,estandar,cotizada,1680
-S154,2026-04-04,camino_inca,Brasil,pt,9,1,economico,cotizada,670
-S155,2026-04-06,camino_inca,Alemania,de,6,2,economico,reservada,1340
-S156,2026-04-08,inca_jungle,Estados Unidos,en,7,2,estandar,sin respuesta,0
-S157,2026-04-09,salkantay,Francia,fr,9,5,premium,cotizada,5000
-S158,2026-04-14,camino_inca,Francia,fr,9,5,premium,cotizada,6150
-S159,2026-04-15,salkantay,Países Bajos,en,3,2,premium,cotizada,1920
-S160,2026-04-19,inca_jungle,Perú,es,9,4,estandar,cotizada,1880
-S161,2026-04-19,inca_jungle,Reino Unido,en,12,2,economico,cotizada,780
-S162,2026-04-21,lares,Israel,en,8,2,premium,cotizada,2080
-S163,2026-04-24,salkantay,Israel,en,2,3,estandar,cotizada,1740
-S164,2026-04-27,lares,Australia,en,10,5,estandar,cotizada,3000
-S165,2026-04-28,inca_jungle,México,es,6,3,economico,reservada,1110
-S166,2026-04-28,camino_inca,Alemania,de,5,1,estandar,sin respuesta,0
-S167,2026-04-28,salkantay,Brasil,pt,7,2,economico,cotizada,1080
-S168,2026-04-30,choquequirao,Canadá,en,5,4,premium,cotizada,3280
-S169,2026-04-30,inca_jungle,Estados Unidos,en,5,8,estandar,cotizada,3600
-S170,2026-05-04,camino_inca,Estados Unidos,en,6,2,estandar,cotizada,1680
-S171,2026-05-06,camino_inca,Canadá,en,7,2,estandar,reservada,1680
-S172,2026-05-07,camino_inca,Estados Unidos,en,8,1,estandar,sin respuesta,0
-S173,2026-05-07,inca_jungle,Estados Unidos,en,4,1,premium,sin respuesta,0
-S174,2026-05-08,camino_inca_corto,Estados Unidos,en,7,2,premium,cotizada,1920
-S175,2026-05-08,salkantay,Alemania,de,7,3,estandar,reservada,1740
-S176,2026-05-09,choquequirao,Países Bajos,en,7,2,estandar,sin respuesta,0
-S177,2026-05-10,inca_jungle,Países Bajos,en,6,2,premium,cotizada,1560
-S178,2026-05-11,salkantay,Alemania,de,8,2,estandar,cotizada,1360
-S179,2026-05-12,salkantay,Francia,fr,5,2,economico,sin respuesta,0
-S180,2026-05-15,salkantay,México,es,3,1,economico,cotizada,480
-S181,2026-05-16,camino_inca_corto,Francia,fr,7,2,economico,cotizada,960
-S182,2026-05-17,camino_inca,Canadá,en,7,4,estandar,reservada,3240
-S183,2026-05-17,inca_jungle,Reino Unido,en,4,1,estandar,cotizada,490
-S184,2026-05-17,salkantay,Francia,fr,7,2,estandar,cotizada,1360
-S185,2026-05-18,camino_inca,Perú,es,7,1,estandar,sin respuesta,0
-S186,2026-05-18,camino_inca,Estados Unidos,en,9,2,estandar,cotizada,1680
-S187,2026-05-19,camino_inca,Estados Unidos,en,6,1,estandar,cotizada,840
-S188,2026-05-23,inca_jungle,Países Bajos,en,5,1,premium,cotizada,780
-S189,2026-05-24,camino_inca_corto,Estados Unidos,en,4,1,economico,cotizada,480
-S190,2026-05-25,salkantay,España,es,9,2,premium,cotizada,2180
-S191,2026-05-25,camino_inca_corto,España,es,6,2,economico,cotizada,960
-S192,2026-05-29,choquequirao,Canadá,en,4,1,economico,cotizada,420
-S193,2026-05-29,salkantay,Australia,en,8,5,economico,cotizada,2500
-S194,2026-05-29,salkantay,Estados Unidos,en,7,3,economico,cotizada,1560
-S195,2026-06-01,salkantay,Canadá,en,8,1,estandar,cotizada,680
-S196,2026-06-04,inca_jungle,Estados Unidos,en,4,4,premium,cotizada,3000
-S197,2026-06-05,camino_inca_corto,Brasil,pt,8,8,premium,cotizada,7040
-S198,2026-06-05,salkantay,Argentina,es,11,2,premium,reservada,2180
-S199,2026-06-07,salkantay,Argentina,es,3,4,economico,cotizada,2080
-S200,2026-06-11,salkantay,Francia,fr,4,1,economico,cotizada,480
-S201,2026-06-13,camino_inca_corto,Estados Unidos,en,5,2,economico,cotizada,960
-S202,2026-06-13,inca_jungle,Francia,fr,2,4,estandar,cotizada,1880
-S203,2026-06-15,salkantay,Argentina,es,12,1,estandar,cotizada,600
-S204,2026-06-15,camino_inca_corto,Estados Unidos,en,9,2,estandar,sin respuesta,0
-S205,2026-06-16,camino_inca_corto,Estados Unidos,en,7,3,estandar,cotizada,1740
-S206,2026-06-19,salkantay,España,es,5,4,estandar,cotizada,2600
-S207,2026-06-20,salkantay,Perú,es,10,2,economico,cotizada,960
-S208,2026-06-20,salkantay,Perú,es,5,3,economico,cotizada,1560
-S209,2026-06-25,salkantay,Estados Unidos,en,7,1,economico,reservada,540
-S210,2026-06-25,salkantay,Francia,fr,8,2,economico,cotizada,1080
-S211,2026-06-27,lares,Estados Unidos,en,5,3,estandar,cotizada,1860
-S212,2026-07-01,salkantay,Reino Unido,en,4,1,economico,cotizada,480
-S213,2026-07-03,camino_inca,México,es,5,8,estandar,sin respuesta,0
-S214,2026-07-04,inca_jungle,Estados Unidos,en,5,2,economico,cotizada,780
-S215,2026-07-05,camino_inca_corto,Argentina,es,9,8,estandar,cotizada,4400
-S216,2026-07-07,inca_jungle,Reino Unido,en,10,2,estandar,cotizada,980
-S217,2026-07-08,camino_inca,Brasil,pt,5,1,estandar,cotizada,840
-S218,2026-07-09,salkantay,Países Bajos,en,5,2,premium,cotizada,1920
-S219,2026-07-18,camino_inca,Brasil,pt,7,1,estandar,cotizada,840
-S220,2026-07-19,inca_jungle,Estados Unidos,en,8,1,estandar,cotizada,490
-S221,2026-07-20,inca_jungle,Alemania,de,6,2,estandar,cotizada,980
-S222,2026-07-20,choquequirao,Estados Unidos,en,4,2,estandar,sin respuesta,0
-S223,2026-07-20,camino_inca_corto,México,es,8,1,estandar,cotizada,600
-S224,2026-07-29,choquequirao,Canadá,en,12,4,economico,cotizada,1600
-S225,2026-08-03,camino_inca,Brasil,pt,6,2,estandar,cotizada,1680
-S226,2026-08-03,camino_inca,Estados Unidos,en,3,2,economico,cotizada,1340
-S227,2026-08-06,salkantay,Estados Unidos,en,7,2,estandar,reservada,1360
-S228,2026-08-08,salkantay,Reino Unido,en,5,1,premium,sin respuesta,0
-S229,2026-08-08,salkantay,Alemania,de,5,2,estandar,cotizada,1200
-S230,2026-08-10,salkantay,Brasil,pt,9,2,economico,cotizada,1080
-S231,2026-08-10,lares,Canadá,en,6,1,economico,reservada,520
-S232,2026-08-10,lares,Estados Unidos,en,6,3,premium,cotizada,3000
-S233,2026-08-11,salkantay,Países Bajos,en,7,2,economico,sin respuesta,0
-S234,2026-08-11,salkantay,Perú,es,3,2,economico,reservada,1080
-S235,2026-08-11,lares,Argentina,es,10,5,premium,sin respuesta,0
-S236,2026-08-12,inca_jungle,Francia,fr,5,4,premium,reservada,3000
-S237,2026-08-12,salkantay,Estados Unidos,en,1,6,estandar,reservada,3780
-S238,2026-08-13,camino_inca,Estados Unidos,en,8,2,economico,cotizada,1340
-S239,2026-08-14,salkantay,Francia,fr,12,4,economico,cotizada,1840
-S240,2026-08-16,camino_inca,Alemania,de,7,2,estandar,cotizada,1680
-S241,2026-08-16,choquequirao,Reino Unido,en,2,4,estandar,cotizada,2040
-S242,2026-08-16,camino_inca,México,es,6,2,economico,cotizada,1340
-S243,2026-08-17,lares,Argentina,es,11,2,estandar,cotizada,1300
-S244,2026-08-18,camino_inca,Estados Unidos,en,6,2,premium,cotizada,2680
-S245,2026-08-20,lares,Canadá,en,7,2,premium,cotizada,2080
-S246,2026-08-20,salkantay,Australia,en,8,5,estandar,cotizada,3150
-S247,2026-08-21,inca_jungle,Reino Unido,en,2,3,economico,cotizada,1110
-S248,2026-08-24,salkantay,Alemania,de,5,2,estandar,cotizada,1200
-S249,2026-08-24,camino_inca,Reino Unido,en,12,6,economico,cotizada,3720
-S250,2026-08-25,salkantay,Países Bajos,en,3,4,estandar,cotizada,2600
-S251,2026-08-25,choquequirao,España,es,9,2,economico,cotizada,840
-S252,2026-08-27,camino_inca_corto,Argentina,es,11,1,estandar,cotizada,600
-S253,2026-08-27,salkantay,Estados Unidos,en,7,6,estandar,sin respuesta,0
-S254,2026-08-28,camino_inca,Argentina,es,9,1,estandar,cotizada,840
-S255,2026-08-28,salkantay,Australia,en,5,2,estandar,cotizada,1200
-S256,2026-08-28,camino_inca,Estados Unidos,en,9,2,premium,cotizada,2680
-S257,2026-08-28,inca_jungle,Canadá,en,1,2,economico,cotizada,780
-S258,2026-08-29,camino_inca,Alemania,de,8,2,estandar,sin respuesta,0
-S259,2026-08-31,salkantay,Brasil,pt,1,2,economico,cotizada,1080
-S260,2026-09-02,camino_inca_corto,Países Bajos,en,7,1,estandar,cotizada,600
-S261,2026-09-02,salkantay,Perú,es,8,2,estandar,cotizada,1360
-S262,2026-09-03,camino_inca_corto,Canadá,en,10,2,economico,cotizada,960
-S263,2026-09-04,choquequirao,México,es,6,8,estandar,reservada,3920
-S264,2026-09-05,salkantay,México,es,3,1,estandar,cotizada,680
-S265,2026-09-07,inca_jungle,España,es,9,4,estandar,reservada,1880
-S266,2026-09-09,choquequirao,México,es,2,3,estandar,sin respuesta,0
-S267,2026-09-10,camino_inca,Australia,en,11,2,economico,reservada,1340
-S268,2026-09-11,inca_jungle,Canadá,en,6,2,premium,cotizada,1560
-S269,2026-09-12,camino_inca,Estados Unidos,en,7,5,premium,reservada,6150
-S270,2026-09-14,camino_inca,Canadá,en,6,2,estandar,cotizada,1680
-S271,2026-09-16,salkantay,Estados Unidos,en,2,5,estandar,cotizada,2750
-S272,2026-09-16,salkantay,Reino Unido,en,4,2,economico,cotizada,1080
-S273,2026-09-19,salkantay,Alemania,de,7,2,premium,sin respuesta,0
-S274,2026-09-21,salkantay,Argentina,es,8,1,economico,reservada,540
-S275,2026-09-24,choquequirao,Argentina,es,3,5,estandar,cotizada,2450
-S276,2026-09-26,inca_jungle,Alemania,de,8,1,estandar,sin respuesta,0
-S277,2026-09-26,salkantay,México,es,2,2,economico,cotizada,1080
-S278,2026-09-29,choquequirao,Estados Unidos,en,9,2,premium,cotizada,1700
-S279,2026-09-29,lares,España,es,4,2,premium,cotizada,2080
-S280,2026-10-01,choquequirao,México,es,7,2,estandar,cotizada,1060
-S281,2026-10-01,choquequirao,Perú,es,5,8,economico,cotizada,3120
-S282,2026-10-05,lares,Estados Unidos,en,6,2,estandar,cotizada,1300
-S283,2026-10-07,camino_inca_corto,Estados Unidos,en,8,2,estandar,cotizada,1200
-S284,2026-10-07,camino_inca_corto,Francia,fr,3,6,economico,sin respuesta,0
-S285,2026-10-09,camino_inca_corto,Reino Unido,en,6,2,economico,reservada,960
-S286,2026-10-09,camino_inca,Estados Unidos,en,1,2,estandar,cotizada,1680
-S287,2026-10-10,salkantay,Estados Unidos,en,7,2,estandar,reservada,1200
-S288,2026-10-12,camino_inca,Canadá,en,7,8,estandar,reservada,6160
-S289,2026-10-13,salkantay,Perú,es,12,2,estandar,reservada,1360
-S290,2026-10-14,salkantay,México,es,6,2,premium,sin respuesta,0
-S291,2026-10-15,camino_inca,Estados Unidos,en,7,1,estandar,reservada,840
-S292,2026-10-16,lares,Países Bajos,en,8,5,economico,sin respuesta,0
-S293,2026-10-23,lares,España,es,9,3,estandar,cotizada,1860
-S294,2026-10-23,salkantay,Argentina,es,4,2,premium,cotizada,1920
-S295,2026-10-24,camino_inca,Estados Unidos,en,9,5,estandar,cotizada,3850
-S296,2026-10-24,camino_inca_corto,Brasil,pt,8,2,economico,cotizada,960
-S297,2026-10-27,salkantay,Estados Unidos,en,4,4,economico,cotizada,1840
-S298,2026-10-31,choquequirao,Estados Unidos,en,6,1,estandar,sin respuesta,0
-S299,2026-10-31,salkantay,Estados Unidos,en,6,2,estandar,cotizada,1360
-S300,2026-10-31,salkantay,Estados Unidos,en,4,3,economico,cotizada,1560
+id,fecha_consulta,trek,pais,idioma,mes_viaje,personas,nivel,estado,monto_usd,dia_semana,hora_llegada
+S001,2025-09-02,salkantay,Reino Unido,en,8,3,economico,cotizada,1380,martes,08:17
+S002,2025-09-03,inca_jungle,Francia,fr,7,5,economico,cotizada,1800,miércoles,09:04
+S003,2025-09-04,camino_inca,Estados Unidos,en,10,1,estandar,reservada,840,jueves,15:07
+S004,2025-09-04,salkantay,Israel,en,4,2,estandar,reservada,1200,jueves,00:37
+S005,2025-09-09,choquequirao,Alemania,de,5,2,estandar,cotizada,1060,martes,07:43
+S006,2025-09-10,inca_jungle,Países Bajos,en,5,2,economico,cotizada,780,miércoles,17:53
+S007,2025-09-12,lares,Reino Unido,en,3,2,estandar,reservada,1300,viernes,15:32
+S008,2025-09-13,salkantay,Países Bajos,en,8,2,premium,sin respuesta,0,sábado,14:11
+S009,2025-09-16,inca_jungle,Francia,fr,5,1,economico,cotizada,390,martes,00:51
+S010,2025-09-16,camino_inca_corto,Brasil,pt,7,4,estandar,cotizada,2320,martes,19:06
+S011,2025-09-17,salkantay,Francia,fr,7,1,premium,sin respuesta,0,miércoles,02:49
+S012,2025-09-17,salkantay,Estados Unidos,en,12,2,economico,cotizada,960,miércoles,13:38
+S013,2025-09-18,camino_inca_corto,Canadá,en,5,1,estandar,cotizada,600,jueves,12:12
+S014,2025-09-18,inca_jungle,Perú,es,9,3,economico,cotizada,1110,jueves,23:43
+S015,2025-09-22,salkantay,Brasil,pt,8,2,estandar,reservada,1360,lunes,11:02
+S016,2025-09-24,salkantay,Francia,fr,2,3,premium,cotizada,3150,miércoles,03:38
+S017,2025-09-25,camino_inca,Estados Unidos,en,5,2,estandar,cotizada,1680,jueves,12:52
+S018,2025-09-26,camino_inca_corto,Brasil,pt,12,1,premium,reservada,960,viernes,11:13
+S019,2025-09-26,inca_jungle,Estados Unidos,en,6,4,economico,cotizada,1480,viernes,00:30
+S020,2025-09-26,salkantay,Reino Unido,en,8,1,estandar,sin respuesta,0,viernes,15:41
+S021,2025-09-27,camino_inca,Argentina,es,5,2,estandar,reservada,1680,sábado,13:24
+S022,2025-09-29,salkantay,Reino Unido,en,8,1,economico,cotizada,480,lunes,14:34
+S023,2025-09-29,choquequirao,Alemania,de,8,3,premium,cotizada,2460,lunes,14:27
+S024,2025-09-29,camino_inca_corto,Reino Unido,en,3,6,estandar,cotizada,3300,lunes,04:56
+S025,2025-09-29,salkantay,Canadá,en,7,2,estandar,reservada,1200,lunes,22:39
+S026,2025-10-02,inca_jungle,Australia,en,11,2,estandar,cotizada,980,jueves,06:38
+S027,2025-10-03,camino_inca,Francia,fr,11,5,economico,sin respuesta,0,viernes,08:48
+S028,2025-10-04,camino_inca_corto,Francia,fr,8,2,premium,cotizada,1920,sábado,14:49
+S029,2025-10-04,choquequirao,Canadá,en,7,2,economico,sin respuesta,0,sábado,01:15
+S030,2025-10-05,salkantay,Reino Unido,en,12,5,premium,cotizada,4400,domingo,11:13
+S031,2025-10-06,lares,Estados Unidos,en,8,1,economico,cotizada,520,lunes,19:31
+S032,2025-10-07,choquequirao,Reino Unido,en,1,2,premium,sin respuesta,0,martes,06:40
+S033,2025-10-08,camino_inca,Francia,fr,12,3,estandar,cotizada,2430,miércoles,13:30
+S034,2025-10-14,camino_inca,Argentina,es,7,2,economico,cotizada,1340,martes,10:00
+S035,2025-10-14,camino_inca_corto,Países Bajos,en,5,1,estandar,cotizada,600,martes,03:10
+S036,2025-10-17,lares,Francia,fr,7,2,estandar,cotizada,1300,viernes,11:31
+S037,2025-10-19,camino_inca,Francia,fr,11,4,estandar,reservada,3240,domingo,15:44
+S038,2025-10-21,camino_inca_corto,Estados Unidos,en,9,2,estandar,cotizada,1200,martes,21:15
+S039,2025-10-26,lares,Brasil,pt,7,2,estandar,cotizada,1300,domingo,20:21
+S040,2025-10-28,camino_inca_corto,Países Bajos,en,9,2,premium,sin respuesta,0,martes,18:35
+S041,2025-10-30,salkantay,Australia,en,5,2,economico,reservada,1080,jueves,19:58
+S042,2025-10-31,inca_jungle,Francia,fr,9,2,estandar,cotizada,980,viernes,12:22
+S043,2025-11-02,camino_inca_corto,Brasil,pt,4,1,premium,sin respuesta,0,domingo,15:03
+S044,2025-11-03,salkantay,Argentina,es,8,2,estandar,cotizada,1200,lunes,23:13
+S045,2025-11-05,lares,Canadá,en,9,2,estandar,cotizada,1300,miércoles,17:29
+S046,2025-11-07,salkantay,Países Bajos,en,7,2,estandar,cotizada,1200,viernes,01:06
+S047,2025-11-10,camino_inca,Reino Unido,en,8,1,premium,cotizada,1340,lunes,16:40
+S048,2025-11-13,camino_inca,Estados Unidos,en,9,2,economico,cotizada,1340,jueves,12:23
+S049,2025-11-14,inca_jungle,Estados Unidos,en,12,1,estandar,reservada,490,viernes,12:55
+S050,2025-11-15,lares,España,es,7,5,economico,reservada,2400,sábado,16:56
+S051,2025-11-16,inca_jungle,Reino Unido,en,4,6,premium,cotizada,4320,domingo,02:49
+S052,2025-11-16,salkantay,Estados Unidos,en,7,4,estandar,cotizada,2600,domingo,08:04
+S053,2025-11-17,camino_inca,Perú,es,8,2,estandar,cotizada,1680,lunes,22:55
+S054,2025-11-18,camino_inca,Francia,fr,9,2,estandar,cotizada,1680,martes,02:24
+S055,2025-11-18,salkantay,Brasil,pt,6,1,estandar,cotizada,680,martes,00:23
+S056,2025-11-18,salkantay,Reino Unido,en,6,3,economico,cotizada,1560,martes,02:43
+S057,2025-11-22,choquequirao,Estados Unidos,en,3,2,estandar,reservada,1060,sábado,15:08
+S058,2025-11-23,camino_inca,México,es,8,2,estandar,sin respuesta,0,domingo,03:07
+S059,2025-11-23,camino_inca,Estados Unidos,en,11,3,economico,cotizada,1920,domingo,23:40
+S060,2025-11-30,camino_inca,Estados Unidos,en,4,2,premium,cotizada,2680,domingo,17:52
+S061,2025-12-01,salkantay,España,es,7,1,estandar,cotizada,600,lunes,17:36
+S062,2025-12-02,inca_jungle,Estados Unidos,en,5,2,estandar,reservada,980,martes,15:12
+S063,2025-12-03,salkantay,Reino Unido,en,9,1,estandar,cotizada,680,miércoles,03:01
+S064,2025-12-05,camino_inca,Brasil,pt,9,2,estandar,reservada,1680,viernes,17:14
+S065,2025-12-06,choquequirao,Reino Unido,en,8,1,estandar,reservada,530,sábado,16:43
+S066,2025-12-07,camino_inca_corto,Australia,en,6,4,premium,cotizada,3680,domingo,23:45
+S067,2025-12-08,inca_jungle,Países Bajos,en,7,2,estandar,cotizada,980,lunes,16:38
+S068,2025-12-08,camino_inca,Canadá,en,4,1,estandar,cotizada,840,lunes,19:25
+S069,2025-12-08,inca_jungle,Estados Unidos,en,8,4,estandar,sin respuesta,0,lunes,21:25
+S070,2025-12-12,salkantay,Reino Unido,en,6,2,premium,cotizada,1920,viernes,03:45
+S071,2025-12-13,camino_inca,Francia,fr,9,1,economico,sin respuesta,0,sábado,09:37
+S072,2025-12-14,salkantay,Brasil,pt,8,4,premium,reservada,4200,domingo,19:11
+S073,2025-12-15,choquequirao,Canadá,en,5,4,estandar,reservada,2040,lunes,22:05
+S074,2025-12-16,salkantay,Reino Unido,en,11,2,economico,reservada,1080,martes,03:28
+S075,2025-12-18,inca_jungle,Brasil,pt,9,2,premium,cotizada,1560,jueves,09:36
+S076,2025-12-20,salkantay,Canadá,en,11,1,estandar,reservada,600,sábado,22:41
+S077,2025-12-20,lares,Estados Unidos,en,4,4,economico,cotizada,2000,sábado,00:58
+S078,2025-12-23,choquequirao,Estados Unidos,en,8,2,estandar,cotizada,1060,martes,19:22
+S079,2025-12-26,salkantay,Alemania,de,8,4,estandar,cotizada,2600,viernes,03:39
+S080,2025-12-29,salkantay,Canadá,en,6,1,estandar,cotizada,600,lunes,11:23
+S081,2026-01-02,salkantay,Brasil,pt,3,2,economico,sin respuesta,0,viernes,04:30
+S082,2026-01-04,lares,Reino Unido,en,3,2,estandar,sin respuesta,0,domingo,16:36
+S083,2026-01-05,inca_jungle,España,es,7,5,premium,reservada,3600,lunes,06:03
+S084,2026-01-05,camino_inca,Estados Unidos,en,9,4,estandar,reservada,3240,lunes,17:30
+S085,2026-01-07,camino_inca,Canadá,en,6,2,premium,cotizada,2680,miércoles,10:13
+S086,2026-01-07,salkantay,México,es,9,6,estandar,cotizada,3300,miércoles,08:41
+S087,2026-01-07,camino_inca_corto,México,es,11,4,estandar,reservada,2320,miércoles,21:18
+S088,2026-01-08,lares,Alemania,de,8,4,economico,cotizada,2000,jueves,14:20
+S089,2026-01-08,camino_inca,Reino Unido,en,7,3,estandar,cotizada,2430,jueves,16:38
+S090,2026-01-08,salkantay,Estados Unidos,en,8,4,estandar,cotizada,2600,jueves,09:17
+S091,2026-01-09,salkantay,Australia,en,9,1,estandar,sin respuesta,0,viernes,14:23
+S092,2026-01-13,salkantay,España,es,12,8,estandar,cotizada,4400,martes,16:38
+S093,2026-01-13,inca_jungle,México,es,9,2,estandar,reservada,980,martes,23:21
+S094,2026-01-13,camino_inca_corto,Argentina,es,8,2,premium,cotizada,1920,martes,17:12
+S095,2026-01-14,salkantay,Brasil,pt,8,1,estandar,cotizada,600,miércoles,16:59
+S096,2026-01-17,salkantay,Países Bajos,en,2,2,estandar,cotizada,1360,sábado,03:18
+S097,2026-01-20,inca_jungle,Australia,en,11,2,premium,sin respuesta,0,martes,02:09
+S098,2026-01-21,camino_inca_corto,Brasil,pt,8,2,estandar,cotizada,1200,miércoles,07:52
+S099,2026-01-21,salkantay,Reino Unido,en,2,1,economico,sin respuesta,0,miércoles,17:55
+S100,2026-01-22,camino_inca,España,es,5,5,estandar,cotizada,3850,jueves,02:28
+S101,2026-01-23,camino_inca_corto,Australia,en,6,2,estandar,cotizada,1200,viernes,22:37
+S102,2026-01-25,salkantay,Alemania,de,5,1,economico,sin respuesta,0,domingo,15:42
+S103,2026-01-28,camino_inca,Perú,es,4,4,estandar,cotizada,3240,miércoles,21:39
+S104,2026-01-29,choquequirao,Reino Unido,en,6,2,estandar,cotizada,1060,jueves,02:08
+S105,2026-01-31,salkantay,Estados Unidos,en,7,1,premium,reservada,960,sábado,20:33
+S106,2026-02-01,salkantay,Reino Unido,en,6,6,estandar,reservada,3780,domingo,16:27
+S107,2026-02-01,choquequirao,Alemania,de,8,1,estandar,cotizada,530,domingo,02:09
+S108,2026-02-02,salkantay,Reino Unido,en,2,3,economico,reservada,1380,lunes,15:36
+S109,2026-02-03,choquequirao,Brasil,pt,1,3,economico,cotizada,1200,martes,16:36
+S110,2026-02-04,inca_jungle,Estados Unidos,en,6,4,estandar,reservada,1880,miércoles,21:19
+S111,2026-02-05,salkantay,Estados Unidos,en,6,2,premium,reservada,2180,jueves,14:19
+S112,2026-02-06,salkantay,Estados Unidos,en,9,2,estandar,cotizada,1200,viernes,06:10
+S113,2026-02-06,choquequirao,Brasil,pt,12,1,estandar,cotizada,530,viernes,16:07
+S114,2026-02-07,salkantay,Israel,en,9,6,estandar,cotizada,3780,sábado,09:22
+S115,2026-02-12,camino_inca,Francia,fr,5,1,premium,cotizada,1340,jueves,01:21
+S116,2026-02-12,inca_jungle,México,es,8,1,estandar,cotizada,490,jueves,16:32
+S117,2026-02-12,salkantay,Países Bajos,en,10,2,economico,cotizada,960,jueves,13:03
+S118,2026-02-13,inca_jungle,Estados Unidos,en,8,2,estandar,reservada,980,viernes,21:58
+S119,2026-02-13,salkantay,Estados Unidos,en,4,2,economico,cotizada,1080,viernes,10:22
+S120,2026-02-15,camino_inca_corto,Estados Unidos,en,6,8,economico,cotizada,3520,domingo,14:48
+S121,2026-02-18,camino_inca_corto,Reino Unido,en,6,8,estandar,cotizada,4400,miércoles,13:47
+S122,2026-02-20,camino_inca,Estados Unidos,en,5,6,economico,cotizada,3720,viernes,13:50
+S123,2026-02-20,salkantay,México,es,12,6,premium,cotizada,6000,viernes,22:07
+S124,2026-02-21,salkantay,Perú,es,11,3,premium,cotizada,2760,sábado,13:16
+S125,2026-02-21,camino_inca_corto,Alemania,de,6,2,estandar,reservada,1200,sábado,12:33
+S126,2026-02-21,inca_jungle,Países Bajos,en,1,1,estandar,cotizada,490,sábado,13:38
+S127,2026-02-22,salkantay,Argentina,es,6,4,economico,cotizada,1840,domingo,19:22
+S128,2026-02-24,lares,Australia,en,4,1,estandar,reservada,650,martes,01:28
+S129,2026-02-26,inca_jungle,España,es,12,2,economico,cotizada,780,jueves,07:29
+S130,2026-03-01,camino_inca_corto,Reino Unido,en,4,4,premium,sin respuesta,0,domingo,16:39
+S131,2026-03-02,camino_inca,Estados Unidos,en,5,2,premium,cotizada,2680,lunes,00:54
+S132,2026-03-02,inca_jungle,Argentina,es,9,1,economico,sin respuesta,0,lunes,11:49
+S133,2026-03-03,inca_jungle,Brasil,pt,6,1,estandar,cotizada,490,martes,20:41
+S134,2026-03-05,salkantay,Estados Unidos,en,12,1,estandar,cotizada,600,jueves,22:26
+S135,2026-03-06,inca_jungle,Brasil,pt,5,1,estandar,cotizada,490,viernes,09:13
+S136,2026-03-06,choquequirao,Brasil,pt,5,2,economico,cotizada,840,viernes,20:50
+S137,2026-03-08,inca_jungle,Francia,fr,11,4,premium,cotizada,3000,domingo,13:15
+S138,2026-03-08,camino_inca,Estados Unidos,en,10,1,estandar,cotizada,840,domingo,08:37
+S139,2026-03-09,salkantay,Israel,en,12,3,premium,reservada,2760,lunes,01:08
+S140,2026-03-10,choquequirao,Reino Unido,en,9,3,premium,cotizada,2460,martes,17:29
+S141,2026-03-11,lares,Estados Unidos,en,12,4,economico,cotizada,2000,miércoles,09:51
+S142,2026-03-11,lares,Estados Unidos,en,6,2,estandar,cotizada,1300,miércoles,18:37
+S143,2026-03-11,camino_inca,España,es,3,1,estandar,reservada,840,miércoles,01:11
+S144,2026-03-12,choquequirao,Argentina,es,6,2,estandar,sin respuesta,0,jueves,18:57
+S145,2026-03-13,salkantay,Estados Unidos,en,9,3,premium,cotizada,2760,viernes,23:36
+S146,2026-03-15,choquequirao,Argentina,es,10,5,estandar,cotizada,2450,domingo,13:44
+S147,2026-03-16,choquequirao,Brasil,pt,6,1,estandar,cotizada,530,lunes,07:53
+S148,2026-03-19,salkantay,Alemania,de,2,2,economico,cotizada,960,jueves,07:12
+S149,2026-03-21,choquequirao,España,es,4,2,estandar,cotizada,1060,sábado,07:26
+S150,2026-03-27,salkantay,Brasil,pt,2,2,estandar,sin respuesta,0,viernes,19:32
+S151,2026-03-31,lares,Estados Unidos,en,9,2,estandar,cotizada,1300,martes,10:56
+S152,2026-03-31,camino_inca,México,es,8,4,premium,reservada,5160,martes,22:05
+S153,2026-04-01,camino_inca,Francia,fr,4,2,estandar,cotizada,1680,miércoles,14:37
+S154,2026-04-04,camino_inca,Brasil,pt,9,1,economico,cotizada,670,sábado,05:05
+S155,2026-04-06,camino_inca,Alemania,de,6,2,economico,reservada,1340,lunes,09:37
+S156,2026-04-08,inca_jungle,Estados Unidos,en,7,2,estandar,sin respuesta,0,miércoles,21:35
+S157,2026-04-09,salkantay,Francia,fr,9,5,premium,cotizada,5000,jueves,13:08
+S158,2026-04-14,camino_inca,Francia,fr,9,5,premium,cotizada,6150,martes,11:26
+S159,2026-04-15,salkantay,Países Bajos,en,3,2,premium,cotizada,1920,miércoles,14:01
+S160,2026-04-19,inca_jungle,Perú,es,9,4,estandar,cotizada,1880,domingo,20:46
+S161,2026-04-19,inca_jungle,Reino Unido,en,12,2,economico,cotizada,780,domingo,07:35
+S162,2026-04-21,lares,Israel,en,8,2,premium,cotizada,2080,martes,09:07
+S163,2026-04-24,salkantay,Israel,en,2,3,estandar,cotizada,1740,viernes,23:34
+S164,2026-04-27,lares,Australia,en,10,5,estandar,cotizada,3000,lunes,04:00
+S165,2026-04-28,inca_jungle,México,es,6,3,economico,reservada,1110,martes,23:11
+S166,2026-04-28,camino_inca,Alemania,de,5,1,estandar,sin respuesta,0,martes,05:56
+S167,2026-04-28,salkantay,Brasil,pt,7,2,economico,cotizada,1080,martes,13:47
+S168,2026-04-30,choquequirao,Canadá,en,5,4,premium,cotizada,3280,jueves,13:35
+S169,2026-04-30,inca_jungle,Estados Unidos,en,5,8,estandar,cotizada,3600,jueves,09:22
+S170,2026-05-04,camino_inca,Estados Unidos,en,6,2,estandar,cotizada,1680,lunes,11:50
+S171,2026-05-06,camino_inca,Canadá,en,7,2,estandar,reservada,1680,miércoles,19:03
+S172,2026-05-07,camino_inca,Estados Unidos,en,8,1,estandar,sin respuesta,0,jueves,13:56
+S173,2026-05-07,inca_jungle,Estados Unidos,en,4,1,premium,sin respuesta,0,jueves,23:11
+S174,2026-05-08,camino_inca_corto,Estados Unidos,en,7,2,premium,cotizada,1920,viernes,23:10
+S175,2026-05-08,salkantay,Alemania,de,7,3,estandar,reservada,1740,viernes,14:47
+S176,2026-05-09,choquequirao,Países Bajos,en,7,2,estandar,sin respuesta,0,sábado,06:23
+S177,2026-05-10,inca_jungle,Países Bajos,en,6,2,premium,cotizada,1560,domingo,02:34
+S178,2026-05-11,salkantay,Alemania,de,8,2,estandar,cotizada,1360,lunes,08:07
+S179,2026-05-12,salkantay,Francia,fr,5,2,economico,sin respuesta,0,martes,14:20
+S180,2026-05-15,salkantay,México,es,3,1,economico,cotizada,480,viernes,07:16
+S181,2026-05-16,camino_inca_corto,Francia,fr,7,2,economico,cotizada,960,sábado,07:31
+S182,2026-05-17,camino_inca,Canadá,en,7,4,estandar,reservada,3240,domingo,23:12
+S183,2026-05-17,inca_jungle,Reino Unido,en,4,1,estandar,cotizada,490,domingo,05:42
+S184,2026-05-17,salkantay,Francia,fr,7,2,estandar,cotizada,1360,domingo,02:01
+S185,2026-05-18,camino_inca,Perú,es,7,1,estandar,sin respuesta,0,lunes,13:01
+S186,2026-05-18,camino_inca,Estados Unidos,en,9,2,estandar,cotizada,1680,lunes,20:05
+S187,2026-05-19,camino_inca,Estados Unidos,en,6,1,estandar,cotizada,840,martes,21:25
+S188,2026-05-23,inca_jungle,Países Bajos,en,5,1,premium,cotizada,780,sábado,16:21
+S189,2026-05-24,camino_inca_corto,Estados Unidos,en,4,1,economico,cotizada,480,domingo,18:38
+S190,2026-05-25,salkantay,España,es,9,2,premium,cotizada,2180,lunes,04:05
+S191,2026-05-25,camino_inca_corto,España,es,6,2,economico,cotizada,960,lunes,14:46
+S192,2026-05-29,choquequirao,Canadá,en,4,1,economico,cotizada,420,viernes,20:50
+S193,2026-05-29,salkantay,Australia,en,8,5,economico,cotizada,2500,viernes,05:48
+S194,2026-05-29,salkantay,Estados Unidos,en,7,3,economico,cotizada,1560,viernes,01:08
+S195,2026-06-01,salkantay,Canadá,en,8,1,estandar,cotizada,680,lunes,13:16
+S196,2026-06-04,inca_jungle,Estados Unidos,en,4,4,premium,cotizada,3000,jueves,22:07
+S197,2026-06-05,camino_inca_corto,Brasil,pt,8,8,premium,cotizada,7040,viernes,13:41
+S198,2026-06-05,salkantay,Argentina,es,11,2,premium,reservada,2180,viernes,22:35
+S199,2026-06-07,salkantay,Argentina,es,3,4,economico,cotizada,2080,domingo,18:34
+S200,2026-06-11,salkantay,Francia,fr,4,1,economico,cotizada,480,jueves,15:21
+S201,2026-06-13,camino_inca_corto,Estados Unidos,en,5,2,economico,cotizada,960,sábado,23:52
+S202,2026-06-13,inca_jungle,Francia,fr,2,4,estandar,cotizada,1880,sábado,03:03
+S203,2026-06-15,salkantay,Argentina,es,12,1,estandar,cotizada,600,lunes,16:15
+S204,2026-06-15,camino_inca_corto,Estados Unidos,en,9,2,estandar,sin respuesta,0,lunes,23:10
+S205,2026-06-16,camino_inca_corto,Estados Unidos,en,7,3,estandar,cotizada,1740,martes,14:31
+S206,2026-06-19,salkantay,España,es,5,4,estandar,cotizada,2600,viernes,04:56
+S207,2026-06-20,salkantay,Perú,es,10,2,economico,cotizada,960,sábado,18:00
+S208,2026-06-20,salkantay,Perú,es,5,3,economico,cotizada,1560,sábado,20:38
+S209,2026-06-25,salkantay,Estados Unidos,en,7,1,economico,reservada,540,jueves,21:32
+S210,2026-06-25,salkantay,Francia,fr,8,2,economico,cotizada,1080,jueves,05:12
+S211,2026-06-27,lares,Estados Unidos,en,5,3,estandar,cotizada,1860,sábado,04:12
+S212,2026-07-01,salkantay,Reino Unido,en,4,1,economico,cotizada,480,miércoles,03:51
+S213,2026-07-03,camino_inca,México,es,5,8,estandar,sin respuesta,0,viernes,21:58
+S214,2026-07-04,inca_jungle,Estados Unidos,en,5,2,economico,cotizada,780,sábado,13:49
+S215,2026-07-05,camino_inca_corto,Argentina,es,9,8,estandar,cotizada,4400,domingo,21:37
+S216,2026-07-07,inca_jungle,Reino Unido,en,10,2,estandar,cotizada,980,martes,12:05
+S217,2026-07-08,camino_inca,Brasil,pt,5,1,estandar,cotizada,840,miércoles,06:18
+S218,2026-07-09,salkantay,Países Bajos,en,5,2,premium,cotizada,1920,jueves,04:32
+S219,2026-07-18,camino_inca,Brasil,pt,7,1,estandar,cotizada,840,sábado,09:04
+S220,2026-07-19,inca_jungle,Estados Unidos,en,8,1,estandar,cotizada,490,domingo,00:38
+S221,2026-07-20,inca_jungle,Alemania,de,6,2,estandar,cotizada,980,lunes,07:35
+S222,2026-07-20,choquequirao,Estados Unidos,en,4,2,estandar,sin respuesta,0,lunes,21:44
+S223,2026-07-20,camino_inca_corto,México,es,8,1,estandar,cotizada,600,lunes,16:13
+S224,2026-07-29,choquequirao,Canadá,en,12,4,economico,cotizada,1600,miércoles,19:24
+S225,2026-08-03,camino_inca,Brasil,pt,6,2,estandar,cotizada,1680,lunes,03:54
+S226,2026-08-03,camino_inca,Estados Unidos,en,3,2,economico,cotizada,1340,lunes,03:09
+S227,2026-08-06,salkantay,Estados Unidos,en,7,2,estandar,reservada,1360,jueves,14:22
+S228,2026-08-08,salkantay,Reino Unido,en,5,1,premium,sin respuesta,0,sábado,17:22
+S229,2026-08-08,salkantay,Alemania,de,5,2,estandar,cotizada,1200,sábado,05:13
+S230,2026-08-10,salkantay,Brasil,pt,9,2,economico,cotizada,1080,lunes,07:56
+S231,2026-08-10,lares,Canadá,en,6,1,economico,reservada,520,lunes,14:02
+S232,2026-08-10,lares,Estados Unidos,en,6,3,premium,cotizada,3000,lunes,00:38
+S233,2026-08-11,salkantay,Países Bajos,en,7,2,economico,sin respuesta,0,martes,13:41
+S234,2026-08-11,salkantay,Perú,es,3,2,economico,reservada,1080,martes,18:26
+S235,2026-08-11,lares,Argentina,es,10,5,premium,sin respuesta,0,martes,20:05
+S236,2026-08-12,inca_jungle,Francia,fr,5,4,premium,reservada,3000,miércoles,12:25
+S237,2026-08-12,salkantay,Estados Unidos,en,1,6,estandar,reservada,3780,miércoles,11:49
+S238,2026-08-13,camino_inca,Estados Unidos,en,8,2,economico,cotizada,1340,jueves,21:23
+S239,2026-08-14,salkantay,Francia,fr,12,4,economico,cotizada,1840,viernes,03:51
+S240,2026-08-16,camino_inca,Alemania,de,7,2,estandar,cotizada,1680,domingo,10:25
+S241,2026-08-16,choquequirao,Reino Unido,en,2,4,estandar,cotizada,2040,domingo,18:55
+S242,2026-08-16,camino_inca,México,es,6,2,economico,cotizada,1340,domingo,21:04
+S243,2026-08-17,lares,Argentina,es,11,2,estandar,cotizada,1300,lunes,10:44
+S244,2026-08-18,camino_inca,Estados Unidos,en,6,2,premium,cotizada,2680,martes,18:51
+S245,2026-08-20,lares,Canadá,en,7,2,premium,cotizada,2080,jueves,19:06
+S246,2026-08-20,salkantay,Australia,en,8,5,estandar,cotizada,3150,jueves,10:55
+S247,2026-08-21,inca_jungle,Reino Unido,en,2,3,economico,cotizada,1110,viernes,14:06
+S248,2026-08-24,salkantay,Alemania,de,5,2,estandar,cotizada,1200,lunes,07:51
+S249,2026-08-24,camino_inca,Reino Unido,en,12,6,economico,cotizada,3720,lunes,19:53
+S250,2026-08-25,salkantay,Países Bajos,en,3,4,estandar,cotizada,2600,martes,03:18
+S251,2026-08-25,choquequirao,España,es,9,2,economico,cotizada,840,martes,07:41
+S252,2026-08-27,camino_inca_corto,Argentina,es,11,1,estandar,cotizada,600,jueves,05:41
+S253,2026-08-27,salkantay,Estados Unidos,en,7,6,estandar,sin respuesta,0,jueves,22:56
+S254,2026-08-28,camino_inca,Argentina,es,9,1,estandar,cotizada,840,viernes,15:23
+S255,2026-08-28,salkantay,Australia,en,5,2,estandar,cotizada,1200,viernes,09:16
+S256,2026-08-28,camino_inca,Estados Unidos,en,9,2,premium,cotizada,2680,viernes,20:07
+S257,2026-08-28,inca_jungle,Canadá,en,1,2,economico,cotizada,780,viernes,06:56
+S258,2026-08-29,camino_inca,Alemania,de,8,2,estandar,sin respuesta,0,sábado,15:59
+S259,2026-08-31,salkantay,Brasil,pt,1,2,economico,cotizada,1080,lunes,05:46
+S260,2026-09-02,camino_inca_corto,Países Bajos,en,7,1,estandar,cotizada,600,miércoles,15:01
+S261,2026-09-02,salkantay,Perú,es,8,2,estandar,cotizada,1360,miércoles,21:22
+S262,2026-09-03,camino_inca_corto,Canadá,en,10,2,economico,cotizada,960,jueves,15:47
+S263,2026-09-04,choquequirao,México,es,6,8,estandar,reservada,3920,viernes,17:41
+S264,2026-09-05,salkantay,México,es,3,1,estandar,cotizada,680,sábado,13:31
+S265,2026-09-07,inca_jungle,España,es,9,4,estandar,reservada,1880,lunes,15:36
+S266,2026-09-09,choquequirao,México,es,2,3,estandar,sin respuesta,0,miércoles,20:07
+S267,2026-09-10,camino_inca,Australia,en,11,2,economico,reservada,1340,jueves,02:02
+S268,2026-09-11,inca_jungle,Canadá,en,6,2,premium,cotizada,1560,viernes,18:36
+S269,2026-09-12,camino_inca,Estados Unidos,en,7,5,premium,reservada,6150,sábado,20:40
+S270,2026-09-14,camino_inca,Canadá,en,6,2,estandar,cotizada,1680,lunes,15:11
+S271,2026-09-16,salkantay,Estados Unidos,en,2,5,estandar,cotizada,2750,miércoles,19:56
+S272,2026-09-16,salkantay,Reino Unido,en,4,2,economico,cotizada,1080,miércoles,15:53
+S273,2026-09-19,salkantay,Alemania,de,7,2,premium,sin respuesta,0,sábado,10:29
+S274,2026-09-21,salkantay,Argentina,es,8,1,economico,reservada,540,lunes,11:17
+S275,2026-09-24,choquequirao,Argentina,es,3,5,estandar,cotizada,2450,jueves,11:24
+S276,2026-09-26,inca_jungle,Alemania,de,8,1,estandar,sin respuesta,0,sábado,14:08
+S277,2026-09-26,salkantay,México,es,2,2,economico,cotizada,1080,sábado,11:26
+S278,2026-09-29,choquequirao,Estados Unidos,en,9,2,premium,cotizada,1700,martes,07:08
+S279,2026-09-29,lares,España,es,4,2,premium,cotizada,2080,martes,09:42
+S280,2026-10-01,choquequirao,México,es,7,2,estandar,cotizada,1060,jueves,08:29
+S281,2026-10-01,choquequirao,Perú,es,5,8,economico,cotizada,3120,jueves,17:24
+S282,2026-10-05,lares,Estados Unidos,en,6,2,estandar,cotizada,1300,lunes,05:20
+S283,2026-10-07,camino_inca_corto,Estados Unidos,en,8,2,estandar,cotizada,1200,miércoles,15:42
+S284,2026-10-07,camino_inca_corto,Francia,fr,3,6,economico,sin respuesta,0,miércoles,08:31
+S285,2026-10-09,camino_inca_corto,Reino Unido,en,6,2,economico,reservada,960,viernes,15:37
+S286,2026-10-09,camino_inca,Estados Unidos,en,1,2,estandar,cotizada,1680,viernes,01:35
+S287,2026-10-10,salkantay,Estados Unidos,en,7,2,estandar,reservada,1200,sábado,01:33
+S288,2026-10-12,camino_inca,Canadá,en,7,8,estandar,reservada,6160,lunes,22:26
+S289,2026-10-13,salkantay,Perú,es,12,2,estandar,reservada,1360,martes,10:27
+S290,2026-10-14,salkantay,México,es,6,2,premium,sin respuesta,0,miércoles,09:44
+S291,2026-10-15,camino_inca,Estados Unidos,en,7,1,estandar,reservada,840,jueves,16:32
+S292,2026-10-16,lares,Países Bajos,en,8,5,economico,sin respuesta,0,viernes,15:39
+S293,2026-10-23,lares,España,es,9,3,estandar,cotizada,1860,viernes,15:42
+S294,2026-10-23,salkantay,Argentina,es,4,2,premium,cotizada,1920,viernes,20:23
+S295,2026-10-24,camino_inca,Estados Unidos,en,9,5,estandar,cotizada,3850,sábado,22:35
+S296,2026-10-24,camino_inca_corto,Brasil,pt,8,2,economico,cotizada,960,sábado,05:05
+S297,2026-10-27,salkantay,Estados Unidos,en,4,4,economico,cotizada,1840,martes,10:54
+S298,2026-10-31,choquequirao,Estados Unidos,en,6,1,estandar,sin respuesta,0,sábado,20:54
+S299,2026-10-31,salkantay,Estados Unidos,en,6,2,estandar,cotizada,1360,sábado,13:09
+S300,2026-10-31,salkantay,Estados Unidos,en,4,3,economico,cotizada,1560,sábado,21:43
