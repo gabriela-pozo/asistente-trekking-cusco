@@ -1084,6 +1084,10 @@ def pagina_tablero() -> None:
             tooltip=[alt.Tooltip("mes_nombre:N", title="Mes"), alt.Tooltip("estado:N", title="Estado"),
                      alt.Tooltip("consultas:Q", title="Consultas")])
         dibujar(columnas, alto=280)
+        sin_mes = len(datos) - int(mes_estado["consultas"].sum())
+        if sin_mes:  # p. ej., registradas sin mes de viaje: así el total no parece no cuadrar con los KPIs
+            st.caption(f"{sin_mes} {'consulta no dice' if sin_mes == 1 else 'consultas no dicen'} el mes del viaje: "
+                       "no están en este gráfico.")
         tabla_meses = mes_estado.pivot(index=["mes", "mes_nombre"], columns="estado", values="consultas")
         ver_tabla(tabla_meses.reset_index().drop(columns="mes").rename(columns={"mes_nombre": "Mes"}), "meses")
 

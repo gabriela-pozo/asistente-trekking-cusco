@@ -14,7 +14,10 @@ import pandas as pd
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 
-from core.tablero import PREGUNTA_TABLERO, cargar_consultas, texto_origen  # noqa: E402
+from core.tablero import (  # noqa: E402
+    PERIODOS, PREGUNTA_TABLERO, cargar_consultas, cierre_por_trek, embudo, filtrar, metricas, periodo,
+    por_mes_y_estado, texto_origen,
+)
 
 SINTETICAS = RAIZ / "data" / "consultas_sinteticas.csv"
 APP = str(RAIZ / "app" / "app.py")
@@ -43,6 +46,31 @@ class PruebasOrigen(unittest.TestCase):
         self.assertEqual(texto_origen(df), "3 consultas sintéticas de demostración y 1 registrada en esta app")
         df = pd.DataFrame({"origen": ["sintética", "registrada", "registrada"]})
         self.assertTrue(texto_origen(df).endswith("y 2 registradas en esta app"))
+
+
+class PruebasCuadre(unittest.TestCase):
+    """KPIs, embudo, por trek y mes × estado cuadran entre sí con los mismos filtros (datos sintéticos)."""
+
+    def test_las_cifras_cuadran_con_cada_filtro(self):
+        consultas = cargar_consultas(SINTETICAS)
+        treks = [[]] + [[t] for t in sorted(consultas["trek"].unique())]
+        idiomas = [[]] + [[i] for i in sorted(consultas["idioma"].unique())]
+        for meses in PERIODOS.values():
+            for t in treks:
+                for i in idiomas:
+                    datos, *_ = periodo(filtrar(consultas, t, i), meses)
+                    if datos.empty:
+                        continue
+                    with self.subTest(meses=meses, trek=t, idioma=i):
+                        m, e = metricas(datos), embudo(datos)
+                        me, ct = por_mes_y_estado(datos), cierre_por_trek(datos)
+                        self.assertEqual(list(e["numero"].iloc[[0, 1, 3]]),
+                                         [m["consultas"], m["respondidas"], m["reservadas"]])
+                        self.assertEqual(int(me["consultas"].sum()), m["consultas"])
+                        self.assertEqual(int(me.loc[me["estado"] == "sin respuesta", "consultas"].sum()),
+                                         m["sin_respuesta"])
+                        self.assertEqual(int(ct["consultas"].sum()), m["consultas"])
+                        self.assertEqual(int(ct["reservadas"].sum()), m["reservadas"])
 
 
 class PruebasPagina(unittest.TestCase):
