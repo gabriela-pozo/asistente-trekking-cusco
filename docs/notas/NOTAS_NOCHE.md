@@ -408,3 +408,46 @@ Ponerlo junto al botón de WhatsApp, usando el `resultado` que ya está en `st.s
 4. Gráficos: título (la conclusión) y la frase explicativa; se quitó la pregunta repetida de encima.
 5. Cuadro del mensaje del viajero de 190 px: se ve completo el mensaje del ejemplo.
 pytest: 289 pasan, 1 falla (la conocida de `anthropic`).
+
+
+---
+
+# Informe: PDF con paquete y ruta, README (rama `mejoras-visual`)
+
+## Commits
+| Hash | Bloque |
+| --- | --- |
+| `c99377f` | 1. PDF con el mismo paquete y montos que la respuesta |
+| `219c8d0` | 2. Chips de "Lo que entendimos" (ya estaba hecho antes de este encargo: sin repetir mes, "4–5 días") |
+| `d906b5e` | 3. Segunda página "Ruta" del PDF |
+| `4a62e4b` | 4. README y textos |
+Más el commit de este informe (hash en el mensaje final).
+
+## Bloque 1: montos del PDF
+- `generar_cotizacion_pdf(..., paquete=…)` recibe el `Paquete` ajustado (si no se pasa, toma `resultado.paquete`; sin paquete, la tabla de antes). `app/app.py` pasa `resultado.paquete`.
+- La tabla tiene una fila por línea (trek, hotel, traslado y cada extra elegido) y luego total del grupo, recargo si hay, por persona, depósito y saldo. Todo sale de las propiedades de `Paquete` (`subtotal_c`, `por_persona_c`, `deposito_c`, `saldo_c`) y de `monto()` y `_nombre_y_beneficio()` de `core/paquete.py`: nada se recalcula en el PDF.
+- Ejemplo guardado: US$ 600 × 2 = 1200; hotel 2 × US$ 40 = 80; traslado US$ 25; **total US$ 1305, por persona US$ 652.50, depósito US$ 652.50**. El PDF del ejemplo es en inglés, así que el decimal lleva punto (igual que el mensaje en inglés); en la pantalla en español sale 652,50. La prueba compara el PDF con el mensaje de la respuesta.
+- (a) "Incluye / No incluye" se traduce a en/pt con un diccionario de 26 conceptos del tarifario (`CONCEPTOS`); lo que no está, queda en español. (b) "7 days / 7 días / 7 dias". (c) Pie "Prepared with Abra Travel" y, solo si se pasa `contacto=`, el contacto. **El perfil del viajero no tiene un campo de contacto de la agencia**, así que hoy la app no lo pasa y el pie no lo muestra.
+- Sin hacer: el aviso "Datos de demostración…" del PDF sigue en español en cualquier idioma (una prueba anterior lo exige así).
+
+## Bloque 3: ruta
+- Segunda página A4 solo si `core/mapa.py` tiene datos del trek de la opción elegida: Salkantay y Camino Inca clásico, y Lares rotulado "ruta parcial" con una nota. Choquequirao, Inca Jungle y Camino Inca corto: una página.
+- Trazado: polilínea y puntos con nombre (reportlab, sin mapa de fondo ni red); perfil de altitud con los puntos que tienen altitud y los que faltan marcados con ×; lista de puntos con altitud o "sin dato"; pie con "© OpenStreetMap contributors (ODbL)" y "Referencial: confirmar el recorrido con la agencia". Se avisa que las líneas rectas no son el sendero exacto.
+- Si dibujar la página de ruta falla, se entrega la cotización de una página.
+- **No vi el PDF final renderizado** (no hay visor ni conversor instalado). Exporté los dibujos del mapa y del perfil a SVG y los miré en el navegador: se leen bien, pero en el Camino Inca algunos nombres de puntos muy cercanos (6 y 7) se pisan un poco. La tabla de la página y el aspecto general solo están probados por texto y número de páginas. **Abrir un PDF de Salkantay antes de presentar.**
+- Pruebas: Salkantay y Camino Inca con 2 páginas, 3 treks sin ruta con 1, "partial route" en Lares, bytes que empiezan con `%PDF`, y que los lugares y altitudes del PDF salen de `data/rutas/`.
+
+## Bloque 4
+- (a) "Acerca del piloto" ya coincidía con `docs/fuentes_precios.md` (n = 17: 12 publicados + 5 cotizaciones); ahora el resumen lo dice completo. No encontré otra cifra que no coincidiera.
+- (b) Estado del sistema **no tenía un número fijo**: cuenta las funciones `test_*` al abrir la página (hoy 312 funciones en 18 archivos; pytest ejecuta 301 casos más 240 subpruebas, porque cuenta distinto). Cambié el texto para que no parezca el resultado de pytest.
+- (c) README, parte 7: nueva sección "Criterio de precios" con tus cifras como hipótesis, más la medición con Van Westendorp. No verifiqué esas cifras (precios de modelos, Twilio, Render, tipo de cambio ni el escenario de S/ 1 940).
+- (d) `git log --all -G"AIza…|sk-ant-|SK…|TWILIO_AUTH_TOKEN=…"`: **vacío (limpio)**. También busqué lo mismo en los archivos actuales: nada.
+
+## Pytest
+301 pasan, 1 falla (la conocida de `anthropic`). Pruebas nuevas: 11 de PDF (paquete, idioma, ruta) y las del paquete en app.
+
+## Riesgos al desplegar en Streamlit Cloud
+- El PDF se genera en cada ejecución de la pantalla de respuesta (reportlab, ~10 ms): bajo costo, pero si falla se oculta el botón sin aviso.
+- `reportlab==5.1.0` en `requirements.txt`: Cloud debe reinstalar dependencias (reiniciar la app).
+- Los datos de ruta son un solo itinerario por trek y Lares está incompleto; el PDF lo rotula, pero un cliente puede leerlo como oficial: el pie pide confirmar con la agencia.
+- La vigencia de 7 días sigue siendo un supuesto (se marca en el PDF).
