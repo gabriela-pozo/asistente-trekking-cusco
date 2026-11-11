@@ -732,8 +732,8 @@ def pagina_estado() -> None:
         base = version_base(CARPETA_BASE)
         pruebas, archivos = pruebas_automaticas()
         st.caption(f"Base de conocimiento v. {base.version} · actualizada el {base.actualizada} · {base.archivos} archivos · "
-                   f"{base.fragmentos} fragmentos. Pruebas automáticas: {pruebas} en {archivos} archivos de tests/ "
-                   "(se cuentan, no se ejecutan desde la app).")
+                   f"{base.fragmentos} fragmentos. Pruebas automáticas: {pruebas} funciones de prueba en {archivos} archivos de "
+                   "tests/ (se cuentan al abrir la página; no es el resultado de pytest).")
 
 
 # ---------------------------------------------------------------- Acerca del piloto
@@ -772,7 +772,7 @@ def html_puntos(puntos: list[tuple[str, str]], clase: str) -> str:
 # Resumen: 3 viñetas con ícono por bloque. El texto completo de arriba (ALCANCE y NO_HACE) queda en «Más detalle».
 RESUMEN_ALCANCE = [
     ("science", "Es una demo con datos sintéticos: no son de ninguna agencia real."),
-    ("storefront", "La agencia es ficticia; su tarifario usa precios de mercado (17 para el Salkantay de 5 días)."),
+    ("storefront", "La agencia es ficticia; su tarifario usa precios de mercado (17 precios para el Salkantay de 5 días: 12 publicados + 5 cotizaciones)."),
     ("calculate", "Los precios los pone el código, no el modelo."),
 ]
 RESUMEN_LIMITES = [

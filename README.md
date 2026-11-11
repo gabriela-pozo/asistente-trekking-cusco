@@ -118,6 +118,21 @@ Qué se ve en la app:
 - **Argumento:** una sola venta de Salkantay recuperada al mes (US$ 600–680 por persona, precio estándar de 4 y 5 días en el tarifario demo) cubre cualquiera de los planes. Una plataforma de reservas, en cambio, se queda con 20 a 30 % de cada venta (fuente en la sección 3. Problema).
 - **Meta tras el piloto:** 10 agencias pagando.
 
+### Criterio de precios (hipótesis a validar en el piloto, no resultados)
+
+Todas estas cifras son **hipótesis de trabajo**: todavía no se midieron con agencias.
+
+| Concepto | Hipótesis |
+| --- | --- |
+| Planes | S/ 99, S/ 249 y S/ 599 al mes, equivalentes a **S/ 0,33, S/ 0,25 y S/ 0,20 por consulta** (con 300, 1 000 y 3 000 consultas) |
+| Costo de IA por consulta (2 100 tokens de entrada y 450 de salida) | `gemini-3.5-flash-lite`: S/ 0,006. `gemini 3.8 flash`: S/ 0,011, que **sube a S/ 0,022 desde el 1 de enero de 2027** |
+| WhatsApp vía Twilio | US$ 0,005 por mensaje |
+| Servidor (Render) | US$ 7 al mes (≈ S/ 24) |
+| Tipo de cambio | S/ 3,43 por US$ (SUNAT, 9 de noviembre de 2026) |
+| Escenario de 10 agencias | ≈ S/ 1 940 al mes |
+
+**Cómo se validará:** en el piloto se medirá la disposición a pagar con las cuatro preguntas de precio de **Van Westendorp** (demasiado barato, barato, caro y demasiado caro), antes de fijar los planes.
+
 ## 8. Herramientas del curso
 
 | Sesión | Qué usamos | Dónde está |
