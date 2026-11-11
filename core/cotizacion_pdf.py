@@ -1,4 +1,4 @@
-"""Cotización en PDF (A4, una página) a partir del resultado de una consulta.
+"""Cotización en PDF (A4; una página, y una segunda con la ruta si el trek tiene datos) a partir del resultado de una consulta.
 
     generar_cotizacion_pdf(resultado) -> bytes
 
@@ -20,8 +20,11 @@ from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import KeepInFrame, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.graphics.shapes import Circle, Drawing, Line, PolyLine, String
+from reportlab.platypus import (KeepInFrame, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table,
+                                TableStyle)
 
+from core import mapa
 from core.cotizacion import NOMBRE_NIVEL, OpcionCotizada
 from core.paquete import HOTEL, METODOS, Paquete, _nombre_y_beneficio, monto
 from core.respuesta_nocturna import _POSICION, INCLUYE, nombre_trek
@@ -216,11 +219,138 @@ def _p(texto: str, estilo: ParagraphStyle) -> Paragraph:
     return Paragraph(escape(str(texto)), estilo)
 
 
+# ------------------------------------------------------------------ Ruta (segunda página)
+TEXTOS_RUTA = {
+    "es": {"titulo": "Ruta", "trazado": "Trazado (sin mapa de fondo; las líneas rectas no son el sendero real)",
+           "perfil": "Perfil de altitud (km acumulados en línea recta)", "etapas": "Etapas y puntos",
+           "cols": ["Día", "Punto", "Tipo", "Altitud"], "sin_alt": "sin dato de altitud", "parcial": "ruta parcial",
+           "parcial_txt": "Ruta parcial: faltan los campamentos y el tramo alto de los días 1 y 2.",
+           "ref": "Referencial: confirmar el recorrido con la agencia",
+           "fuente": "Puntos clave de un itinerario de referencia de {dias} días; las rutas varían entre agencias.",
+           "falta": "los puntos con línea punteada no tienen altitud en las fuentes",
+           "tipos": {"inicio": "Inicio", "fin": "Fin", "campamento": "Campamento", "paso": "Paso", "sitio": "Lugar"}},
+    "en": {"titulo": "Route", "trazado": "Layout (no background map; straight lines are not the real trail)",
+           "perfil": "Altitude profile (cumulative straight-line km)", "etapas": "Stages and points",
+           "cols": ["Day", "Point", "Type", "Altitude"], "sin_alt": "no altitude data", "parcial": "partial route",
+           "parcial_txt": "Partial route: the campsites and the high section of days 1 and 2 are missing.",
+           "ref": "For reference only: confirm the route with the agency",
+           "fuente": "Key points of a reference itinerary of {dias} days; routes vary between agencies.",
+           "falta": "points with a dotted line have no altitude in the sources",
+           "tipos": {"inicio": "Start", "fin": "End", "campamento": "Campsite", "paso": "Pass", "sitio": "Place"}},
+    "pt": {"titulo": "Rota", "trazado": "Traçado (sem mapa de fundo; as linhas retas não são a trilha real)",
+           "perfil": "Perfil de altitude (km acumulados em linha reta)", "etapas": "Etapas e pontos",
+           "cols": ["Dia", "Ponto", "Tipo", "Altitude"], "sin_alt": "sem dado de altitude", "parcial": "rota parcial",
+           "parcial_txt": "Rota parcial: faltam os acampamentos e o trecho alto dos dias 1 e 2.",
+           "ref": "Referencial: confirmar o percurso com a agência",
+           "fuente": "Pontos-chave de um itinerário de referência de {dias} dias; as rotas variam entre agências.",
+           "falta": "os pontos com linha pontilhada não têm altitude nas fontes",
+           "tipos": {"inicio": "Início", "fin": "Fim", "campamento": "Acampamento", "paso": "Passo", "sitio": "Lugar"}},
+}
+COLOR_TIPO = {"inicio": LAGUNA, "fin": CUMBRE, "campamento": TIERRA, "paso": AMANECER, "sitio": SECUNDARIO}
+RUTAS_PARCIALES = {"lares"}  # data/rutas/README.md: lares_4d.csv está incompleto
+
+
+def _ruta_del_trek(o: OpcionCotizada) -> mapa.Ruta | None:
+    """Ruta con datos del trek cotizado, o None (Choquequirao, Inca Jungle, Camino Inca corto) o si falla la lectura."""
+    try:
+        return mapa.cargar_ruta(o.trek_id.rsplit("_", 1)[0])
+    except Exception:  # noqa: BLE001 - la ruta es un extra: nunca debe impedir la cotización
+        return None
+
+
+def _dibujo_trazado(ruta: mapa.Ruta, ancho: float, alto: float) -> Drawing:
+    """Polilínea y puntos con nombre a partir de lat/lon; solo puntos de los CSV, sin mapa de fondo."""
+    import math
+    pts = ruta.puntos
+    k = math.cos(math.radians(sum(p.latitud for p in pts) / len(pts)))  # corrige el ancho de un grado de longitud
+    xs, ys = [p.longitud * k for p in pts], [p.latitud for p in pts]
+    margen_x, margen_y = 70.0, 16.0
+    dx, dy = (max(xs) - min(xs)) or 1e-6, (max(ys) - min(ys)) or 1e-6
+    esc = min((ancho - 2 * margen_x) / dx, (alto - 2 * margen_y) / dy)
+    ox = (ancho - dx * esc) / 2
+    oy = (alto - dy * esc) / 2
+    pos = [(ox + (x - min(xs)) * esc, oy + (y - min(ys)) * esc) for x, y in zip(xs, ys)]
+    d = Drawing(ancho, alto)
+    d.add(PolyLine([c for xy in pos for c in xy], strokeColor=LAGUNA, strokeWidth=1.6))
+    for i, (p, (x, y)) in enumerate(zip(pts, pos)):
+        d.add(Circle(x, y, 3.4, fillColor=COLOR_TIPO.get(p.tipo, SECUNDARIO), strokeColor=colors.white, strokeWidth=0.6))
+        # Etiqueta a la derecha o a la izquierda según el espacio; se alterna arriba/abajo para no encimarse
+        dy_txt = 5 if i % 2 == 0 else -9
+        derecha = x < ancho - 95
+        d.add(String(x + (5 if derecha else -5), y + dy_txt, p.lugar, fontName="Helvetica", fontSize=6.5,
+                     fillColor=TINTA, textAnchor="start" if derecha else "end"))
+    return d
+
+
+def _dibujo_perfil(ruta: mapa.Ruta, ancho: float, alto: float) -> Drawing | None:
+    """Perfil con los puntos que tienen altitud; los que no la tienen se marcan con una línea punteada."""
+    pts = ruta.puntos
+    km, acum = [0.0], 0.0
+    for a, b in zip(pts, pts[1:]):
+        acum += mapa.km_entre(a, b)
+        km.append(acum)
+    con = [(k, p) for k, p in zip(km, pts) if p.altitud_m is not None]
+    if len(con) < 2 or not km[-1]:
+        return None
+    alts = [p.altitud_m for _, p in con]
+    lo, hi = min(alts) - 150, max(alts) + 250
+    izq, der, abajo, arriba = 34.0, 10.0, 22.0, 12.0
+    sx = (ancho - izq - der) / km[-1]
+    sy = (alto - abajo - arriba) / (hi - lo)
+    X = lambda v: izq + v * sx  # noqa: E731
+    Y = lambda a: abajo + (a - lo) * sy  # noqa: E731
+    d = Drawing(ancho, alto)
+    d.add(Line(izq, abajo, ancho - der, abajo, strokeColor=BORDE, strokeWidth=0.6))
+    d.add(Line(izq, abajo, izq, alto - arriba, strokeColor=BORDE, strokeWidth=0.6))
+    paso = 500 if hi - lo > 1500 else 250
+    for a in range((int(lo) // paso + 1) * paso, int(hi), paso):
+        d.add(Line(izq, Y(a), ancho - der, Y(a), strokeColor=colors.HexColor("#EEEAE0"), strokeWidth=0.3))
+        d.add(String(izq - 3, Y(a) - 2, str(a), fontName="Helvetica", fontSize=6, fillColor=SECUNDARIO, textAnchor="end"))
+    for k, p in zip(km, pts):  # puntos sin altitud: marca punteada desde el eje
+        if p.altitud_m is None:
+            d.add(Line(X(k), abajo, X(k), alto - arriba, strokeColor=AMANECER, strokeWidth=0.7, strokeDashArray=[2, 2]))
+            d.add(String(X(k), abajo - 9, "?", fontName="Helvetica-Bold", fontSize=7, fillColor=TIERRA, textAnchor="middle"))
+    d.add(PolyLine([c for k, p in con for c in (X(k), Y(p.altitud_m))], strokeColor=LAGUNA, strokeWidth=1.4))
+    for i, (k, p) in enumerate(con):
+        d.add(Circle(X(k), Y(p.altitud_m), 2.8, fillColor=TIERRA, strokeColor=colors.white, strokeWidth=0.5))
+        d.add(String(X(k), Y(p.altitud_m) + (5 if i % 2 == 0 else 11), f"{p.lugar} {p.altitud_m}", fontName="Helvetica",
+                     fontSize=5.8, fillColor=TINTA, textAnchor="middle"))
+    return d
+
+
+def _pagina_ruta(ruta: mapa.Ruta, lang: str, base: ParagraphStyle, peq: ParagraphStyle, h2: ParagraphStyle,
+                 th: ParagraphStyle, nombre: str) -> list:
+    """Flowables de la segunda página: trazado, perfil, lista de etapas y pie con atribución."""
+    r = TEXTOS_RUTA[lang]
+    parcial = ruta.ruta in RUTAS_PARCIALES
+    titulo = f"{r['titulo']}: {nombre}" + (f" ({r['parcial']})" if parcial else "")
+    dias = mapa.archivo_dias(ruta.archivo)
+    out = [_p(titulo, h2), _p(r["fuente"].format(dias=dias), peq)]
+    if parcial:
+        out.append(_p(r["parcial_txt"], ParagraphStyle("parc", parent=peq, textColor=AVISO_TEXTO)))
+    out += [_p(r["trazado"], peq), _dibujo_trazado(ruta, 180 * mm, 85 * mm)]
+    perfil = _dibujo_perfil(ruta, 180 * mm, 55 * mm)
+    if perfil is not None:
+        extra = f" — {r['falta']}" if any(p.altitud_m is None for p in ruta.puntos) else ""
+        out += [Spacer(1, 4), _p(r["perfil"] + extra, peq), perfil]
+    filas = [[_p(c, th) for c in r["cols"]]]
+    for p in ruta.puntos:
+        alt = f"{p.altitud_m} m" if p.altitud_m is not None else r["sin_alt"]
+        filas.append([_p(str(p.dia), base), _p(p.lugar, base), _p(r["tipos"].get(p.tipo, p.tipo), base), _p(alt, base)])
+    tab = Table(filas, colWidths=[14 * mm, 76 * mm, 40 * mm, 50 * mm], repeatRows=1)
+    tab.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), LAGUNA),
+                             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F1E8")]),
+                             ("BOX", (0, 0), (-1, -1), 0.6, BORDE), ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDE),
+                             ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
+    out += [_p(r["etapas"], h2), tab, Spacer(1, 6), _p(r["ref"], peq), _p(mapa.ATRIBUCION, peq)]
+    return out
+
+
 def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
                            vigencia_dias: int = VIGENCIA_DIAS_POR_DEFECTO,
                            paquete: Paquete | None = None, contacto: str | None = None,
                            ahora: datetime | None = None) -> bytes:
-    """Devuelve los bytes de un PDF A4 de una página. `ahora` fija el reloj en las pruebas.
+    """Devuelve los bytes de un PDF A4 de una página (dos si el trek tiene ruta en data/rutas/). `ahora` fija el reloj en las pruebas.
 
     `paquete` es el que muestra la pantalla (core.paquete.armar_paquete con la selección del vendedor); si no se
     pasa, se usa `resultado.paquete` y, si tampoco existe, el trek de la primera opción sin extras.
@@ -353,5 +483,13 @@ def generar_cotizacion_pdf(resultado, *, agencia: str = AGENCIA_POR_DEFECTO,
                             pageCompression=0)
     marco = A4[0] - 30 * mm, A4[1] - 30 * mm
     # KeepInFrame reduce si algo no cabe: la cotización siempre queda en una sola página
-    doc.build([KeepInFrame(marco[0], marco[1], hist, mode="shrink")])
+    contenido = [KeepInFrame(marco[0], marco[1], hist, mode="shrink")]
+    ruta = _ruta_del_trek(o)
+    if ruta is not None:  # segunda página solo si el trek tiene datos de ruta
+        try:
+            pagina = _pagina_ruta(ruta, lang, base, peq, h2, th, _nombre_trek(o, idioma))
+            contenido += [PageBreak(), KeepInFrame(marco[0], marco[1], pagina, mode="shrink")]
+        except Exception:  # noqa: BLE001 - sin ruta el PDF sigue siendo de una página
+            pass
+    doc.build(contenido)
     return buf.getvalue()

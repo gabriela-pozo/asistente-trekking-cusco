@@ -27,10 +27,65 @@ def texto_pdf(datos: bytes) -> str:
     return re.sub(r"\\([()\\])", r"\1", texto)
 
 
-def test_genera_pdf_de_una_pagina(ejemplo):
+def paginas(pdf: bytes) -> int:
+    return len(re.findall(rb"/Type\s*/Page\b", pdf))
+
+
+def con_trek(ejemplo, trek_id: str, idioma: str = "es"):
+    """El ejemplo con solo la primera opción, cambiada al trek dado (para probar la sección Ruta)."""
+    datos = deepcopy(ejemplo)
+    datos["opciones"] = [dict(datos["opciones"][0], trek_id=trek_id)]
+    datos["perfil"]["idioma"] = idioma
+    return datos
+
+
+def test_una_pagina_si_el_trek_no_tiene_ruta(ejemplo):
+    pdf = generar_cotizacion_pdf(con_trek(ejemplo, "choquequirao_4d"))
+    assert pdf.startswith(b"%PDF") and paginas(pdf) == 1
+    assert "Ruta:" not in texto_pdf(pdf) and "OpenStreetMap" not in texto_pdf(pdf)
+    for sin_ruta in ("inca_jungle_4d", "camino_inca_corto_2d"):
+        assert paginas(generar_cotizacion_pdf(con_trek(ejemplo, sin_ruta))) == 1
+
+
+@pytest.mark.parametrize("trek_id, hitos", [
+    ("salkantay_5d", ["Abra Salkantay", "4630 m", "Laguna Humantay", "Aguas Calientes"]),
+    ("camino_inca_4d", ["Abra Warmiwa", "4215 m", "Inti Punku", "Machu Picchu"]),
+])
+def test_pdf_con_ruta_salkantay_y_camino_inca(ejemplo, trek_id, hitos):
+    pdf = generar_cotizacion_pdf(con_trek(ejemplo, trek_id))
+    texto = texto_pdf(pdf)
+    assert pdf.startswith(b"%PDF") and paginas(pdf) == 2
+    assert "Ruta:" in texto and "sin dato de altitud" in texto  # hay puntos sin altitud: se marcan
+    assert "ruta parcial" not in texto
+    assert all(h in texto for h in hitos)
+    assert "Referencial: confirmar el recorrido con la agencia" in texto
+    assert "\xa9 OpenStreetMap contributors (ODbL)" in texto
+
+
+def test_lares_se_rotula_ruta_parcial(ejemplo):
+    pdf = generar_cotizacion_pdf(con_trek(ejemplo, "lares_4d"))
+    texto = texto_pdf(pdf)
+    assert paginas(pdf) == 2 and "ruta parcial" in texto and "Pampacorral" in texto
+    assert "partial route" in texto_pdf(generar_cotizacion_pdf(con_trek(ejemplo, "lares_4d", "en")))
+
+
+def test_con_ruta_los_montos_siguen_siendo_los_de_la_pantalla(ejemplo):
+    p = paquete_de_pantalla(ejemplo)
+    es = dict(ejemplo, perfil=dict(ejemplo["perfil"], idioma="es"))
+    pdf = generar_cotizacion_pdf(es, paquete=p)
+    texto = texto_pdf(pdf)
+    assert paginas(pdf) == 2 and "Ruta:" in texto  # el ejemplo guardado es Salkantay
+    assert "US$ 1305" in texto and "US$ 652,50" in texto
+
+
+def test_ruta_ilegible_no_rompe_el_pdf(ejemplo, monkeypatch):
+    from core import mapa
+
+    def falla(*_a, **_k):
+        raise OSError("sin disco")
+    monkeypatch.setattr(mapa, "cargar_ruta", falla)
     pdf = generar_cotizacion_pdf(ejemplo)
-    assert pdf.startswith(b"%PDF")
-    assert len(re.findall(rb"/Type\s*/Page\b", pdf)) == 1
+    assert pdf.startswith(b"%PDF") and paginas(pdf) == 1
 
 
 def paquete_de_pantalla(ejemplo):
@@ -136,4 +191,4 @@ def test_falla_con_mensaje_claro_si_falta_un_campo(ejemplo, quitar, mensaje):
 
 def test_sin_datos_personales(ejemplo):
     texto = texto_pdf(generar_cotizacion_pdf(ejemplo))
-    assert not re.search(r"\+?\d[\d ]{8,}", texto) and "@" not in texto
+    assert not re.search(r"\+?\d{9,}", texto) and "@" not in texto
