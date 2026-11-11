@@ -33,22 +33,67 @@ def test_genera_pdf_de_una_pagina(ejemplo):
     assert len(re.findall(rb"/Type\s*/Page\b", pdf)) == 1
 
 
-def test_los_montos_coinciden_con_el_resultado(ejemplo):
+def paquete_de_pantalla(ejemplo):
+    """El paquete que arma la app para el ejemplo guardado: seleccion_sugerida (sin extras del modelo y 1 noche
+    en Cusco porque no dice cuándo llega) con armar_paquete, el mismo código de core que usa la pantalla."""
+    from core.cotizacion import cargar_extras, cargar_tarifario
+    from core.paquete import Seleccion, armar_paquete, noches_sugeridas
+    raiz = RUTA.parent
+    opciones = [OpcionCotizada(**o) for o in ejemplo["opciones"]]
+    perfil = type("P", (), ejemplo["perfil"])
+    sel = Seleccion(extras=[], noches_cusco=noches_sugeridas(perfil))
+    return armar_paquete(opciones, cargar_tarifario(raiz / "tarifario_demo.csv"),
+                         cargar_extras(raiz / "extras_demo.csv"), sel)
+
+
+def test_el_total_del_pdf_es_el_de_la_pantalla(ejemplo):
+    p = paquete_de_pantalla(ejemplo)
+    # La pantalla muestra US$ 1305 en total y US$ 652,50 por persona (trek 1200 + hotel 80 + traslado 25)
+    assert (p.total_c, p.por_persona_c, p.deposito_c, p.saldo_c) == (130500, 65250, 65250, 65250)
+    es = dict(ejemplo, perfil=dict(ejemplo["perfil"], idioma="es"))
+    texto = texto_pdf(generar_cotizacion_pdf(es, paquete=p))
+    assert "US$ 1305" in texto and "US$ 652,50" in texto
+    assert "US$ 1200" in texto and "US$ 80" in texto and "US$ 25" in texto  # una fila por línea
+    en = texto_pdf(generar_cotizacion_pdf(ejemplo, paquete=p))  # el ejemplo está en inglés: punto decimal
+    assert "US$ 1305" in en and "US$ 652.50" in en
+
+
+def test_el_pdf_usa_resultado_paquete_si_existe(ejemplo):
+    class R:  # lo que tiene el Resultado del pipeline
+        pass
+    r = R()
+    r.perfil, r.opciones, r.paquete = ejemplo["perfil"], [OpcionCotizada(**o) for o in ejemplo["opciones"]], paquete_de_pantalla(ejemplo)
+    assert "US$ 1305" in texto_pdf(generar_cotizacion_pdf(r))
+
+
+def test_con_recargo_el_total_es_el_del_paquete(ejemplo):
+    from dataclasses import replace
+    p = replace(paquete_de_pantalla(ejemplo), metodo_pago="tarjeta", porcentaje_recargo=5.0)
+    texto = texto_pdf(generar_cotizacion_pdf(ejemplo, paquete=p))
+    assert f"US$ {p.total_c / 100:g}" in texto and "US$ 65.25" in texto  # recargo 5 % de 1305
+
+
+def test_aviso_de_demostracion(ejemplo):
     texto = texto_pdf(generar_cotizacion_pdf(ejemplo))
-    for o in ejemplo["opciones"]:
-        op = OpcionCotizada(**o)
-        for monto in (op.precio_pp, op.total, op.deposito, op.saldo):
-            assert f"US$ {monto}" in texto
-    # Latin-1 en el PDF: "ó" se guarda como el byte 0xF3
     assert "Datos de demostración. Confirmar disponibilidad y permisos antes de reservar." in texto
 
 
-def test_no_aparece_un_monto_ajeno(ejemplo):
-    montos = {f"US$ {m}" for o in ejemplo["opciones"] for m in
-              (o["precio_pp"], o["precio_pp"] * o["personas"])}
+def test_incluye_en_el_idioma_del_viajero(ejemplo):
+    en = texto_pdf(generar_cotizacion_pdf(ejemplo))
+    assert "bilingual guide" in en and "travel insurance" in en and "Guía" not in en
+    ejemplo["perfil"]["idioma"] = "pt"
+    pt = texto_pdf(generar_cotizacion_pdf(ejemplo))
+    assert "seguro de viagem" in pt
+    ejemplo["opciones"][0]["incluye"] = ["concepto nuevo del tarifario"]
+    assert "concepto nuevo del tarifario" in texto_pdf(generar_cotizacion_pdf(ejemplo))  # sin traducción: el original
+
+
+def test_vigencia_en_palabras_y_pie(ejemplo):
     texto = texto_pdf(generar_cotizacion_pdf(ejemplo))
-    assert "US$ 1360" in texto and "US$ 1200" in texto
-    assert "US$ 999" not in texto and montos
+    assert "7 days" in texto and "7 d (" not in texto
+    assert "Prepared with Abra Travel" in texto and "+51" not in texto
+    con = texto_pdf(generar_cotizacion_pdf(ejemplo, contacto="agencia@ejemplo.pe"))
+    assert "Prepared with Abra Travel · agencia@ejemplo.pe" in con
 
 
 @pytest.mark.parametrize("idioma", ["pt", "en", "es", "fr"])

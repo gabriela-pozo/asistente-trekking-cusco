@@ -355,3 +355,8 @@ st.download_button("Descargar cotización (PDF)", data=generar_cotizacion_pdf(re
                    file_name="cotizacion.pdf", mime="application/pdf")
 ```
 Ponerlo junto al botón de WhatsApp, usando el `resultado` que ya está en `st.session_state`; `agencia=` puede venir de `AGENCIA_NOMBRE`.
+
+### Corrección de montos del PDF (paquete)
+El PDF ahora muestra el **mismo paquete** que la pantalla: una fila por línea (trek, hotel, traslado y cada extra elegido), recargo si hay, y total, total por persona, depósito y saldo tomados de `core.paquete.Paquete` (`total_c`, `por_persona_c`, `deposito_c`, `saldo_c`). Con el ejemplo guardado da US$ 1305 en total y US$ 652,50 por persona (trek 1200 + hotel 80 + traslado 25). Los decimales usan `core.paquete.monto` (coma en es/pt, punto en en). La otra opción del tarifario sale como una línea aparte "solo el trek". La prueba `test_el_total_del_pdf_es_el_de_la_pantalla` lo compara.
+**Cambio en `app/app.py`: ninguno de campos nuevos.** `aplicar_paquete` ya guarda el paquete en `resultado.paquete` y `st.session_state.resultado` lo trae; basta con `generar_cotizacion_pdf(st.session_state.resultado)` (o `paquete=resultado.paquete`). Si el botón usa el dict del ejemplo guardado sin pasar por `componer_paquete`, el PDF cae al trek solo, sin extras: hay que pasar siempre el resultado ya compuesto.
+También: "Incluye / No incluye" traducido (es/en/pt; un concepto sin traducción queda en su original), "7 days", y pie "Preparado con Abra Travel" más el contacto de la agencia solo si se pasa `contacto=` o existe `perfil.contacto_agencia` (hoy el perfil no tiene ese campo; no se usa ningún dato del viajero).
