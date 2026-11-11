@@ -25,12 +25,22 @@ Proyecto final de la Diplomatura de Ciencia de Datos para las Ciencias Sociales 
 </tr>
 </table>
 
+**Cómo cubro cada rol con agentes de IA**
+
+| Rol | Cómo lo cubro |
+| --- | --- |
+| Producto | Investigación de usuarios (2 conversaciones y una encuesta), prueba de cliente misterioso con 6 agencias y decisión del flujo principal |
+| Ingeniería | Claude Code como co-founder técnico: estructura, núcleo de IA, pruebas, app y servidor del modo nocturno |
+| Diseño | Sistema visual propio ([`docs/diseno.md`](docs/diseno.md)) aplicado en Streamlit, con capturas de revisión |
+| Ventas | Análisis de precios de mercado, plan de piloto con agencias y pitch |
+
 ## 3. Problema
 
 Escribimos a 6 agencias de trekking de Cusco (2 grandes, 2 medianas y 2 pequeñas) con el mismo mensaje en inglés, enviado por WhatsApp entre las 11:55 p. m. del 9 de noviembre y las 12:07 a. m. del 10. Ninguna persona respondió esa noche (solo una agencia envió un mensaje automático, en español): la primera respuesta humana llegó a las 8:23 a. m., entre 8 y 10 horas y media después. Solo 3 de 6 dieron el precio en el chat; las demás lo mandaron en un PDF de 11 o 12 páginas o en enlaces. 2 de 6 respondieron en español a un mensaje en inglés. Solo 1 hizo una pregunta al viajero (pidió su correo). Los precios del Salkantay que nos dieron fueron de US$ 499 a 755 por persona (mediana US$ 695). Es una prueba pequeña e ilustrativa, no una muestra representativa. Datos: [`docs/research/cliente_misterioso.csv`](docs/research/cliente_misterioso.csv).
 
 - A los viajeros les cuesta entender qué incluye y qué no cada cotización (lo dicen las 2 respuestas de la encuesta); por eso el borrador siempre lo explica.
 - De día, la agencia más rápida responde en menos de 1 hora; a medianoche, en la prueba de cliente misterioso, las agencias tardaron de 8 a 10 horas: el problema se concentra fuera de horario.
+- Vender por plataformas de reservas sale caro: Viator cobra a la agencia una comisión que suele ser de 20 a 30 % de cada reserva y se negocia con cada agencia ([guía de Ventrata para conectarse con Viator](https://support.ventrata.com/en/article/viator-reseller-connection-5aey1r/)). Responder rápido por WhatsApp permite vender directo.
 - Evidencia y sus límites (2 conversaciones informales, una encuesta con 2 respuestas y un cliente misterioso con 6 agencias): [`docs/research/`](docs/research/).
 
 ## 4. Solución e insight
@@ -93,7 +103,18 @@ Qué se ve en la app:
 
 - **Costo por consulta (medido):** cada consulta hace 2 llamadas al modelo (extraer el perfil y redactar el borrador) y usa unos 2 100 tokens de entrada y 450 de salida en total (en el ejemplo guardado: 2 097 y 452).
 - **El demo usa el nivel gratuito de Gemini** (20 solicitudes por día y por modelo; cada consulta usa 2). No incluimos el precio del nivel de pago porque no lo verificamos en la página oficial.
-- **Para la agencia:** primero un piloto gratis de 2 semanas con 3 agencias, midiendo cuántas ventas se recuperan respondiendo antes. El precio de la suscripción se definirá con esos datos.
+- **Para la agencia:** primero un piloto gratis de 2 semanas con 3 agencias, midiendo cuántas ventas se recuperan respondiendo antes.
+
+**Precios: hipótesis a validar en el piloto (todavía no validada con agencias).** Suscripción mensual, con el primer mes gratis:
+
+| Plan | Precio al mes | Incluye |
+| --- | --- | --- |
+| Básico | S/ 99 | Hasta 300 consultas |
+| Pro | S/ 249 | Hasta 1 000 consultas y tablero |
+| Agencia+ | S/ 599 | Hasta 3 000 consultas y varios vendedores |
+
+- **Argumento:** una sola venta de Salkantay recuperada al mes (US$ 600–680 por persona, precio estándar de 4 y 5 días en el tarifario demo) cubre cualquiera de los planes. Una plataforma de reservas, en cambio, se queda con 20 a 30 % de cada venta (fuente en la sección 3. Problema).
+- **Meta del piloto:** 10 agencias.
 
 ## 8. Herramientas del curso
 
