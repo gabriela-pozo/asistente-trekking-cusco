@@ -560,6 +560,10 @@ ORIGENES = {
 }
 
 
+def mayuscula(texto: str) -> str:
+    return texto[:1].upper() + texto[1:]
+
+
 @st.cache_data
 def pruebas_automaticas() -> tuple[int, int]:
     return contar_pruebas(RAIZ / "tests")
@@ -597,7 +601,7 @@ def pagina_estado() -> None:
         with c3:
             st.metric("¿Se usó el ejemplo guardado?", ORIGENES.get(origen, "Sin consulta todavía").split(":")[0],
                       border=True)
-            st.caption(ORIGENES[origen].split(": ", 1)[1].capitalize() + "."
+            st.caption(mayuscula(ORIGENES[origen].split(": ", 1)[1]) + "."
                        if origen in ORIGENES else "Todavía no se preparó ninguna respuesta.")
 
         base = version_base(CARPETA_BASE)

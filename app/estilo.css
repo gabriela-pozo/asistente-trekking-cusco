@@ -163,3 +163,7 @@ body { font-variant-numeric: tabular-nums; }
 
 /* Navegación lateral: cada página con una línea que dice para qué sirve. */
 .st-key-pagina label p { font-weight: 600; }
+/* Sin la sangría que Streamlit le pone a las listas dentro de st.html. */
+.enlaces, .puntos { padding-inline-start: 0 !important; margin-inline-start: 0 !important; }
+.enlaces li, .puntos li { margin: 0 !important; }
+.enlaces li { padding: 0; }
