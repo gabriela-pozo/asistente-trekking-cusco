@@ -2,7 +2,7 @@
 
 **Estado:** Pendiente: se graba el 11 de noviembre antes de la presentación; irá en Google Drive (acceso: cualquier persona con el enlace, rol lector).
 
-Video de respaldo: [enlace pendiente]
+Video de respaldo: [https://drive.google.com/file/d/1e4O1YQ_ANqQv4Zib9gZ6UE5Be-rKP4dj/view?usp=sharing]
 
 ## Qué muestra
 
