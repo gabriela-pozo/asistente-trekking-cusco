@@ -88,7 +88,7 @@ Las reglas de la respuesta salen de la prueba de cliente misterioso (`docs/resea
 
 **App:** [https://abra-travel.streamlit.app](https://abra-travel.streamlit.app)
 
-Video de respaldo: [enlace pendiente]
+Video de respaldo: [https://drive.google.com/file/d/1e4O1YQ_ANqQv4Zib9gZ6UE5Be-rKP4dj/view?usp=sharing)
 
 Detalle y guion del video: [docs/video/README.md](docs/video/README.md).
 
